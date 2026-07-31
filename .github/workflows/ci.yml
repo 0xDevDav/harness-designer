@@ -16,14 +16,16 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci
+      # npm install and not npm ci: the lock is written on Windows, where npm
+      # does not resolve the wasm variant of the bundler that Linux picks up,
+      # so a clean install would refuse a lock it considers out of sync
+      - run: npm install --no-audit --no-fund
 
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run format:check
       - run: npm test
 
-      # both distributions are built: the single-file one uses a different
-      # config and has broken on its own before
+      # both distributions are built: the single-file one uses a different config
       - run: npm run build
       - run: npm run build:standalone

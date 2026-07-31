@@ -47,13 +47,6 @@ browser. Il disegno vive nel tuo computer e si archivia in un file `.json` che r
 <p><em>Lo schema di esempio incluso: kit per gancio di traino a 13 poli ISO 11446, con tabelle cavità, note, revisioni e cartiglio</em></p>
 </div>
 
-<div align="center">
-<img src="docs/images/mobile.png" alt="Menù offcanvas su telefono" width="300">
-&nbsp;&nbsp;
-<img src="docs/images/check-panel.png" alt="Rapporto di verifica" width="380">
-<p><em>Il menù offcanvas su telefono e il rapporto di verifica</em></p>
-</div>
-
 ## 🚀 Avvio rapido
 
 Serve Node 20 o superiore, e solo per compilare: quello che esce è statico.

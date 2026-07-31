@@ -47,13 +47,6 @@ your own computer and is archived as a `.json` file you own.
 <p><em>The sample drawing that ships with it: a 13-pin ISO 11446 towbar kit, with cavity tables, notes, revisions and title block</em></p>
 </div>
 
-<div align="center">
-<img src="docs/images/mobile.png" alt="Offcanvas menu on a phone" width="300">
-&nbsp;&nbsp;
-<img src="docs/images/check-panel.png" alt="Consistency check report" width="380">
-<p><em>Offcanvas menu on a phone, and the consistency check report</em></p>
-</div>
-
 ## 🚀 Quick start
 
 Node 20 or newer, and only to build: what comes out is static.
