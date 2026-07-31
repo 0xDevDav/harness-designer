@@ -36,7 +36,18 @@ const STRAND_W = 2.2;
  * strands of similar colour merge into one thick line: the gap between wires
  * has to be drawn, not merely left.
  */
-const CASING_W = STRAND_W + 1.8;
+const CASING_MARGIN = 1.8;
+/**
+ * Narrowest a single band may be drawn on a wire of three colours or more.
+ *
+ * Its share of a two-colour width would be a smear, so the wire widens to fit —
+ * up to the lane pitch, past which it would touch its neighbour. A wire of many
+ * colours therefore comes out slightly fatter, which is fair warning that there
+ * is more to read on it.
+ */
+const BAND_MIN = 0.95;
+/** Thin edge round a banded wire, so its outermost band has one. */
+const BAND_EDGE = 0.7;
 /**
  * Radius of the fillet where a run changes direction.
  *
@@ -720,16 +731,56 @@ export function drawWirePreview(doc: HarnessDoc, sel: Selection | null, parent: 
       const d = roundedPath(corners);
       if (!d) return;
 
+      const width = bands.length >= 3 ? Math.min(STRAND_GAP, bands.length * BAND_MIN) : STRAND_W;
       const stroke = { d, fill: "none", "pointer-events": "none", "stroke-linecap": "round" };
-      el("path", { ...stroke, stroke: palette().paper, "stroke-width": CASING_W }, parent);
-      el("path", { ...stroke, stroke: base, "stroke-width": STRAND_W }, parent);
+      el("path", { ...stroke, stroke: palette().paper, "stroke-width": width + CASING_MARGIN }, parent);
 
       // A tracer is a second colour on the same wire, drawn as a fine core along
       // the base rather than as dashes: at this size dashes turn into speckle and
-      // a bundle of striped wires reads as static.
-      if (bands[1]) {
-        el("path", { ...stroke, stroke: bands[1], "stroke-width": STRAND_W * 0.45 }, parent);
+      // a bundle of striped wires reads as static. It is also what a two-colour
+      // wire looks like — a base with a stripe down it — so the drawing and the
+      // thing agree.
+      if (bands.length <= 2) {
+        el("path", { ...stroke, stroke: base, "stroke-width": STRAND_W }, parent);
+        if (bands[1]) {
+          el("path", { ...stroke, stroke: bands[1], "stroke-width": STRAND_W * 0.45 }, parent);
+        }
+        return;
       }
+
+      // Three colours or more have no base and no tracer: they are bands, and
+      // the only honest way to draw them is as bands. Laid along the wire and
+      // side by side across it, so each is visible for the whole length instead
+      // of the third and fourth being dropped, which is what used to happen —
+      // "white,yellow,red,white" was drawn exactly like "white,yellow".
+      //
+      // They are the same offset the strand already knows how to take, so each
+      // band is the run shifted by its own share of the width and stays parallel
+      // to its neighbours round every corner.
+      //
+      // A thin edge under them all, because a white band against the sheet
+      // colour of the casing has no edge of its own: "white,yellow,red,white"
+      // would read as a yellow and a red one floating with nothing round them.
+      el("path", { ...stroke, stroke: palette().swatchBorder, "stroke-width": width + BAND_EDGE }, parent);
+
+      const each = width / bands.length;
+      bands.forEach((color, k) => {
+        const shift = (k - (bands.length - 1) / 2) * each;
+        const path = roundedPath(strandCorners(piece, (i) => gap(i) + shift, sides));
+        if (!path) return;
+        el(
+          "path",
+          {
+            d: path,
+            fill: "none",
+            "pointer-events": "none",
+            "stroke-linecap": "butt",
+            stroke: color,
+            "stroke-width": each,
+          },
+          parent,
+        );
+      });
     });
   }
   return wanted.length;
