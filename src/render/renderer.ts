@@ -21,7 +21,7 @@ import { drawTable, tableSize } from "./tables";
 import { checkWireEnds } from "@/core/wireends";
 import { el, text, textWidth } from "./svg";
 import { palette, withPaper } from "./palette";
-import { drawWirePreview } from "./wires";
+import { BEND_R, drawWirePreview } from "./wires";
 
 /* ---------------- rendering constants ---------------- */
 
@@ -30,18 +30,12 @@ const W_OUTER = 9;
 const W_INNER = 5.5;
 const W_HIT = 16;
 /**
- * Radius of the fillet where a branch changes direction.
- *
- * Only where exactly two branches meet, which is a bend in one run rather than
- * a junction. Where three or more meet the boot is the fitting, and a fillet
- * under it would be invisible anyway.
- *
- * Wire is stiff: it has a bend radius, and a harness laid on a board turns in a
- * curve. Drawing that turn as a square corner is the reason strands offset from
- * the run needed a special case at every node, and the reason the drawing never
- * looked like the thing it represents.
+ * The fillet at a change of direction is only drawn where exactly two branches
+ * meet, which is a bend in one run rather than a junction. Where three or more
+ * meet the boot is the fitting, and a fillet under it would be invisible
+ * anyway. Its radius comes from `wires.ts`, because the strands are drawn on
+ * the same one and the two have to agree.
  */
-const BEND_R = 16;
 /** Radius of the invisible circle that makes a junction grabbable. */
 const NODE_HIT_R = 11;
 const MIN_ZOOM = 0.15;
