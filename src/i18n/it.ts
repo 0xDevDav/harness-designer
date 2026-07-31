@@ -431,6 +431,8 @@ export const it = {
   "toast.pluginLoaded": "Plugin «{name}» caricato",
   "toast.pluginFailed": "Plugin «{name}» non caricato: {error}",
   "toast.offlineReady": "Applicazione disponibile anche offline",
+  "toast.updateReady": "È pronta una versione più recente",
+  "toast.updateReload": "Ricarica",
   "toast.wirelistUpdated": "Distinta fili aggiornata: {n} fili",
   "toast.nodesMerged": "Uniti {n} nodi in uno",
   "toast.mated": "{a} e {b} accoppiati: le cavità dello stesso numero sono lo stesso punto",

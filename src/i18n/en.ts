@@ -425,6 +425,8 @@ export const en = {
   "toast.pluginLoaded": "Plugin “{name}” loaded",
   "toast.pluginFailed": "Plugin “{name}” failed to load: {error}",
   "toast.offlineReady": "Application available offline too",
+  "toast.updateReady": "A newer version is ready",
+  "toast.updateReload": "Reload",
   "toast.wirelistUpdated": "Wire list updated: {n} wires",
   "toast.nodesMerged": "{n} nodes merged into one",
   "toast.mated": "{a} and {b} mated: cavities of the same number are the same point",

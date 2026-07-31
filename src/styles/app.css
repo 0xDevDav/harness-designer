@@ -834,6 +834,20 @@ body {
   max-width: 80vw;
   font-size: 12.5px;
 }
+.toast__action {
+  margin-left: 10px;
+  padding: 3px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.toast__action:hover {
+  background: var(--accent-strong);
+}
 .toast--error {
   background: var(--danger-bg);
   border-color: var(--danger-bd);

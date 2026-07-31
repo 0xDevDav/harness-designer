@@ -315,13 +315,59 @@ void app.plugins.loadAll().then(() => app.refreshUi());
 
 /* ---------------- funzionamento offline ---------------- */
 
+/**
+ * Offers the update once one is ready and waiting.
+ *
+ * The service worker deliberately does not take over by itself: a tab must not
+ * change version under someone in the middle of drawing. The cost of that is
+ * that an update sits there in silence, and the only way to reach it is to
+ * close every tab of the site — which nobody does, because nobody was told.
+ * So it says so, and the reload happens when the offer is accepted.
+ */
+function offerUpdate(registration: ServiceWorkerRegistration): void {
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!reloading) return;
+    reloading = false;
+    location.reload();
+  });
+
+  const ready = (waiting: ServiceWorker | null): void => {
+    // no controller yet means this is the first visit, not an update: there is
+    // nothing to replace and nothing worth interrupting anyone about
+    if (!waiting || !navigator.serviceWorker.controller) return;
+    toast.show(t("toast.updateReady"), {
+      duration: 0,
+      action: {
+        label: t("toast.updateReload"),
+        run: () => {
+          reloading = true;
+          waiting.postMessage({ type: "SKIP_WAITING" });
+        },
+      },
+    });
+  };
+
+  ready(registration.waiting);
+  registration.addEventListener("updatefound", () => {
+    const installing = registration.installing;
+    if (!installing) return;
+    installing.addEventListener("statechange", () => {
+      if (installing.state === "installed") ready(registration.waiting);
+    });
+  });
+}
+
 // opened from file:// (the single-file copy) there is nothing to cache, and
 // service workers are not even allowed on that protocol
 if ("serviceWorker" in navigator && import.meta.env.PROD && location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(new URL("sw.js", document.baseURI).href).catch(() => {
-      // a missing service worker does not affect use while online
-    });
+    navigator.serviceWorker
+      .register(new URL("sw.js", document.baseURI).href)
+      .then(offerUpdate)
+      .catch(() => {
+        // a missing service worker does not affect use while online
+      });
   });
 }
 

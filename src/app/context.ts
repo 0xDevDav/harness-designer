@@ -45,6 +45,14 @@ export interface ToastOptions {
   kind?: "info" | "error";
   /** duration in milliseconds, 3200 by default */
   duration?: number;
+  /**
+   * One thing the message offers to do.
+   *
+   * A message carrying an action waits instead of timing out: an offer that
+   * disappears before it is read is not an offer. It goes when the action is
+   * taken, or when the message itself is clicked to send it away.
+   */
+  action?: { label: string; run: () => void };
 }
 
 export interface ToastApi {

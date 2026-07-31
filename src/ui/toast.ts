@@ -63,6 +63,27 @@ export function createToasts(host: HTMLElement): ToastApi {
     const el = document.createElement("div");
     el.className = kind === "error" ? "toast toast--error" : "toast";
     el.textContent = message;
+
+    const action = options?.action;
+    if (action) {
+      // the container ignores the pointer so a message never sits in the way of
+      // the drawing; one that asks to be clicked has to take it back
+      el.style.pointerEvents = "auto";
+      el.title = "";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "toast__action";
+      button.textContent = action.label;
+      button.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        dismiss(el, false);
+        action.run();
+      });
+      el.append(button);
+      // clicking the message itself is how it is sent away unanswered
+      el.addEventListener("click", () => dismiss(el, true));
+    }
+
     host.append(el);
     live.push(el);
 
@@ -74,6 +95,8 @@ export function createToasts(host: HTMLElement): ToastApi {
       dismiss(oldest, false);
     }
 
+    // a message offering something waits to be answered rather than timing out
+    if (action) return;
     timers.set(
       el,
       window.setTimeout(() => dismiss(el, true), duration),
