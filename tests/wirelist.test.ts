@@ -126,7 +126,10 @@ describe("buildWireList", () => {
       ["A", "B"],
       [{ id: "ta", node: "a", rows: [["1", "B.1", "Retromarcia", "rosa", "1.5 mm²"]] }],
     );
-    expect(wireListRows(buildWireList(doc))).toEqual([["1", "A.1", "B.1", "Retromarcia", "rosa", "1.5 mm²"]]);
+    // the last cell is the cut length: blank here, because nothing was routed
+    expect(wireListRows(buildWireList(doc))).toEqual([
+      ["1", "A.1", "B.1", "Retromarcia", "rosa", "1.5 mm²", ""],
+    ]);
   });
 
   it("produces no rows on a document with no cavity tables", () => {
@@ -174,11 +177,11 @@ describe("wireListCsv", () => {
   });
 
   it("can be read back by parseCsv", () => {
-    const csv = wireListCsv(rows, ["N.", "Da", "A", "Funzione", "Colore", "Sezione"]);
-    const back = parseCsv(csv);
-    expect(back[0]).toEqual(["N.", "Da", "A", "Funzione", "Colore", "Sezione"]);
-    expect(back[1]).toEqual(["1", "A.1", "B.1", 'Luce "targa"', "bianco", "1.5 mm²"]);
-    expect(back[2]).toEqual(["2", "A.2", "B.2", "Stop; freno", "rosso", "1.5 mm²"]);
+    const head = ["N.", "Da", "A", "Funzione", "Colore", "Sezione", "Lunghezza"];
+    const back = parseCsv(wireListCsv(rows, head));
+    expect(back[0]).toEqual(head);
+    expect(back[1]).toEqual(["1", "A.1", "B.1", 'Luce "targa"', "bianco", "1.5 mm²", ""]);
+    expect(back[2]).toEqual(["2", "A.2", "B.2", "Stop; freno", "rosso", "1.5 mm²", ""]);
   });
 });
 

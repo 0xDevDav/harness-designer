@@ -7,7 +7,8 @@
  */
 import type { AppContext, Exporter } from "@/app/context";
 import { wireListHeadings } from "@/core/factories";
-import { buildWireList, wireListCsv } from "@/core/wirelist";
+import { wireRowsWithLength } from "@/core/routing";
+import { wireListCsv } from "@/core/wirelist";
 import { documentFileName, downloadBlob } from "@/io/file";
 
 /** The PNG comes out at twice the drawing size, so it stays readable zoomed in. */
@@ -98,7 +99,7 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
 /* ---------------- wire list ---------------- */
 
 export function exportWireCsv(app: AppContext): void {
-  const rows = buildWireList(app.doc);
+  const rows = wireRowsWithLength(app.doc);
   if (rows.length === 0) {
     app.toast.error(app.t("wirelist.empty"));
     return;

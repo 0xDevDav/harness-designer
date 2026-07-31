@@ -1,4 +1,5 @@
 import { cavityTables, cell, resolveDest } from "./doc";
+import { formatLengthMm } from "./length";
 import type { HarnessDoc, WireRow } from "./types";
 
 /** Values that mean "not connected" and produce no wire. */
@@ -39,9 +40,23 @@ export function buildWireList(doc: HarnessDoc): WireRow[] {
   return rows;
 }
 
+/**
+ * A wire list row as cells. The cut length is left blank rather than guessed
+ * when it is unknown, so a blank in that column reads as "measure it", never as
+ * zero.
+ */
+const wireCells = (r: WireRow): string[] => [
+  String(r.index),
+  r.from,
+  r.to,
+  r.func,
+  r.color,
+  r.section,
+  r.lengthMm === undefined ? "" : formatLengthMm(r.lengthMm),
+];
+
 /** Wire list rows in the sheet's own table format. */
-export const wireListRows = (rows: WireRow[]): string[][] =>
-  rows.map((r) => [String(r.index), r.from, r.to, r.func, r.color, r.section]);
+export const wireListRows = (rows: WireRow[]): string[][] => rows.map(wireCells);
 
 /**
  * Wire list as CSV with `;` separator and a leading BOM, which is what a
@@ -50,9 +65,7 @@ export const wireListRows = (rows: WireRow[]): string[][] =>
 export function wireListCsv(rows: WireRow[], headings: string[]): string {
   const escape = (v: string): string => (/[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   const lines = [headings.map(escape).join(";")];
-  for (const r of rows) {
-    lines.push([String(r.index), r.from, r.to, r.func, r.color, r.section].map(escape).join(";"));
-  }
+  for (const r of rows) lines.push(wireCells(r).map(escape).join(";"));
   return "\uFEFF" + lines.join("\r\n");
 }
 

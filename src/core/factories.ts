@@ -72,4 +72,5 @@ export const wireListHeadings = (t: Translate): string[] => [
   t("table.head.function"),
   t("table.head.color"),
   t("table.head.section"),
+  t("table.head.length"),
 ];

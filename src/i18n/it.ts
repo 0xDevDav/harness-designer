@@ -272,6 +272,7 @@ export const it = {
   "table.head.conductor": "Conduttore",
   "table.head.color": "Colore",
   "table.head.section": "Sezione",
+  "table.head.length": "Lunghezza",
   "table.head.contactPn": "PN contatto",
   "table.head.notes": "Note",
   "table.head.function": "Funzione",
@@ -315,6 +316,8 @@ export const it = {
   "validate.colorMismatch": "Filo {from} ↔ {dest}: colore discorde ({a} / {b})",
   "validate.sectionMismatch": "Filo {from} ↔ {dest}: sezione discorde ({a} / {b})",
   "validate.wireTooManyEnds": "Colore {color} presente in {n} connettori ({list}): un filo ha due soli capi",
+  "validate.wireUnreachable":
+    "Filo {from} → {to}: i due connettori esistono ma nessun ramo li collega, il filo non è realizzabile",
   "validate.unnamedConnector": "Connettore senza nome: non può comparire nella distinta fili",
   "validate.tableWithoutNode": "Tabella «{title}»: nessun connettore corrispondente nello schema",
 

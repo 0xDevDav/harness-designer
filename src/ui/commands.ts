@@ -16,7 +16,8 @@ import { cavityTable, notesTable, revisionsTable, titleBlock, wireListHeadings }
 import { sampleDoc } from "@/core/sample";
 import type { Point, Table } from "@/core/types";
 import { validateDoc } from "@/core/validate";
-import { buildWireList, wireListRows } from "@/core/wirelist";
+import { wireRowsWithLength } from "@/core/routing";
+import { wireListRows } from "@/core/wirelist";
 import { getLocale, locales, setLocale } from "@/i18n";
 import { exportPngFile, exportSvgFile, exportWireCsv, printDrawing } from "@/io/exporters";
 import { saveDocToFile } from "@/io/file";
@@ -205,7 +206,7 @@ function insertTable(app: AppContext, table: Table): void {
  */
 function refreshWireList(app: AppContext): void {
   const t = app.t;
-  const wires = buildWireList(app.doc);
+  const wires = wireRowsWithLength(app.doc);
   if (wires.length === 0) {
     app.toast.show(t("wirelist.empty"));
     return;

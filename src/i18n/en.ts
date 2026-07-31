@@ -267,6 +267,7 @@ export const en = {
   "table.head.conductor": "Conductor",
   "table.head.color": "Colour",
   "table.head.section": "Section",
+  "table.head.length": "Length",
   "table.head.contactPn": "Contact PN",
   "table.head.notes": "Notes",
   "table.head.function": "Function",
@@ -310,6 +311,8 @@ export const en = {
   "validate.colorMismatch": "Wire {from} ↔ {dest}: colours disagree ({a} / {b})",
   "validate.sectionMismatch": "Wire {from} ↔ {dest}: sections disagree ({a} / {b})",
   "validate.wireTooManyEnds": "Colour {color} appears in {n} connectors ({list}): a wire has only two ends",
+  "validate.wireUnreachable":
+    "Wire {from} → {to}: both connectors exist but no branch joins them, so the wire cannot be built",
   "validate.unnamedConnector": "Unnamed connector: it cannot appear in the wire list",
   "validate.tableWithoutNode": "Table “{title}”: no matching connector in the drawing",
 

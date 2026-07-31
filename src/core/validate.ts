@@ -1,5 +1,6 @@
 import { cavityTables, cell, findNode, nodeForTable, resolveDest } from "./doc";
 import type { CavityTable } from "./doc";
+import { routeWires } from "./routing";
 import { checkWireEnds } from "./wireends";
 import { wireColorKey } from "./colors";
 import type { HarnessDoc, Issue } from "./types";
@@ -286,12 +287,38 @@ const wireEnds: ValidationRule = {
   },
 };
 
+/**
+ * A wire the tables describe but the drawing cannot carry: both connectors
+ * exist, and no chain of branches joins them.
+ *
+ * The other rules compare tables against tables. This one is the first to check
+ * the tables against the drawing, which is where the mistake usually hides: a
+ * pin-out gets filled in for a connector whose branch was never drawn, and
+ * everything reads as consistent because the two tables agree with each other.
+ */
+const wireRouting: ValidationRule = {
+  id: "wire-routing",
+  run({ doc, t }) {
+    const issues: Issue[] = [];
+    for (const route of routeWires(doc)) {
+      if (!route.unreachable) continue;
+      issues.push({
+        rule: "wire-routing",
+        severity: "error",
+        message: t("validate.wireUnreachable", { from: route.wire.from, to: route.wire.to }),
+      });
+    }
+    return issues;
+  },
+};
+
 export const builtinRules: ValidationRule[] = [
   noteReferences,
   duplicateTables,
   duplicateCavities,
   crossReferences,
   wireEnds,
+  wireRouting,
   drawingHygiene,
 ];
 

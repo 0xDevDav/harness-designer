@@ -132,4 +132,11 @@ export interface WireRow {
   func: string;
   color: string;
   section: string;
+  /**
+   * Cut length in millimetres, summed over the branches the wire runs through.
+   * Absent when the route is unknown or any branch on the way carries no
+   * readable length: an unknown length has to stay visibly unknown, because a
+   * wire cut to a guessed figure is scrap.
+   */
+  lengthMm?: number;
 }
