@@ -15,6 +15,12 @@ updates:
       dev-dependencies:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+    ignore:
+      # typescript-eslint pins its peer to typescript <6.1, so a major bump
+      # cannot install at all: npm fails before a single check runs. Reopen this
+      # when typescript-eslint supports the next major, and delete this entry.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: chore
 
