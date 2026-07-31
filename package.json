@@ -1,6 +1,6 @@
 {
   "name": "harness-designer",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Visual editor for automotive wiring harness (formboard) drawings. Static site, no backend, no runtime dependencies.",
   "license": "MIT",
   "type": "module",
