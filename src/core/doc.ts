@@ -429,6 +429,77 @@ export function splitSegment(doc: HarnessDoc, seg: Segment, t: number): HNode | 
   return mid;
 }
 
+/**
+ * Merges several nodes into one, which keeps its place on the sheet.
+ *
+ * This is the way out of the two situations a formboard gets into on its own: a
+ * junction drawn twice a few millimetres apart, and two runs that were meant to
+ * meet and never quite did. Both look joined and behave as though they are not,
+ * because routing follows branches and not proximity — so the fix has to be an
+ * edit to the drawing rather than a tolerance in the reader.
+ *
+ * Branches follow their ends over to the survivor. One that ends up with both
+ * ends on it was the branch *between* two of the merged nodes: it has no length
+ * left to have, so it goes, and so do its labels. A branch that ends up
+ * doubling one already there goes the same way, because two runs between the
+ * same pair of nodes are one run drawn twice.
+ *
+ * The survivor keeps its own name, and takes one only if it has none: merging
+ * an unnamed junction into a connector must not cost the connector its
+ * identity, and doing it the other way round must not throw the name away.
+ *
+ * Returns how many nodes disappeared.
+ */
+export function mergeNodes(doc: HarnessDoc, ids: readonly string[], intoId: string): number {
+  const survivor = findNode(doc, intoId);
+  if (!survivor) return 0;
+  const gone = new Set(ids.filter((id) => id !== intoId && findNode(doc, id)));
+  if (!gone.size) return 0;
+
+  // the survivor may be about to inherit an identity, so read it while the
+  // nodes it could come from are still there
+  const donor = doc.nodes.find((n) => gone.has(n.id) && n.name.trim());
+
+  for (const s of doc.segments) {
+    if (gone.has(s.a)) s.a = intoId;
+    if (gone.has(s.b)) s.b = intoId;
+  }
+
+  const dropped = new Set<string>();
+  const pairs = new Set<string>();
+  for (const s of doc.segments) {
+    const pair = [s.a, s.b].sort().join(" ");
+    if (s.a === s.b || pairs.has(pair)) dropped.add(s.id);
+    else pairs.add(pair);
+  }
+  doc.segments = doc.segments.filter((s) => !dropped.has(s.id));
+  doc.inlines = doc.inlines.filter((i) => !dropped.has(i.seg));
+
+  if (!survivor.name.trim() && donor) {
+    survivor.name = donor.name;
+    survivor.kind = donor.kind;
+    survivor.style = donor.style;
+    if (!survivor.refs.trim()) survivor.refs = donor.refs;
+  }
+
+  // A cavity table follows its connector, unless the survivor already has one:
+  // two tables claiming one connector would leave the second one silently
+  // ignored, so it keeps its place on the sheet and merely stops claiming.
+  let taken = doc.tables.some((t) => t.node === intoId);
+  for (const table of doc.tables) {
+    if (!table.node || !gone.has(table.node)) continue;
+    if (taken) delete table.node;
+    else {
+      table.node = intoId;
+      taken = true;
+    }
+  }
+
+  doc.nodes = doc.nodes.filter((n) => !gone.has(n.id));
+  normalizeConnectors(doc);
+  return gone.size;
+}
+
 /** Deletes an element and everything that depends on it. */
 export function deleteEntity(doc: HarnessDoc, type: string, id: string): void {
   if (type === "node") {

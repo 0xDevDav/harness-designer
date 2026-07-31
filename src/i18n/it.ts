@@ -114,11 +114,12 @@ export const it = {
 
   /* ---------------- canvas hints ---------------- */
   "hint.select":
-    "Tasto destro per il menù azioni — trascina gli elementi per spostarli, trascina il vuoto per la vista, rotella per lo zoom",
+    "Tasto destro per il menù azioni — trascina gli elementi per spostarli, Ctrl+clic per sceglierne più di uno, trascina il vuoto per la vista, rotella per lo zoom",
   "hint.branch":
     "Disegno ramo — clic per aggiungere punti, clic su un nodo per collegarti; Esc, doppio clic o tasto destro per terminare",
 
   /* ---------------- context menu ---------------- */
+  "menu.mergeNodes": "⇥ Unisci {n} nodi qui",
   "menu.branchFrom": "➤ Inizia ramo da qui",
   "menu.branchHere": "➤ Inizia un ramo qui",
   "menu.terminalHeader": "Trasforma in terminale",
@@ -421,6 +422,7 @@ export const it = {
   "toast.pluginFailed": "Plugin «{name}» non caricato: {error}",
   "toast.offlineReady": "Applicazione disponibile anche offline",
   "toast.wirelistUpdated": "Distinta fili aggiornata: {n} fili",
+  "toast.nodesMerged": "Uniti {n} nodi in uno",
   "toast.tableLinked": "Tabella collegata a {name}",
   "toast.autoLinked": "Collegato in automatico: {target}",
   "toast.autoLinkUpdated": "Aggiornato anche l'altro capo {target}: {fields}",

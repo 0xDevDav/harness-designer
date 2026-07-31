@@ -29,6 +29,15 @@ const HISTORY_BYTES = 24 * 1024 * 1024;
 export class Store {
   doc: HarnessDoc = emptyDoc();
   selection: Selection | null = null;
+  /**
+   * Anything picked with Ctrl on top of `selection`, newest last.
+   *
+   * The single selection stays exactly what it was, and this sits beside it, so
+   * everything built around one selected element — the strand preview, in-place
+   * editing, the plugin API — carries on reading `selection` and never has to
+   * ask whether it is looking at a list.
+   */
+  also: Selection[] = [];
   view: Viewport = { x: 0, y: 0, k: 1 };
   tool: ToolName = "select";
   snapEnabled = true;
@@ -162,16 +171,21 @@ export class Store {
 
   /** After undo or redo the selection may point at an element that is gone. */
   private dropDanglingSelection(): void {
-    const sel = this.selection;
-    if (!sel) return;
     const pools = {
       node: this.doc.nodes,
       segment: this.doc.segments,
       inline: this.doc.inlines,
       table: this.doc.tables,
     } as const;
-    const exists = pools[sel.type].some((e: { id: string }) => e.id === sel.id);
-    if (!exists) this.select(null, { silent: true });
+    const exists = (s: Selection): boolean => pools[s.type].some((e: { id: string }) => e.id === s.id);
+    this.also = this.also.filter(exists);
+    if (this.selection && !exists(this.selection)) {
+      // the primary went, but Ctrl may have gathered survivors worth keeping
+      const rest = this.also;
+      this.selection = rest[0] ?? null;
+      this.also = rest.slice(1);
+      this.emit("selection", { selection: this.selection });
+    }
   }
 
   /* ---------------- document ---------------- */
@@ -188,6 +202,7 @@ export class Store {
     }
     this.doc = next;
     this.selection = null;
+    this.also = [];
     this.liveSnapshot = null;
     this.persist?.(this.doc);
     this.emit("load", { doc: next });
@@ -203,14 +218,45 @@ export class Store {
 
   select(selection: Selection | null, options: { silent?: boolean } = {}): void {
     const same =
-      (selection === null && this.selection === null) ||
-      (selection !== null &&
-        this.selection !== null &&
-        selection.type === this.selection.type &&
-        selection.id === this.selection.id);
+      !this.also.length &&
+      ((selection === null && this.selection === null) ||
+        (selection !== null &&
+          this.selection !== null &&
+          selection.type === this.selection.type &&
+          selection.id === this.selection.id));
     this.selection = selection;
+    // an ordinary click is a fresh start: whatever Ctrl had gathered goes
+    this.also = [];
     if (same || options.silent) return;
     this.emit("selection", { selection });
+    this.emit("doc", { reason: "selection" });
+  }
+
+  /** Everything selected, the primary one first. */
+  selected(): Selection[] {
+    return this.selection ? [this.selection, ...this.also] : [];
+  }
+
+  isSelected(selection: Selection): boolean {
+    return this.selected().some((s) => s.type === selection.type && s.id === selection.id);
+  }
+
+  /**
+   * Adds an element to the selection, or takes it out if it was already in.
+   *
+   * Whatever is added becomes the primary one, because that is the element the
+   * pointer is on and so the one every menu and preview should be about.
+   */
+  toggle(selection: Selection): void {
+    const rest = this.selected().filter((s) => !(s.type === selection.type && s.id === selection.id));
+    if (rest.length === this.selected().length) {
+      this.selection = selection;
+      this.also = rest;
+    } else {
+      this.selection = rest[0] ?? null;
+      this.also = rest.slice(1);
+    }
+    this.emit("selection", { selection: this.selection });
     this.emit("doc", { reason: "selection" });
   }
 

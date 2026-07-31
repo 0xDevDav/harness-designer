@@ -15,6 +15,7 @@ import {
   findSegment,
   findTable,
   isTerminalNode,
+  mergeNodes,
   nextName,
   nodeForTable,
   renameNode,
@@ -76,10 +77,22 @@ function itemsForTarget(app: AppContext, target: Selection, world: Point, cell?:
 
 function nodeItems(app: AppContext, id: string): MenuItem[] {
   const t = app.t;
-  const items: MenuItem[] = [
-    { label: t("menu.branchFrom"), shortcut: "B", run: () => startBranchFrom(app, id) },
-    { separator: true },
-  ];
+  const items: MenuItem[] = [];
+
+  // The action the group was gathered for comes first, and only while there is
+  // a group: an entry that is greyed out nine times out of ten teaches nothing
+  // about how to reach the tenth.
+  const group = selectedNodes(app, id);
+  if (group.length > 1) {
+    items.push({
+      label: t("menu.mergeNodes", { n: group.length }),
+      run: () => mergeSelectedNodes(app, group, id),
+    });
+    items.push({ separator: true });
+  }
+
+  items.push({ label: t("menu.branchFrom"), shortcut: "B", run: () => startBranchFrom(app, id) });
+  items.push({ separator: true });
 
   if (isTerminalNode(app.doc, id)) {
     items.push({ header: t("menu.terminalHeader") });
@@ -129,6 +142,28 @@ function nodeItems(app: AppContext, id: string): MenuItem[] {
   items.push({ label: t("menu.coordinates"), run: () => void coordinatesFlow(app, id) });
   items.push({ label: t("menu.deleteNode"), danger: true, run: () => removeEntity(app, "node", id) });
   return items;
+}
+
+/**
+ * The nodes the menu should act on: those selected, provided the one clicked is
+ * among them. Right-clicking outside the group has already replaced it, so this
+ * only ever falls back when a menu outlives the selection it was built from.
+ */
+function selectedNodes(app: AppContext, id: string): string[] {
+  const ids = app.store
+    .selected()
+    .filter((s) => s.type === "node" && findNode(app.doc, s.id))
+    .map((s) => s.id);
+  return ids.includes(id) ? ids : [id];
+}
+
+function mergeSelectedNodes(app: AppContext, ids: readonly string[], intoId: string): void {
+  let merged = 0;
+  editDoc(app, (doc) => (merged = mergeNodes(doc, ids, intoId)), "merge-nodes");
+  if (!merged) return;
+  // the group is gone, and what is left is the one node it became
+  app.store.select({ type: "node", id: intoId });
+  app.toast.show(app.t("toast.nodesMerged", { n: merged + 1 }));
 }
 
 /** Exact coordinates: dragging is almost always enough, but not for dimensioning. */

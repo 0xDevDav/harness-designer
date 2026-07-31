@@ -279,6 +279,14 @@ export function attachInteraction(opts: {
       return;
     }
 
+    // Ctrl gathers several nodes for the actions that need more than one, and
+    // starts no drag: dragging a group would be a different feature, and doing
+    // it by accident while collecting the group is worse than not having it.
+    if (ev.ctrlKey || ev.metaKey) {
+      store.toggle(target);
+      return;
+    }
+
     store.select(target);
     const base = { pointerId: ev.pointerId, id: target.id, sx: ev.clientX, sy: ev.clientY, live: false };
     if (target.type === "node") {
@@ -421,7 +429,10 @@ export function attachInteraction(opts: {
       const nearId = renderer.nodeNear(world, snapRadius());
       if (nearId) target = { type: "node", id: nearId };
     }
-    if (target) store.select(target);
+    // right-clicking inside a group keeps the group: the menu is being opened
+    // to act on it, and collapsing it to one element would undo the gathering
+    // the user just did
+    if (target && !store.isSelected(target)) store.select(target);
     opts.onContextMenu(target, world, ev);
   };
 

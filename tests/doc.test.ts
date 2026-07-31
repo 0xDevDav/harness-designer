@@ -9,6 +9,7 @@ import {
   findNode,
   findSegment,
   findTable,
+  mergeNodes,
   nextName,
   nodeForTable,
   normalizeConnectors,
@@ -495,6 +496,102 @@ describe("columns and names", () => {
     const found = cavityTables(doc);
     expect(found.map((c) => c.table.id)).toEqual(["buona"]);
     expect(found[0]?.owner).toBe("C1");
+  });
+
+  describe("mergeNodes", () => {
+    /** Two junctions a hair apart, each with a branch of its own going out. */
+    const twoJunctions = (): HarnessDoc =>
+      normalizeDoc({
+        nodes: [
+          { id: "left", x: 0, y: 0, name: "" },
+          { id: "right", x: 4, y: 0, name: "" },
+          { id: "a", x: -100, y: 0, kind: "connector", name: "A" },
+          { id: "b", x: 100, y: 0, kind: "connector", name: "B" },
+        ],
+        segments: [
+          { id: "sa", a: "a", b: "left", len: "100 mm" },
+          { id: "sb", a: "right", b: "b", len: "100 mm" },
+        ],
+      });
+
+    it("moves every branch onto the survivor, which keeps its place", () => {
+      const doc = twoJunctions();
+      expect(mergeNodes(doc, ["left", "right"], "left")).toBe(1);
+      expect(doc.nodes.map((n) => n.id)).toEqual(["left", "a", "b"]);
+      expect(findNode(doc, "left")).toMatchObject({ x: 0, y: 0 });
+      expect(doc.segments.map((s) => [s.a, s.b])).toEqual([
+        ["a", "left"],
+        ["left", "b"],
+      ]);
+    });
+
+    it("drops the branch that ran between the merged nodes, and its labels", () => {
+      const doc = twoJunctions();
+      doc.segments.push({ id: "gap", a: "left", b: "right", len: "4 mm", refs: "" });
+      addInline(doc, "gap", 0.5, "COR");
+      expect(mergeNodes(doc, ["left", "right"], "left")).toBe(1);
+      expect(findSegment(doc, "gap")).toBeUndefined();
+      expect(doc.inlines).toHaveLength(0);
+    });
+
+    it("keeps one branch where merging would have drawn the same run twice", () => {
+      const doc = normalizeDoc({
+        nodes: [
+          { id: "left", x: 0, y: 0 },
+          { id: "right", x: 4, y: 0 },
+          { id: "far", x: 100, y: 0 },
+        ],
+        segments: [
+          { id: "s1", a: "left", b: "far", len: "100 mm" },
+          { id: "s2", a: "right", b: "far", len: "99 mm" },
+        ],
+      });
+      expect(mergeNodes(doc, ["left", "right"], "left")).toBe(1);
+      expect(doc.segments.map((s) => s.id)).toEqual(["s1"]);
+    });
+
+    it("takes a name only when the survivor has none", () => {
+      const doc = twoJunctions();
+      const right = findNode(doc, "right")!;
+      right.name = "C9";
+      right.kind = "connector";
+      right.style = "faston";
+
+      const inherit = normalizeDoc(doc);
+      expect(mergeNodes(inherit, ["left", "right"], "left")).toBe(1);
+      expect(findNode(inherit, "left")).toMatchObject({ name: "C9", style: "faston" });
+
+      // the other way round the name has to survive the merge just the same
+      const keep = normalizeDoc(doc);
+      expect(mergeNodes(keep, ["left", "right"], "right")).toBe(1);
+      expect(findNode(keep, "right")?.name).toBe("C9");
+    });
+
+    it("hands the cavity table over, but never gives one connector two", () => {
+      const doc = normalizeDoc({
+        nodes: [
+          { id: "keep", x: 0, y: 0, kind: "connector", name: "C1" },
+          { id: "gone", x: 4, y: 0, kind: "connector", name: "C2" },
+          { id: "third", x: 8, y: 0, kind: "connector", name: "C3" },
+        ],
+        tables: [
+          { id: "t2", node: "gone", x: 0, y: 0, kind: "table", rows: [] },
+          { id: "t3", node: "third", x: 0, y: 0, kind: "table", rows: [] },
+        ],
+      });
+      expect(mergeNodes(doc, ["keep", "gone", "third"], "keep")).toBe(2);
+      expect(findTable(doc, "t2")?.node).toBe("keep");
+      expect(findTable(doc, "t3")?.node).toBeUndefined();
+      expect(doc.tables).toHaveLength(2); // no table is ever thrown away
+    });
+
+    it("does nothing when there is nothing to merge", () => {
+      const doc = twoJunctions();
+      expect(mergeNodes(doc, ["left"], "left")).toBe(0);
+      expect(mergeNodes(doc, ["left", "ghost"], "left")).toBe(0);
+      expect(mergeNodes(doc, ["left", "right"], "ghost")).toBe(0);
+      expect(doc.nodes).toHaveLength(4);
+    });
   });
 
   it("nextName finds the first free name with the prefix", () => {

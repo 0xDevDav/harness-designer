@@ -110,11 +110,12 @@ export const en = {
 
   /* ---------------- canvas hints ---------------- */
   "hint.select":
-    "Right-click for the action menu — drag elements to move them, drag empty space to pan, wheel to zoom",
+    "Right-click for the action menu — drag elements to move them, Ctrl+click to pick more than one, drag empty space to pan, wheel to zoom",
   "hint.branch":
     "Drawing a branch — click to add points, click a node to connect; Esc, double click or right-click to finish",
 
   /* ---------------- context menu ---------------- */
+  "menu.mergeNodes": "⇥ Merge {n} nodes here",
   "menu.branchFrom": "➤ Start a branch here",
   "menu.branchHere": "➤ Start a branch here",
   "menu.terminalHeader": "Turn into a termination",
@@ -416,6 +417,7 @@ export const en = {
   "toast.pluginFailed": "Plugin “{name}” failed to load: {error}",
   "toast.offlineReady": "Application available offline too",
   "toast.wirelistUpdated": "Wire list updated: {n} wires",
+  "toast.nodesMerged": "{n} nodes merged into one",
   "toast.tableLinked": "Table linked to {name}",
   "toast.autoLinked": "Automatically linked: {target}",
   "toast.autoLinkUpdated": "Other end {target} updated as well: {fields}",

@@ -230,6 +230,51 @@ describe("selection", () => {
     expect(seen).toEqual([null, "n1", null]);
     expect(store.selection).toEqual({ type: "node", id: "n2" });
   });
+
+  it("gathers several elements, the last one picked staying the primary", () => {
+    store.load(twoNodes());
+    store.select({ type: "node", id: "n1" });
+    store.toggle({ type: "node", id: "n2" });
+
+    expect(store.selection).toEqual({ type: "node", id: "n2" });
+    expect(store.selected().map((s) => s.id)).toEqual(["n2", "n1"]);
+    expect(store.isSelected({ type: "node", id: "n1" })).toBe(true);
+    expect(store.isSelected({ type: "segment", id: "s1" })).toBe(false);
+  });
+
+  it("takes an element back out, promoting what is left", () => {
+    store.load(twoNodes());
+    store.select({ type: "node", id: "n1" });
+    store.toggle({ type: "node", id: "n2" });
+    store.toggle({ type: "node", id: "n2" });
+
+    expect(store.selection).toEqual({ type: "node", id: "n1" });
+    expect(store.also).toHaveLength(0);
+
+    store.toggle({ type: "node", id: "n1" });
+    expect(store.selection).toBeNull();
+  });
+
+  it("an ordinary click starts again from one", () => {
+    store.load(twoNodes());
+    store.select({ type: "node", id: "n1" });
+    store.toggle({ type: "node", id: "n2" });
+    store.select({ type: "node", id: "n1" });
+
+    expect(store.selected().map((s) => s.id)).toEqual(["n1"]);
+  });
+
+  it("keeps the rest of the group when one of it disappears", () => {
+    store.load(twoNodes());
+    store.edit((d) => void createJunction(d, 300, 300));
+    const fresh = store.doc.nodes[2]!;
+
+    store.select({ type: "node", id: "n1" });
+    store.toggle({ type: "node", id: fresh.id });
+    store.undo();
+
+    expect(store.selected().map((s) => s.id)).toEqual(["n1"]);
+  });
 });
 
 describe("view, tool and grid", () => {
