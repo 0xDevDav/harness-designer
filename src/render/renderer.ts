@@ -124,6 +124,10 @@ export class Renderer implements RendererApi {
     // layer order is the visual contract: whatever comes later covers
     const gTables = el("g", {}, world);
     const gSegOuter = el("g", {}, world);
+    // Strands sit above the bundle outline but below its inner line, its
+    // length labels and the inline labels. They explain the branch, so they
+    // must never be the reason a dimension cannot be read.
+    const gStrands = el("g", { "pointer-events": "none" }, world);
     const gSegInner = el("g", {}, world);
     const gBoot = el("g", {}, world);
     const gJunctions = el("g", {}, world);
@@ -138,6 +142,7 @@ export class Renderer implements RendererApi {
       drawTable(table, doc.meta, this.t, gTables, wireErrors.get(table.id));
     }
     for (const seg of doc.segments) this.drawSegment(doc, seg, gSegOuter, gSegInner);
+    if (!exporting) drawWirePreview(doc, this.store.selection, gStrands);
     for (const node of doc.nodes) drawJunctionBoot(doc, node, gBoot);
     for (const node of doc.nodes) {
       if (node.kind !== "connector") this.drawJunction(doc, node, gJunctions);
@@ -413,9 +418,6 @@ export class Renderer implements RendererApi {
       }
     }
 
-    // the strands go under the selection frame: the frame says what is
-    // selected, the strands answer what runs through it
-    drawWirePreview(doc, this.store.selection, parent);
     this.drawSelection(doc, parent);
   }
 

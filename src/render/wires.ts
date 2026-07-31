@@ -125,26 +125,64 @@ function strandPoints(
   laneOf: Map<string, Map<number, number>>,
   startNodeId: string,
 ): Point[] {
-  const points: Point[] = [];
+  const nodes: Point[] = [];
+  const norms: Point[] = [];
+  const shifts: number[] = [];
+
   let at = startNodeId;
+  const first = findNode(doc, at);
+  if (!first) return [];
+  nodes.push(first);
 
   for (const segId of route.path) {
     const seg = findSegment(doc, segId);
     if (!seg) break;
-    const from = findNode(doc, at);
     const nextId = seg.a === at ? seg.b : seg.a;
     const to = findNode(doc, nextId);
-    if (!from || !to) break;
-
-    const rank = laneOf.get(segId)?.get(route.wire.index) ?? 0;
-    const shift = BUNDLE_EDGE + rank * STRAND_GAP;
-    const n = normal(from, to);
-
-    points.push({ x: from.x + n.x * shift, y: from.y + n.y * shift });
-    points.push({ x: to.x + n.x * shift, y: to.y + n.y * shift });
+    if (!to) break;
+    norms.push(normal(nodes[nodes.length - 1]!, to));
+    shifts.push(BUNDLE_EDGE + (laneOf.get(segId)?.get(route.wire.index) ?? 0) * STRAND_GAP);
+    nodes.push(to);
     at = nextId;
   }
-  return points;
+  if (!norms.length) return [];
+
+  // One point per node, never two. Emitting the offset ends of each branch
+  // separately puts two almost coincident vertices at every junction joined by
+  // a stub, and rounding both ends of that stub eats it: that is where the
+  // curls came from.
+  const out: Point[] = [];
+  for (let i = 0; i < nodes.length; i++) {
+    const nIn = norms[i - 1];
+    const nOut = norms[i];
+    let dir: Point;
+    let dist: number;
+
+    if (!nIn) {
+      dir = nOut!;
+      dist = shifts[i]!;
+    } else if (!nOut) {
+      dir = nIn;
+      dist = shifts[i - 1]!;
+    } else {
+      const bx = nIn.x + nOut.x;
+      const by = nIn.y + nOut.y;
+      const len = Math.hypot(bx, by);
+      dist = (shifts[i - 1]! + shifts[i]!) / 2;
+      if (len < 0.15) {
+        // the branch doubles back on itself: no bisector exists, so keep the
+        // side the wire was already on rather than invent one
+        dir = nOut;
+      } else {
+        dir = { x: bx / len, y: by / len };
+        // hold the distance from the bundle constant round the corner, capped
+        // so a hairpin grows a rounded elbow instead of a spike
+        dist /= Math.max(dir.x * nOut.x + dir.y * nOut.y, 0.45);
+      }
+    }
+    out.push({ x: nodes[i]!.x + dir.x * dist, y: nodes[i]!.y + dir.y * dist });
+  }
+  return out;
 }
 
 /** Drops points that repeat, which would otherwise make a corner of nothing. */
@@ -204,7 +242,11 @@ export function drawWirePreview(
   const wanted = wiresFor(doc, sel, routes);
   if (!wanted.length) return 0;
 
-  const laneOf = lanes(routes);
+  // Lanes are shared out among the wires actually on show, not among every
+  // wire in the drawing. Ranking against the lot gives a single selected wire a
+  // different lane in each branch, and it steps sideways halfway along for no
+  // reason the eye can see.
+  const laneOf = lanes(wanted);
   const byName = namedNodes(doc);
 
   for (const route of wanted) {
