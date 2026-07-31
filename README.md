@@ -6,13 +6,14 @@
 
 Formboard drawings with double-line bundles, connectors, cavity tables, consistency checks and wire lists
 
+[![Live demo](https://img.shields.io/badge/Live-demo-6d5cff.svg)](https://0xdevdav.github.io/harness-designer/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6.svg)](tsconfig.json)
 [![Vite](https://img.shields.io/badge/Built%20with-Vite-646cff.svg)](https://vite.dev)
 [![Runtime deps](https://img.shields.io/badge/Runtime%20dependencies-0-brightgreen.svg)](package.json)
 [![Tests](https://img.shields.io/badge/Tests-173%20passing-brightgreen.svg)](tests)
 
-[Features](#-features) • [Screenshots](#-screenshots) • [Quick start](#-quick-start) • [How it works](#-how-it-works) • [Plugins](#-plugins) • [Deploy](#-deploy)
+[**▶ Try it now**](https://0xdevdav.github.io/harness-designer/) • [Features](#-features) • [Screenshots](#-screenshots) • [Quick start](#-quick-start) • [How it works](#-how-it-works) • [Plugins](#-plugins) • [Deploy](#-deploy)
 
 **🇬🇧 English** · [🇮🇹 Italiano](README.it.md)
 

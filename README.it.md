@@ -6,13 +6,14 @@
 
 Formboard con fascio a doppia linea, connettori, tabelle cavità, verifica di coerenza e distinta fili
 
+[![Demo dal vivo](https://img.shields.io/badge/Demo-dal%20vivo-6d5cff.svg)](https://0xdevdav.github.io/harness-designer/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6.svg)](tsconfig.json)
 [![Vite](https://img.shields.io/badge/Built%20with-Vite-646cff.svg)](https://vite.dev)
 [![Runtime deps](https://img.shields.io/badge/Dipendenze%20a%20runtime-0-brightgreen.svg)](package.json)
 [![Tests](https://img.shields.io/badge/Test-173%20verdi-brightgreen.svg)](tests)
 
-[Funzioni](#-funzioni) • [Immagini](#-immagini) • [Avvio rapido](#-avvio-rapido) • [Come si usa](#-come-si-usa) • [Plugin](#-plugin) • [Pubblicazione](#-pubblicazione)
+[**▶ Provalo ora**](https://0xdevdav.github.io/harness-designer/) • [Funzioni](#-funzioni) • [Immagini](#-immagini) • [Avvio rapido](#-avvio-rapido) • [Come si usa](#-come-si-usa) • [Plugin](#-plugin) • [Pubblicazione](#-pubblicazione)
 
 [🇬🇧 English](README.md) · **🇮🇹 Italiano**
 
