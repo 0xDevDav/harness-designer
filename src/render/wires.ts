@@ -17,6 +17,7 @@ import { findNode, findSegment, segmentsOf } from "@/core/doc";
 import { endpointConnector, namedNodes, routeWires } from "@/core/routing";
 import type { RoutedWire } from "@/core/routing";
 import type { HarnessDoc, Point, Selection } from "@/core/types";
+import { palette } from "./palette";
 import { el } from "./svg";
 
 /**
@@ -28,17 +29,24 @@ import { el } from "./svg";
  * running as one reads as a bundle opened up, while the same wires spread out
  * read as unrelated lines that happen to be parallel.
  */
-const BUNDLE_EDGE = 6.4;
-const STRAND_GAP = 1.9;
-const STRAND_W = 1.4;
+const BUNDLE_EDGE = 7.5;
+const STRAND_GAP = 3.6;
+const STRAND_W = 2.6;
+/**
+ * Each strand is laid on a stroke of sheet colour first. Without it a white or
+ * a yellow wire is nearly invisible against the bundle, and two neighbouring
+ * strands of similar colour merge into one thick line: the gap between wires
+ * has to be drawn, not merely left.
+ */
+const CASING_W = STRAND_W + 1.8;
 /**
  * How much the lane change at a junction is rounded off. Wire is stiff and does
  * not turn a square corner, so a square corner looks wrong before you can say
  * why.
  */
-const CORNER_R = 7;
+const CORNER_R = 8;
 /** Radius of the dot marking where a wire ends. */
-const END_R = 2.2;
+const END_R = 3.4;
 /** Fallback for a colour cell that names nothing recognizable. */
 const UNKNOWN = "#9aa3ad";
 
@@ -275,6 +283,7 @@ export function drawWirePreview(
     const base = bands[0] ?? UNKNOWN;
     const stroke = { d, fill: "none", "pointer-events": "none", "stroke-linecap": "round" };
 
+    el("path", { ...stroke, stroke: palette().paper, "stroke-width": CASING_W }, parent);
     el("path", { ...stroke, stroke: base, "stroke-width": STRAND_W }, parent);
 
     // A tracer is a second colour on the same wire, drawn as a fine core along
@@ -287,7 +296,19 @@ export function drawWirePreview(
     // both ends marked, because the question the preview answers is where the
     // wire goes, and a strand that fades into a bundle does not answer it
     for (const p of [points[0]!, points[points.length - 1]!]) {
-      el("circle", { cx: p.x, cy: p.y, r: END_R, fill: base, "pointer-events": "none" }, parent);
+      el(
+        "circle",
+        {
+          cx: p.x,
+          cy: p.y,
+          r: END_R,
+          fill: base,
+          stroke: palette().paper,
+          "stroke-width": 1.4,
+          "pointer-events": "none",
+        },
+        parent,
+      );
     }
   }
   return wanted.length;
