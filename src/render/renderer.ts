@@ -42,6 +42,8 @@ const JOINT_ARROW = 7;
  * painted over it: the arrow then looks as though it stops short of nothing.
  */
 const JOINT_GAP = 4;
+/** How far above its connector the name of a mated one sits. */
+const LABEL_LIFT = 20;
 /** Size of the handle a bend is dragged by, shown only on a selected branch. */
 const BEND_HANDLE_R = 5;
 const MIN_ZOOM = 0.15;
@@ -513,12 +515,23 @@ export class Renderer implements RendererApi {
 
     const label = [node.name, node.refs].filter(Boolean).join(" ");
     if (!label) return;
-    // the label follows the connector axis past the nose, so it overlaps no corner
+
+    // The label follows the connector axis past the nose, where it overlaps no
+    // corner — except on a mated connector, where that is exactly where the
+    // arrow of the joint leaves from. There it goes over the body instead, and
+    // always upwards whichever way the connector faces, so a pair reads as a
+    // pair rather than as two names with a line drawn through them.
     const tip = symbol?.tip ?? 40;
-    const d = tip + 6 + textWidth(label, 12.5, true) / 2;
+    const at = mateOf(doc, node.id)
+      ? { x: node.x - Math.cos(angle) * tip * 0.4, y: node.y - Math.sin(angle) * tip * 0.4 - LABEL_LIFT }
+      : (() => {
+          const d = tip + 6 + textWidth(label, 12.5, true) / 2;
+          return { x: node.x - Math.cos(angle) * d, y: node.y - Math.sin(angle) * d };
+        })();
+
     text(
-      node.x - Math.cos(angle) * d,
-      node.y - Math.sin(angle) * d + 4,
+      at.x,
+      at.y + 4,
       label,
       {
         "font-size": 12.5,
