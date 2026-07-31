@@ -640,35 +640,34 @@ export class Renderer implements RendererApi {
   }
 
   /**
-   * A selected branch, lit along its own line: a wide soft halo under the
-   * bundle plus a thin bright edge on it. Nothing is dashed, so nothing here
-   * can be read as a wire.
+   * A selected branch, lit along its own line and no wider than it needs to be.
+   *
+   * One stroke, tight to the cable. It used to carry a soft halo spreading well
+   * past the bundle and a ring at each end, and between them they took up more
+   * of the sheet than the branch does: on a drawing where branches run close
+   * together the glow reached the neighbours and the rings sat on top of
+   * whatever met at the junction. What has to be visible is which branch is
+   * selected, and the branch itself is the thing that says it.
+   *
+   * Nothing is dashed, so nothing here can be read as a wire.
    */
   private drawSegmentSelection(doc: HarnessDoc, segId: string, parent: SVGGElement): void {
     const seg = findSegment(doc, segId);
     const path = seg ? segmentPath(doc, seg) : null;
     if (!path) return;
-    const a = path[0]!;
-    const b = path[path.length - 1]!;
-    const line = {
-      d: filletedPath(path, BEND_R),
-      fill: "none",
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-    };
-
-    el("path", { ...line, stroke: palette().selection, "stroke-width": W_OUTER + 11, opacity: 0.22 }, parent);
-    el("path", { ...line, stroke: palette().selection, "stroke-width": W_OUTER + 2, opacity: 0.55 }, parent);
-
-    // the ends are marked so a branch stays distinguishable from the one next
-    // to it when several meet at a junction
-    for (const p of [a, b]) {
-      el(
-        "circle",
-        { cx: p.x, cy: p.y, r: 4.5, fill: "none", stroke: palette().selection, "stroke-width": 2 },
-        parent,
-      );
-    }
+    el(
+      "path",
+      {
+        d: filletedPath(path, BEND_R),
+        fill: "none",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+        stroke: palette().selection,
+        "stroke-width": W_OUTER + 2,
+        opacity: 0.55,
+      },
+      parent,
+    );
   }
 
   /**
