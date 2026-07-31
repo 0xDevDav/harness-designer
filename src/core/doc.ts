@@ -63,7 +63,7 @@ export function normalizeDoc(input: unknown): HarnessDoc {
     const id = str(src.id);
     if (!id || seenNodeIds.has(id)) continue;
     seenNodeIds.add(id);
-    doc.nodes.push({
+    const node: HNode = {
       id,
       x: num(src.x),
       y: num(src.y),
@@ -71,8 +71,12 @@ export function normalizeDoc(input: unknown): HarnessDoc {
       name: str(src.name),
       style: str(src.style, "plug") || "plug",
       refs: str(src.refs),
-    });
+    };
+    const mate = str(src.mate);
+    if (mate && mate !== id) node.mate = mate;
+    doc.nodes.push(node);
   }
+  normalizeMates(doc);
 
   // --- segments: both ends must exist, no self-loops, no duplicate pairs
   const seenSegIds = new Set<string>();
@@ -145,6 +149,36 @@ export function normalizeDoc(input: unknown): HarnessDoc {
 
 function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
+}
+
+/**
+ * Invariant: mating is mutual and exclusive.
+ *
+ * A connector mates with one other connector, which names it back. A link to a
+ * node that is gone, to itself, or to one that has since paired off with a
+ * third is dropped rather than half-kept, because a joint that only one side
+ * knows about would route wires through a hole the other end cannot see.
+ */
+export function normalizeMates(doc: HarnessDoc): void {
+  const byId = new Map(doc.nodes.map((n) => [n.id, n]));
+  const degree = new Map<string, number>();
+  for (const s of doc.segments) {
+    degree.set(s.a, (degree.get(s.a) ?? 0) + 1);
+    degree.set(s.b, (degree.get(s.b) ?? 0) + 1);
+  }
+  // a joint is between two ends, so a node the bundle runs through cannot be
+  // half of one however it came to have the link
+  const terminal = (n: HNode): boolean => (degree.get(n.id) ?? 0) <= 1;
+  for (const n of doc.nodes) {
+    if (!n.mate) continue;
+    const other = byId.get(n.mate);
+    if (!other || other.id === n.id || other.mate !== n.id) delete n.mate;
+    else if (!terminal(n) || !terminal(other)) delete n.mate;
+  }
+  // one side may have survived the pass that dropped the other
+  for (const n of doc.nodes) {
+    if (n.mate && byId.get(n.mate)?.mate !== n.id) delete n.mate;
+  }
 }
 
 /**
@@ -384,6 +418,45 @@ export function renameNode(doc: HarnessDoc, node: HNode, newName: string): numbe
   return updated;
 }
 
+/** The connector on the other side of a joint, if this one is half of one. */
+export function mateOf(doc: HarnessDoc, nodeId: string): HNode | undefined {
+  const mate = findNode(doc, nodeId)?.mate;
+  return mate ? findNode(doc, mate) : undefined;
+}
+
+/**
+ * Joins two connectors into a mated pair, breaking whatever either of them was
+ * paired with before. A connector mates with one other, so pairing X with Z
+ * when X was already on Y leaves Y free rather than leaving a triangle.
+ */
+export function mateConnectors(doc: HarnessDoc, aId: string, bId: string): boolean {
+  const a = findNode(doc, aId);
+  const b = findNode(doc, bId);
+  if (!a || !b || a.id === b.id) return false;
+  if (nodeDegree(doc, a.id) > 1 || nodeDegree(doc, b.id) > 1) return false;
+  if (a.mate === b.id && b.mate === a.id) return false;
+
+  unmateConnector(doc, a.id);
+  unmateConnector(doc, b.id);
+  a.mate = b.id;
+  b.mate = a.id;
+  // a joint is between two terminations, so both ends become one
+  a.kind = "connector";
+  b.kind = "connector";
+  normalizeMates(doc);
+  return true;
+}
+
+/** Breaks a joint, from either side. */
+export function unmateConnector(doc: HarnessDoc, nodeId: string): boolean {
+  const node = findNode(doc, nodeId);
+  if (!node?.mate) return false;
+  const other = findNode(doc, node.mate);
+  delete node.mate;
+  if (other?.mate === nodeId) delete other.mate;
+  return true;
+}
+
 export function createJunction(doc: HarnessDoc, x: number, y: number): HNode {
   const n: HNode = { id: uid("n"), x, y, kind: "junction", name: "", style: "plug", refs: "" };
   doc.nodes.push(n);
@@ -495,8 +568,19 @@ export function mergeNodes(doc: HarnessDoc, ids: readonly string[], intoId: stri
     }
   }
 
+  // a joint the survivor does not already have follows the node it was on
+  if (!survivor.mate) {
+    const joined = doc.nodes.find((n) => gone.has(n.id) && n.mate && !gone.has(n.mate));
+    if (joined?.mate) {
+      survivor.mate = joined.mate;
+      const other = findNode(doc, joined.mate);
+      if (other) other.mate = intoId;
+    }
+  }
+
   doc.nodes = doc.nodes.filter((n) => !gone.has(n.id));
   normalizeConnectors(doc);
+  normalizeMates(doc);
   return gone.size;
 }
 
@@ -519,4 +603,5 @@ export function deleteEntity(doc: HarnessDoc, type: string, id: string): void {
     doc.tables = doc.tables.filter((t) => t.id !== id);
   }
   normalizeConnectors(doc);
+  normalizeMates(doc);
 }

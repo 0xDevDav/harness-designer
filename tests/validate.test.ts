@@ -397,3 +397,75 @@ describe("repeated cavity", () => {
     ).toHaveLength(0);
   });
 });
+
+describe("joint-cavities", () => {
+  /** Two harness halves joined by a mated pair, wired as far as each side says. */
+  const jointed = (left: string[][], right: string[][]): HarnessDoc => {
+    const doc = docWith(
+      ["L", "X", "Y", "R"],
+      [
+        { id: "tx", node: "x", title: "X", rows: left },
+        { id: "ty", node: "y", title: "Y", rows: right },
+      ],
+    );
+    doc.nodes.find((n) => n.id === "x")!.mate = "y";
+    doc.nodes.find((n) => n.id === "y")!.mate = "x";
+    return normalizeDoc(doc);
+  };
+
+  const joint = (doc: HarnessDoc): Issue[] => validateDoc(doc, t).filter((i) => i.rule === "joint-cavities");
+
+  it("says nothing when both sides carry the same cavities", () => {
+    expect(
+      joint(
+        jointed(
+          [
+            ["1", "L.1", "Rosso", "1.5"],
+            ["2", "L.2", "Nero", "1.5"],
+          ],
+          [
+            ["1", "R.1", "Verde", "1.5"],
+            ["2", "R.2", "Giallo", "1.5"],
+          ],
+        ),
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("a colour that changes across the joint is not a fault", () => {
+    const issues = validateDoc(jointed([["1", "L.1", "Rosso", "1.5"]], [["1", "R.1", "Verde", "1.5"]]), t);
+    expect(issues.filter((i) => i.rule === "joint-cavities")).toHaveLength(0);
+    expect(issues.filter((i) => i.rule === "wire-ends")).toHaveLength(0);
+  });
+
+  it("reports the cavity wired on one side and dead on the other", () => {
+    const issues = joint(
+      jointed(
+        [
+          ["1", "L.1", "Rosso", "1.5"],
+          ["2", "L.2", "Nero", "1.5"],
+        ],
+        [["1", "R.1", "Verde", "1.5"]],
+      ),
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.severity).toBe("warning");
+    expect(issues[0]?.target).toEqual({ type: "node", id: "y" });
+  });
+
+  it("reports each direction on its own", () => {
+    const issues = joint(jointed([["1", "L.1", "Rosso", "1.5"]], [["2", "R.2", "Verde", "1.5"]]));
+    expect(issues).toHaveLength(2);
+  });
+
+  it("keeps quiet on connectors that are not mated at all", () => {
+    const doc = docWith(
+      ["L", "X", "Y", "R"],
+      [
+        { id: "tx", node: "x", title: "X", rows: [["1", "L.1", "Rosso", "1.5"]] },
+        { id: "ty", node: "y", title: "Y", rows: [["2", "R.2", "Verde", "1.5"]] },
+      ],
+    );
+    expect(joint(doc)).toHaveLength(0);
+  });
+});

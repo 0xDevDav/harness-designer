@@ -120,6 +120,8 @@ export const it = {
 
   /* ---------------- context menu ---------------- */
   "menu.mergeNodes": "⇥ Unisci {n} nodi qui",
+  "menu.mateConnectors": "⟷ Accoppia i due connettori",
+  "menu.unmateConnector": "⟷ Separa dall'accoppiamento con {name}",
   "menu.branchFrom": "➤ Inizia ramo da qui",
   "menu.branchHere": "➤ Inizia un ramo qui",
   "menu.terminalHeader": "Trasforma in terminale",
@@ -307,6 +309,8 @@ export const it = {
   "validate.nodeUnnamed": "senza nome",
   "validate.segmentLabel": "Ramo {len}",
   "validate.duplicateTable": "Due tabelle cavità per «{owner}»",
+  "validate.jointGap":
+    "Accoppiamento {from}–{to}: le cavità {cavities} sono collegate su {from} e non su {to}",
   "validate.duplicateCavity": "{owner}: cavità {cavity} duplicata",
   "validate.multiWireCavity":
     "{owner}: cavità {cavity} con {n} fili verso destinazioni diverse — verifica che sia voluto",
@@ -423,6 +427,9 @@ export const it = {
   "toast.offlineReady": "Applicazione disponibile anche offline",
   "toast.wirelistUpdated": "Distinta fili aggiornata: {n} fili",
   "toast.nodesMerged": "Uniti {n} nodi in uno",
+  "toast.mated": "{a} e {b} accoppiati: le cavità dello stesso numero sono lo stesso punto",
+  "toast.mateRefused":
+    "Accoppiabili solo due connettori di fine ramo: un nodo attraversato dal cavo non è un capo",
   "toast.tableLinked": "Tabella collegata a {name}",
   "toast.autoLinked": "Collegato in automatico: {target}",
   "toast.autoLinkUpdated": "Aggiornato anche l'altro capo {target}: {fields}",

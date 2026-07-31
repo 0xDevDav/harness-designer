@@ -25,6 +25,15 @@ export interface HNode {
   style: ConnectorStyle;
   /** Note references, e.g. "[1, 5]". */
   refs: string;
+  /**
+   * The connector this one mates with, if any. Always reciprocal: the other
+   * node names this one back, and `normalizeDoc` drops a link that does not.
+   *
+   * A mated pair is a joint in the harness, not a wire. Cavity 3 of one is
+   * cavity 3 of the other, and the wire arriving at the joint and the wire
+   * leaving it are two different wires that may well be two different colours.
+   */
+  mate?: string;
 }
 
 export interface Segment {

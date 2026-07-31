@@ -9,8 +9,12 @@ import {
   findNode,
   findSegment,
   findTable,
+  mateConnectors,
+  mateOf,
   mergeNodes,
   nextName,
+  normalizeMates,
+  unmateConnector,
   nodeForTable,
   normalizeConnectors,
   normalizeDoc,
@@ -591,6 +595,87 @@ describe("columns and names", () => {
       expect(mergeNodes(doc, ["left", "ghost"], "left")).toBe(0);
       expect(mergeNodes(doc, ["left", "right"], "ghost")).toBe(0);
       expect(doc.nodes).toHaveLength(4);
+    });
+  });
+
+  describe("mated connectors", () => {
+    /** Two harness halves, each ending in an inline connector facing the other. */
+    const twoHalves = (): HarnessDoc =>
+      normalizeDoc({
+        nodes: [
+          { id: "x", x: 100, y: 0, kind: "connector", name: "X" },
+          { id: "y", x: 200, y: 0, kind: "connector", name: "Y" },
+          { id: "left", x: 0, y: 0, kind: "connector", name: "L" },
+          { id: "right", x: 300, y: 0, kind: "connector", name: "R" },
+        ],
+        segments: [
+          { id: "sl", a: "left", b: "x", len: "100 mm" },
+          { id: "sr", a: "y", b: "right", len: "100 mm" },
+        ],
+      });
+
+    it("mates both ways at once and only once", () => {
+      const doc = twoHalves();
+      expect(mateConnectors(doc, "x", "y")).toBe(true);
+      expect(findNode(doc, "x")?.mate).toBe("y");
+      expect(findNode(doc, "y")?.mate).toBe("x");
+      expect(mateOf(doc, "x")?.id).toBe("y");
+      // asking again changes nothing, so it cannot make an undo step of its own
+      expect(mateConnectors(doc, "x", "y")).toBe(false);
+    });
+
+    it("leaves the previous partner free rather than making a triangle", () => {
+      const doc = twoHalves();
+      mateConnectors(doc, "x", "y");
+      mateConnectors(doc, "x", "right");
+      expect(findNode(doc, "y")?.mate).toBeUndefined();
+      expect(findNode(doc, "right")?.mate).toBe("x");
+    });
+
+    it("refuses a node the bundle runs through", () => {
+      const doc = twoHalves();
+      doc.segments.push({ id: "extra", a: "x", b: "right", len: "", refs: "" });
+      expect(mateConnectors(doc, "x", "y")).toBe(false);
+      expect(findNode(doc, "x")?.mate).toBeUndefined();
+    });
+
+    it("drops a link the other end does not return", () => {
+      const doc = twoHalves();
+      findNode(doc, "x")!.mate = "y";
+      normalizeMates(doc);
+      expect(findNode(doc, "x")?.mate).toBeUndefined();
+    });
+
+    it("survives being written into a file and read back", () => {
+      const doc = twoHalves();
+      mateConnectors(doc, "x", "y");
+      const reopened = normalizeDoc(JSON.parse(JSON.stringify(doc)));
+      expect(findNode(reopened, "x")?.mate).toBe("y");
+      expect(findNode(reopened, "y")?.mate).toBe("x");
+    });
+
+    it("lets go when the connector on the other side is deleted", () => {
+      const doc = twoHalves();
+      mateConnectors(doc, "x", "y");
+      deleteEntity(doc, "node", "y");
+      expect(findNode(doc, "x")?.mate).toBeUndefined();
+    });
+
+    it("unmates from either side", () => {
+      const doc = twoHalves();
+      mateConnectors(doc, "x", "y");
+      expect(unmateConnector(doc, "y")).toBe(true);
+      expect(findNode(doc, "x")?.mate).toBeUndefined();
+      expect(unmateConnector(doc, "y")).toBe(false);
+    });
+
+    it("hands the joint to the survivor of a merge", () => {
+      const doc = twoHalves();
+      mateConnectors(doc, "x", "y");
+      // "left" absorbs x, and the joint has to come with it
+      mergeNodes(doc, ["left", "x"], "left");
+      expect(findNode(doc, "left")?.mate).toBe("y");
+      expect(findNode(doc, "y")?.mate).toBe("left");
     });
   });
 

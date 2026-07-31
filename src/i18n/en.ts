@@ -116,6 +116,8 @@ export const en = {
 
   /* ---------------- context menu ---------------- */
   "menu.mergeNodes": "⇥ Merge {n} nodes here",
+  "menu.mateConnectors": "⟷ Mate the two connectors",
+  "menu.unmateConnector": "⟷ Unmate from {name}",
   "menu.branchFrom": "➤ Start a branch here",
   "menu.branchHere": "➤ Start a branch here",
   "menu.terminalHeader": "Turn into a termination",
@@ -302,6 +304,7 @@ export const en = {
   "validate.nodeUnnamed": "unnamed",
   "validate.segmentLabel": "Branch {len}",
   "validate.duplicateTable": "Two cavity tables for “{owner}”",
+  "validate.jointGap": "Joint {from}–{to}: cavities {cavities} are wired on {from} and not on {to}",
   "validate.duplicateCavity": "{owner}: cavity {cavity} is duplicated",
   "validate.multiWireCavity":
     "{owner}: cavity {cavity} carries {n} wires to different destinations — check this is intended",
@@ -418,6 +421,9 @@ export const en = {
   "toast.offlineReady": "Application available offline too",
   "toast.wirelistUpdated": "Wire list updated: {n} wires",
   "toast.nodesMerged": "{n} nodes merged into one",
+  "toast.mated": "{a} and {b} mated: cavities of the same number are the same point",
+  "toast.mateRefused":
+    "Only two branch-end connectors can be mated: a node the bundle runs through is not an end",
   "toast.tableLinked": "Table linked to {name}",
   "toast.autoLinked": "Automatically linked: {target}",
   "toast.autoLinkUpdated": "Other end {target} updated as well: {fields}",

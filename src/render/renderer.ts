@@ -5,6 +5,7 @@ import {
   findNode,
   findSegment,
   findTable,
+  mateOf,
   nodeDegree,
   nodeForTable,
   segmentEnds,
@@ -31,6 +32,8 @@ const W_INNER = 5.5;
 const W_HIT = 16;
 /** Radius of the invisible circle that makes a junction grabbable. */
 const NODE_HIT_R = 11;
+/** Length of the arrowheads that mark a mated pair. */
+const JOINT_ARROW = 7;
 const MIN_ZOOM = 0.15;
 const MAX_ZOOM = 4;
 /** Highest zoom the automatic fit may reach; beyond it the drawing blows up. */
@@ -152,6 +155,7 @@ export class Renderer implements RendererApi {
       if (node.kind !== "connector") this.drawJunction(doc, node, gJunctions);
     }
     for (const inline of doc.inlines) this.drawInline(doc, inline, gInlines);
+    this.drawJoints(doc, gConnectors);
     for (const node of doc.nodes) {
       if (node.kind === "connector") this.drawConnector(doc, node, gConnectors);
     }
@@ -367,6 +371,66 @@ export class Renderer implements RendererApi {
     const other = findNode(doc, seg.a === node.id ? seg.b : seg.a);
     if (!other) return 0;
     return Math.atan2(other.y - node.y, other.x - node.x);
+  }
+
+  /**
+   * The joints, drawn once each as an arrow with a head at both ends.
+   *
+   * A mated pair is not a wire and must not be drawn as one: nothing is cut to
+   * this length and no colour runs along it. An arrow says the two connectors
+   * plug into each other and says it in both directions, which is right —
+   * neither of them is the source.
+   *
+   * It is drawn from nose to nose rather than centre to centre, so the arrow
+   * occupies the gap the two connectors leave between them and does not run
+   * back through the bodies.
+   */
+  private drawJoints(doc: HarnessDoc, parent: SVGGElement): void {
+    for (const node of doc.nodes) {
+      const other = mateOf(doc, node.id);
+      // once per pair, from whichever end the document lists first
+      if (!other || doc.nodes.indexOf(other) < doc.nodes.indexOf(node)) continue;
+
+      const dx = other.x - node.x;
+      const dy = other.y - node.y;
+      const span = Math.hypot(dx, dy);
+      const clear = (n: HNode): number => (connectorSymbol(n.style)?.tip ?? 40) * 0.55;
+      const head = clear(node);
+      const tail = clear(other);
+      if (span <= head + tail + JOINT_ARROW * 2) continue; // no room: the pairing is plain to see
+
+      const ux = dx / span;
+      const uy = dy / span;
+      const from = { x: node.x + ux * head, y: node.y + uy * head };
+      const to = { x: other.x - ux * tail, y: other.y - uy * tail };
+      const stroke = palette().textDim;
+      const line = {
+        stroke,
+        "stroke-width": 1.6,
+        "stroke-linecap": "round",
+        "pointer-events": "none",
+        fill: "none",
+      };
+      el("line", { ...line, x1: from.x, y1: from.y, x2: to.x, y2: to.y }, parent);
+      for (const [tip, sign] of [
+        [from, 1],
+        [to, -1],
+      ] as const) {
+        const bx = tip.x + ux * JOINT_ARROW * sign;
+        const by = tip.y + uy * JOINT_ARROW * sign;
+        const wing = JOINT_ARROW * 0.5;
+        el(
+          "path",
+          {
+            ...line,
+            d:
+              `M${bx - uy * wing},${by + ux * wing} L${tip.x},${tip.y} ` +
+              `L${bx + uy * wing},${by - ux * wing}`,
+          },
+          parent,
+        );
+      }
+    }
   }
 
   private drawConnector(doc: HarnessDoc, node: HNode, parent: SVGGElement): void {

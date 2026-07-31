@@ -15,8 +15,11 @@ import {
   findSegment,
   findTable,
   isTerminalNode,
+  mateConnectors,
+  mateOf,
   mergeNodes,
   nextName,
+  unmateConnector,
   nodeForTable,
   renameNode,
   segmentEnds,
@@ -88,8 +91,19 @@ function nodeItems(app: AppContext, id: string): MenuItem[] {
       label: t("menu.mergeNodes", { n: group.length }),
       run: () => mergeSelectedNodes(app, group, id),
     });
-    items.push({ separator: true });
   }
+  if (group.length === 2) {
+    const [a, b] = group as [string, string];
+    items.push({ label: t("menu.mateConnectors"), run: () => mateFlow(app, a, b) });
+  }
+  const joined = mateOf(app.doc, id);
+  if (joined) {
+    items.push({
+      label: t("menu.unmateConnector", { name: joined.name || t("validate.nodeUnnamed") }),
+      run: () => editDoc(app, (doc) => void unmateConnector(doc, id), "unmate"),
+    });
+  }
+  if (items.length) items.push({ separator: true });
 
   items.push({ label: t("menu.branchFrom"), shortcut: "B", run: () => startBranchFrom(app, id) });
   items.push({ separator: true });
@@ -155,6 +169,19 @@ function selectedNodes(app: AppContext, id: string): string[] {
     .filter((s) => s.type === "node" && findNode(app.doc, s.id))
     .map((s) => s.id);
   return ids.includes(id) ? ids : [id];
+}
+
+/**
+ * Mates two connectors. It refuses on a node the bundle runs through, because a
+ * joint is between two ends, and says so rather than doing nothing.
+ */
+function mateFlow(app: AppContext, a: string, b: string): void {
+  if (!editDoc(app, (doc) => void mateConnectors(doc, a, b), "mate")) {
+    app.toast.error(app.t("toast.mateRefused"));
+    return;
+  }
+  const name = (id: string): string => findNode(app.doc, id)?.name || app.t("validate.nodeUnnamed");
+  app.toast.show(app.t("toast.mated", { a: name(a), b: name(b) }));
 }
 
 function mergeSelectedNodes(app: AppContext, ids: readonly string[], intoId: string): void {

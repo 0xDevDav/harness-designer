@@ -312,6 +312,69 @@ const wireRouting: ValidationRule = {
   },
 };
 
+/**
+ * A joint whose two sides do not line up.
+ *
+ * Cavity 3 of one half of a mated pair is cavity 3 of the other: they are one
+ * point, wired from either side by two different wires that may well be two
+ * different colours. That is the whole reason the pairing exists, and it is
+ * also the thing nobody notices going wrong — a circuit wired up to the joint
+ * and left dead on the far side looks complete from both tables, because each
+ * table is complete on its own terms.
+ *
+ * A warning rather than an error: a joint is a normal place for a circuit to
+ * stop, and a connector half filled while the drawing is being built is not a
+ * fault yet.
+ */
+const jointCavities: ValidationRule = {
+  id: "joint-cavities",
+  run({ doc, t, byOwner }) {
+    const issues: Issue[] = [];
+    const done = new Set<string>();
+
+    /** Cavities of a connector that actually go somewhere. */
+    const live = (owner: string): Set<string> => {
+      const ct = byOwner.get(owner);
+      const out = new Set<string>();
+      if (!ct) return out;
+      for (const row of ct.table.rows) {
+        const cavity = cell(row, ct.cols.cavity);
+        if (cavity && resolveDest(row, ct.cols)) out.add(cavity);
+      }
+      return out;
+    };
+
+    for (const node of doc.nodes) {
+      const other = node.mate ? findNode(doc, node.mate) : undefined;
+      if (!other || done.has(node.id)) continue;
+      done.add(node.id);
+      done.add(other.id);
+      if (!node.name || !other.name) continue;
+      if (!byOwner.has(node.name) || !byOwner.has(other.name)) continue;
+
+      const here = live(node.name);
+      const there = live(other.name);
+      for (const [from, to, gap] of [
+        [node, other, [...here].filter((c) => !there.has(c))],
+        [other, node, [...there].filter((c) => !here.has(c))],
+      ] as const) {
+        if (!gap.length) continue;
+        issues.push({
+          rule: "joint-cavities",
+          severity: "warning",
+          message: t("validate.jointGap", {
+            from: from.name,
+            to: to.name,
+            cavities: gap.join(", "),
+          }),
+          target: { type: "node", id: to.id },
+        });
+      }
+    }
+    return issues;
+  },
+};
+
 export const builtinRules: ValidationRule[] = [
   noteReferences,
   duplicateTables,
@@ -319,6 +382,7 @@ export const builtinRules: ValidationRule[] = [
   crossReferences,
   wireEnds,
   wireRouting,
+  jointCavities,
   drawingHygiene,
 ];
 

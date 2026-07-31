@@ -1,4 +1,4 @@
-import { cloneDoc, emptyDoc, normalizeConnectors, normalizeDoc } from "./doc";
+import { cloneDoc, emptyDoc, normalizeConnectors, normalizeDoc, normalizeMates } from "./doc";
 import type { HarnessDoc, Selection, Viewport } from "./types";
 
 export type ToolName = "select" | "branch";
@@ -83,6 +83,7 @@ export class Store {
     const before = JSON.stringify(this.doc);
     mutate(this.doc);
     normalizeConnectors(this.doc);
+    normalizeMates(this.doc);
     const after = JSON.stringify(this.doc);
     if (before === after) return false;
     this.pushHistory(before);
@@ -107,6 +108,7 @@ export class Store {
     this.liveSnapshot = null;
     if (before === null) return false;
     normalizeConnectors(this.doc);
+    normalizeMates(this.doc);
     if (before === JSON.stringify(this.doc)) return false;
     this.pushHistory(before);
     this.afterChange(reason);
