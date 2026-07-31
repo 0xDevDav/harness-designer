@@ -388,6 +388,8 @@ export const en = {
     "The module does not export a valid plugin: a default export with id, name and activate() is required.",
   "plugins.error.fileRead": "Could not read the file.",
   "plugins.error.badUrl": "Invalid address: {url}",
+  "plugins.error.rawGithub":
+    "GitHub serves raw files as plain text, and the browser refuses to run them. Use the same file through jsDelivr: replace raw.githubusercontent.com/USER/REPO/refs/heads/BRANCH with cdn.jsdelivr.net/gh/USER/REPO@BRANCH.",
   "plugins.error.insecureUrl":
     "An external plugin can only come from an https address. Address “{protocol}” was rejected.",
   "plugins.contrib.commands": "commands",

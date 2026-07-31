@@ -522,6 +522,28 @@ export function createPluginHost(opts: {
     app()?.toast.error(translate("toast.pluginFailed", { name: entry.record.name, error: message }));
   }
 
+  /**
+   * Turns a failed import into something the reader can act on.
+   *
+   * "Failed to fetch dynamically imported module" is true and useless. By far
+   * the most common cause is a host that serves the file as `text/plain`:
+   * browsers refuse to run that as a module, and GitHub's raw URLs do exactly
+   * this, which is the first address anyone tries. Naming the cause turns a
+   * dead end into a next step.
+   */
+  function importFailure(source: PluginSource, err: unknown): string {
+    const text = errorText(err);
+    if (source.kind === "inline") return text;
+    let host = "";
+    try {
+      host = new URL(source.value, document.baseURI).hostname;
+    } catch {
+      /* the address was already reported as malformed */
+    }
+    if (host === "raw.githubusercontent.com") return translate("plugins.error.rawGithub");
+    return text;
+  }
+
   async function activate(entry: Entry): Promise<void> {
     if (entry.plugin) return;
     delete entry.record.error;
@@ -530,7 +552,7 @@ export function createPluginHost(opts: {
     try {
       module = await importModule(entry.record.source);
     } catch (err) {
-      fail(entry, errorText(err));
+      fail(entry, importFailure(entry.record.source, err));
       return;
     }
 

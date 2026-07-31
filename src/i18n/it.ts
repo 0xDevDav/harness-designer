@@ -393,6 +393,8 @@ export const it = {
     "Il modulo non esporta un plugin valido: serve un export default con id, name e activate().",
   "plugins.error.fileRead": "Lettura del file non riuscita.",
   "plugins.error.badUrl": "Indirizzo non valido: {url}",
+  "plugins.error.rawGithub":
+    "GitHub serve i file «raw» come testo semplice, e il browser si rifiuta di eseguirli. Usa lo stesso file via jsDelivr: sostituisci raw.githubusercontent.com/UTENTE/REPO/refs/heads/RAMO con cdn.jsdelivr.net/gh/UTENTE/REPO@RAMO.",
   "plugins.error.insecureUrl":
     "Un plugin esterno può arrivare solo da un indirizzo https. Indirizzo «{protocol}» rifiutato.",
   "plugins.contrib.commands": "comandi",
