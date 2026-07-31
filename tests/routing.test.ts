@@ -153,6 +153,20 @@ describe("routeWires", () => {
     expect(routeWires(doc)[0]!.unreachable).toBe(false);
   });
 
+  it("routes the spellings a real drawing uses for a destination", () => {
+    // a ring terminal has no cavity, a feed carries an annotation, and a wire
+    // reaching a ring through a splice ends, for its own cut length, at the splice
+    const doc = tHarness({
+      a: [
+        ["1", "B", "Occhiello", "", ""],
+        ["2", "C (FUS 15A)", "Alimentazione", "", ""],
+        ["3", "C → B", "Tramite giunto", "", ""],
+      ],
+    });
+    const routes = routeWires(doc);
+    expect(routes.map((r) => r.lengthMm)).toEqual([1000, 600, 600]);
+  });
+
   it("leaves a wire pointing at a connector that does not exist to the cross-reference rule", () => {
     const doc = tHarness({ a: [["1", "Z.9", "", "", ""]] });
     const routes = routeWires(doc);

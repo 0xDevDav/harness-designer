@@ -96,11 +96,18 @@ export function namedNodes(doc: HarnessDoc): Map<string, HNode> {
   return byName;
 }
 
-/** Connector name out of a `C3.7` endpoint. Empty when the endpoint is free text. */
-export const endpointConnector = (endpoint: string): string => {
-  const dot = endpoint.indexOf(".");
-  return dot === -1 ? "" : endpoint.slice(0, dot);
-};
+/**
+ * The connector an endpoint names.
+ *
+ * `C3.7` is only the tidiest of the spellings a real drawing uses. A ring
+ * terminal has no cavity to number, so it is written `W1` on its own; a feed is
+ * annotated `B+ (FUS 15A)`; a wire reaching a ring through a splice is written
+ * `S1 → W1`, and its own cut length ends at the splice, which is the first name
+ * on the line. So the rule is the leading name token, and the `C3.7` form is
+ * just the case where that token is followed by a cavity.
+ */
+export const endpointConnector = (endpoint: string): string =>
+  /^\s*([A-Za-z0-9_+-]+)/.exec(endpoint)?.[1] ?? "";
 
 /** Sum of the branch lengths along a path, or `null` if any of them is unreadable. */
 export function pathLengthMm(doc: HarnessDoc, path: readonly string[]): number | null {
