@@ -21,6 +21,7 @@ import { drawTable, tableSize } from "./tables";
 import { checkWireEnds } from "@/core/wireends";
 import { el, text, textWidth } from "./svg";
 import { palette, withPaper } from "./palette";
+import { drawWirePreview } from "./wires";
 
 /* ---------------- rendering constants ---------------- */
 
@@ -412,6 +413,9 @@ export class Renderer implements RendererApi {
       }
     }
 
+    // the strands go under the selection frame: the frame says what is
+    // selected, the strands answer what runs through it
+    drawWirePreview(doc, this.store.selection, parent);
     this.drawSelection(doc, parent);
   }
 

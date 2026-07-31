@@ -1,5 +1,5 @@
 import { tableColumns } from "@/core/doc";
-import { colorsOf, isLightColor } from "@/core/colors";
+import { colorsOf } from "@/core/colors";
 import type { DocMeta, Table } from "@/core/types";
 import type { Translate } from "@/i18n";
 import { el, ellipsize, text, textWidth } from "./svg";
@@ -227,22 +227,9 @@ export function drawTable(
           },
           g,
         );
-        // the colour name stays readable over the swatch when there is room
-        if (bands.length === 1 && w0 > textWidth(value, FONT - 2) + 8) {
-          text(
-            x0 + w0 / 2,
-            y + ROW_H - 5.5,
-            value,
-            {
-              "font-size": FONT - 2,
-              "text-anchor": "middle",
-              // the text sits on the swatch, not on the sheet, so it follows the
-              // wire colour rather than the theme
-              fill: isLightColor(bands[0]!) ? "#222222" : "#ffffff",
-            },
-            g,
-          );
-        }
+        // No name over the swatch. It only ever fitted on single colours, so
+        // the column came out half labelled and half not, and the eye read the
+        // difference as meaning something it did not.
       } else if (value !== "") {
         text(
           x + 5,
