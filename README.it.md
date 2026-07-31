@@ -126,6 +126,8 @@ di connettore tondo DIN con le relative sigle colore.
 
 API completa: **[docs/PLUGINS.md](docs/PLUGINS.md)**
 
+Plugin della comunità e un modello da cui partire: **[harness-designer-plugins](https://github.com/0xDevDav/harness-designer-plugins)**
+
 ## 📦 Pubblicazione
 
 Carica il contenuto di `dist/` su qualunque hosting. `base: "./"` fa sì che funzioni sia in root del

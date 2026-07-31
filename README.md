@@ -126,6 +126,8 @@ connector symbol with the DIN 47002 colour codes.
 
 Full API: **[docs/PLUGINS.md](docs/PLUGINS.md)**
 
+Community plugins, and a template to start from: **[harness-designer-plugins](https://github.com/0xDevDav/harness-designer-plugins)**
+
 ## 📦 Deploy
 
 Upload the contents of `dist/` to any web host. `base: "./"` means it works from the domain root or from a
