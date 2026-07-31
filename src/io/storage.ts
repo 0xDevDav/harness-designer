@@ -76,13 +76,13 @@ export function safeRemove(key: string): void {
 }
 
 /**
- * Carries an autosave written under an older key over to the current one.
+ * Carries an autosave written under a different key over to the current one.
  *
- * Losing the drawing someone left open, because a storage key was renamed
- * between builds, is not an acceptable way to ship a change. Runs once at
- * startup and does nothing when there is nothing to move.
+ * Losing the drawing someone left open, because a storage key changed between
+ * builds, is not an acceptable way to ship a change. Runs once at startup and
+ * does nothing when there is nothing to move.
  */
-export function adoptLegacyAutosave(oldKeys: readonly string[]): void {
+export function adoptAutosaveFrom(oldKeys: readonly string[]): void {
   if (safeGet(DOC_KEY)) return;
   for (const key of oldKeys) {
     const value = safeGet(key);

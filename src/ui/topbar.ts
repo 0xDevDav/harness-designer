@@ -116,8 +116,70 @@ function brand(name: string, tagline: string): HTMLElement {
   return box;
 }
 
+/** True while the bar is a drawer rather than a row. */
+const inDrawer = (): boolean => window.innerWidth <= 860;
+
+/**
+ * Expands the entries in place, under the button that asked for them.
+ *
+ * In the drawer a floating menu would be the wrong answer twice: it covers the
+ * list it came from, and it has to close the drawer to have room. Unfolding
+ * keeps the place you were reading, which is how a menu on a phone behaves.
+ */
+function expandInline(anchor: HTMLElement, items: MenuItem[]): void {
+  const group = anchor.parentElement;
+  if (!group) return;
+  const existing = anchor.nextElementSibling;
+  const already = existing?.classList.contains("navsub") === true;
+
+  // one open section at a time, so the list never turns into a wall
+  group
+    .closest(".topbar__nav")
+    ?.querySelectorAll(".navsub")
+    .forEach((n) => n.remove());
+  group
+    .closest(".topbar__nav")
+    ?.querySelectorAll("[aria-expanded=true][aria-haspopup]")
+    .forEach((b) => b.setAttribute("aria-expanded", "false"));
+  if (already) {
+    anchor.setAttribute("aria-expanded", "false");
+    return;
+  }
+
+  const sub = document.createElement("div");
+  sub.className = "navsub";
+  for (const item of items) {
+    if ("separator" in item) {
+      const line = document.createElement("div");
+      line.className = "navsub__sep";
+      sub.appendChild(line);
+      continue;
+    }
+    if ("header" in item) {
+      const head = document.createElement("div");
+      head.className = "navsub__header";
+      head.textContent = item.header;
+      sub.appendChild(head);
+      continue;
+    }
+    const entry = document.createElement("button");
+    entry.type = "button";
+    entry.className = "btn navsub__item" + (item.danger ? " btn--danger" : "");
+    entry.disabled = item.disabled === true;
+    entry.textContent = item.label;
+    entry.addEventListener("click", item.run);
+    sub.appendChild(entry);
+  }
+  anchor.setAttribute("aria-expanded", "true");
+  anchor.after(sub);
+}
+
 /** Opens a menu anchored under the button that asked for it. */
 function dropdown(anchor: HTMLElement, items: MenuItem[]): void {
+  if (inDrawer()) {
+    expandInline(anchor, items);
+    return;
+  }
   const box = anchor.getBoundingClientRect();
   openMenu(box.left, box.bottom + 6, items);
 }
@@ -193,9 +255,14 @@ function createDrawer(t: AppContext["t"]): {
   burger.addEventListener("click", () => setOpen(!nav.classList.contains("is-open")));
   backdrop.addEventListener("click", close);
   closeBtn.addEventListener("click", close);
-  // choosing a command is the end of the errand the drawer was opened for
+  // Choosing a command is the end of the errand the drawer was opened for, so
+  // it closes. Unfolding a section is not: it is a step towards the command,
+  // and closing there would throw away what was just opened.
   nav.addEventListener("click", (ev) => {
-    if ((ev.target as HTMLElement).closest("button")) close();
+    const button = (ev.target as HTMLElement).closest("button");
+    if (!button || button === closeBtn) return;
+    if (button.hasAttribute("aria-haspopup")) return;
+    close();
   });
 
   const onKeyDown = (ev: KeyboardEvent): void => {
@@ -209,6 +276,10 @@ function createDrawer(t: AppContext["t"]): {
       backdrop.hidden = true;
       burger.setAttribute("aria-expanded", "false");
       nav.removeAttribute("inert");
+      // a section unfolded in the drawer has no place in a row: it would sit
+      // between two groups with nothing to explain it
+      nav.querySelectorAll(".navsub").forEach((n) => n.remove());
+      nav.querySelectorAll("[aria-haspopup]").forEach((b) => b.setAttribute("aria-expanded", "false"));
     } else if (!nav.classList.contains("is-open")) {
       nav.setAttribute("inert", "");
     }

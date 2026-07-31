@@ -20,7 +20,7 @@ import { renderReport } from "./ui/report";
 import { renderPluginsPanel } from "./ui/pluginsPanel";
 import { createPluginHost } from "./plugins/host";
 import { builtinExporters } from "./io/exporters";
-import { DOC_KEY, adoptLegacyAutosave, safeGet, safeSet } from "./io/storage";
+import { DOC_KEY, adoptAutosaveFrom, safeGet, safeSet } from "./io/storage";
 import { announceDocSaved, watchOtherTabs } from "./io/tabs";
 import { readDocFile } from "./io/file";
 import { closeAllPanels, initPanels, isPanelOpen, openPanel, refreshPanels } from "./ui/panel";
@@ -293,9 +293,9 @@ watchOtherTabs(() => toast.show(t("toast.otherTab")));
 /* ---------------- startup ---------------- */
 
 function initialDoc(): unknown {
-  // a drawing left open under a key an older build used is carried over rather
+  // a drawing left open under a key another build used is carried over rather
   // than silently abandoned
-  adoptLegacyAutosave(["harness.doc.v2", "harnessDoc"]);
+  adoptAutosaveFrom(["harness.doc.v2", "harnessDoc"]);
   const saved = safeGet(DOC_KEY);
   if (saved) {
     try {
