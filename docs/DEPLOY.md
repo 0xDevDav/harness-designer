@@ -1,12 +1,12 @@
 # Pubblicazione / Deployment
 
-[🇮🇹 Italiano](#italiano) · [🇬🇧 English](#english)
+[Italiano](#italiano) — [English](#english)
 
 ---
 
 <a id="italiano"></a>
 
-# 🇮🇹 Italiano
+# Italiano
 
 Harness Designer è un **sito statico**: HTML, CSS, JavaScript e nient'altro. Non serve PHP, né un database, né alcuna configurazione lato server. Va bene qualsiasi hosting condiviso (Hostinger, Altervista, Aruba, Netsons…), un GitHub Pages, o anche una cartella su una rete locale.
 
@@ -142,7 +142,7 @@ Due dettagli tecnici che rendono possibile l'apertura da disco, da non rimuovere
 
 <a id="english"></a>
 
-# 🇬🇧 English
+# English
 
 Harness Designer is a **static site**: HTML, CSS, JavaScript and nothing else. No PHP, no database, no server-side configuration. Any shared host works (Hostinger, Altervista, Aruba, Netsons…), as does GitHub Pages or even a folder on a local network.
 

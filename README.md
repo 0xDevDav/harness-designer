@@ -1,54 +1,43 @@
-<div align="center">
+# Harness Designer
 
-# 🔌 Harness Designer
+Editor for automotive wiring harness formboard drawings: double-line bundles, connectors, cavity tables,
+consistency checks and wire lists.
 
-**Draw automotive wiring harnesses the way the workshop expects them**
-
-Formboard drawings with double-line bundles, connectors, cavity tables, consistency checks and wire lists
-
-[![Live demo](https://img.shields.io/badge/Live-demo-6d5cff.svg)](https://0xdevdav.github.io/harness-designer/)
+[![CI](https://github.com/0xDevDav/harness-designer/actions/workflows/ci.yml/badge.svg)](https://github.com/0xDevDav/harness-designer/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6.svg)](tsconfig.json)
-[![Vite](https://img.shields.io/badge/Built%20with-Vite-646cff.svg)](https://vite.dev)
-[![Runtime deps](https://img.shields.io/badge/Runtime%20dependencies-0-brightgreen.svg)](package.json)
-[![Tests](https://img.shields.io/badge/Tests-173%20passing-brightgreen.svg)](tests)
 
-[**▶ Try it now**](https://0xdevdav.github.io/harness-designer/) • [Features](#-features) • [Screenshots](#-screenshots) • [Quick start](#-quick-start) • [How it works](#-how-it-works) • [Plugins](#-plugins) • [Deploy](#-deploy)
+**[Live demo](https://0xdevdav.github.io/harness-designer/)** — [Italiano](README.it.md)
 
-**🇬🇧 English** · [🇮🇹 Italiano](README.it.md)
+A static site: no backend, no account, no sign-up, nothing leaving the browser. Your drawing lives on your
+own computer and is archived as a `.json` file you own.
 
-</div>
+![The sample drawing: a 13-pin towbar kit with its cavity tables](docs/images/overview.png)
 
----
+_The sample drawing that ships with it: a 13-pin ISO 11446 towbar kit, with cavity tables, notes, revisions
+and title block._
 
-A **static site**: no backend, no account, no sign-up, nothing leaving the browser. Your drawing lives on
-your own computer and is archived as a `.json` file you own.
+## What it does
 
-## ✨ Features
+| Feature                     | Description                                                                                                                                   |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Formboard drawing**       | Double-line bundles, junction boots, termination symbols, inline labels for fuses, conduit and tape                                           |
+| **Square or free layout**   | Branches held horizontal and vertical with the corner forming itself, or drawn freehand, with bend points wherever the harness turns          |
+| **Wires inside the bundle** | Select a branch or a connector and the wires running through it are drawn from the cavity tables, each on its own lane, in its own colour     |
+| **Wire colours**            | Multi-colour wires marked the way they really are: the first colour is the ground, the rest are bands across it, leaning as if wound round it |
+| **Cavity tables**           | Pin-outs edited straight on the sheet, tied to their connector                                                                                |
+| **Automatic linking**       | Fill in a destination and the matching cavity at the far end fills itself, colour and section included                                        |
+| **Joints**                  | Two connectors mated: the wire ends there and another begins, so the colour may change and the checks allow it                                |
+| **Consistency check**       | Mismatched cross-references, missing cavities, one-way links and disagreeing wire properties, each clickable                                  |
+| **Two-ends rule**           | The same colour across three or more connectors is flagged as the wiring mistake it is, with black exempt as ground                           |
+| **Wire list**               | Generated from the tables, mirrored pairs collapsed, cut lengths summed, exportable as CSV                                                    |
+| **Bilingual**               | Italian and English, switchable at runtime, colour names included                                                                             |
+| **Plugins**                 | Commands, validation rules, exporters, connector symbols and colour names, without recompiling                                                |
+| **Command palette**         | `Ctrl+K` for every action and its shortcut                                                                                                    |
+| **Light and dark**          | The sheet stays light in both, because that is what gets printed                                                                              |
+| **Touch ready**             | Pinch, drag and an offcanvas menu on tablets and phones                                                                                       |
+| **Single file**             | One HTML file that opens on a double click, with no server at all                                                                             |
 
-| Feature                  | Description                                                                                                         |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| 🎨 **Formboard drawing** | Double-line bundles, junction boots, termination symbols, inline labels for fuses, conduit and tape                 |
-| 📋 **Cavity tables**     | Pin-outs edited straight on the sheet, tied to their connector                                                      |
-| 🔗 **Automatic linking** | Fill in a destination and the matching cavity at the far end fills itself, colour and section included              |
-| ✅ **Consistency check** | Mismatched cross-references, missing cavities, one-way links and disagreeing wire properties, each clickable        |
-| ⚡ **Two-ends rule**     | The same colour across three or more connectors is flagged as the wiring mistake it is, with black exempt as ground |
-| 📊 **Wire list**         | Generated from the tables, mirrored pairs collapsed, exportable as CSV                                              |
-| 🌍 **Bilingual**         | Italian and English, switchable at runtime, colour names included                                                   |
-| 🧩 **Plugins**           | Commands, validation rules, exporters, connector symbols and colour names, without recompiling                      |
-| 🎯 **Command palette**   | `Ctrl+K` for every action and its shortcut                                                                          |
-| 🌗 **Light and dark**    | The sheet stays light in both, because that is what gets printed                                                    |
-| 📱 **Touch ready**       | Pinch, drag and an offcanvas menu on tablets and phones                                                             |
-| 📦 **Single file**       | One HTML file that opens on a double click, with no server at all                                                   |
-
-## 📸 Screenshots
-
-<div align="center">
-<img src="docs/images/overview.png" alt="The sample drawing: a 13-pin towbar kit with its cavity tables" width="900">
-<p><em>The sample drawing that ships with it: a 13-pin ISO 11446 towbar kit, with cavity tables, notes, revisions and title block</em></p>
-</div>
-
-## 🚀 Quick start
+## Quick start
 
 Node 20 or newer, and only to build: what comes out is static.
 
@@ -64,11 +53,13 @@ npm run dev        # http://localhost:5173
 | `npm run dev`              | Development server with hot reload              |
 | `npm run build`            | Type check, then the static site in `dist/`     |
 | `npm run build:standalone` | One self-contained `dist-standalone/index.html` |
-| `npm test`                 | Vitest, 173 tests over the core                 |
+| `npm test`                 | Vitest over the core                            |
 | `npm run typecheck`        | `tsc --noEmit`                                  |
 | `npm run lint`             | ESLint                                          |
 
-## 🎮 How it works
+There are no runtime dependencies: the program ships as plain files and installs over FTP.
+
+## How it works
 
 **Select and move is always on.** Click to select, drag to move nodes, tables and labels; drag empty space
 to pan, wheel to zoom. The same gestures work with fingers.
@@ -80,6 +71,8 @@ to pan, wheel to zoom. The same gestures work with fingers.
 | Add an inline label | Right-click a branch → _Add inline label here_                |
 | Fill a pin-out      | Double-click a cell, `Tab` to the next one                    |
 | Pick a wire colour  | Double-click the colour cell: IEC 60757 and DIN 47002 palette |
+| Copy and paste      | `Ctrl+C`, then `Ctrl+V` puts an identical one at the pointer  |
+| Choose several      | `Ctrl+click`, then right-click for what applies to the group  |
 | Undo                | `Ctrl+Z`, and every change is one step                        |
 
 There is **no sidebar**: properties are edited where they are drawn, and everything else lives in the
@@ -97,7 +90,7 @@ To = "C3"  +  PIN = "3"    split across two
 Fill one end in and the other fills itself. If the target cavity already points somewhere else the
 conflict is reported and nothing is overwritten: silently losing a link is worse than not creating one.
 
-## 🧩 Plugins
+## Plugins
 
 A plugin is an ES module exporting an object with `activate(api)`. No build step: write it, install it, it
 runs.
@@ -121,14 +114,14 @@ export default {
 Two examples ship under `public/plugins/`: branch length totals grouped by covering, and a round DIN
 connector symbol with the DIN 47002 colour codes.
 
-> ⚠️ Plugins run with the same permissions as the page. External ones are only imported over `https:`.
-> See [SECURITY.md](SECURITY.md).
+> **Note.** Plugins run with the same permissions as the page. External ones are only imported over
+> `https:`. See [SECURITY.md](SECURITY.md).
 
 Full API: **[docs/PLUGINS.md](docs/PLUGINS.md)**
 
 Community plugins, and a template to start from: **[harness-designer-plugins](https://github.com/0xDevDav/harness-designer-plugins)**
 
-## 📦 Deploy
+## Deploy
 
 Upload the contents of `dist/` to any web host. `base: "./"` means it works from the domain root or from a
 subfolder, with no configuration.
@@ -138,7 +131,7 @@ and it opens with a double click.
 
 Step by step: **[docs/DEPLOY.md](docs/DEPLOY.md)**
 
-## 🏗️ Project structure
+## Project structure
 
 ```
 harness-designer/
@@ -158,13 +151,13 @@ harness-designer/
 
 Design notes and the reasoning behind the decisions: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
 
-## 📄 Licence
+## Licence
 
 MIT: see **[LICENSE](LICENSE)**.
 
 To contribute: **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
-## 🙏 Credits
+## Credits
 
 Interface icons from [Bootstrap Icons](https://icons.getbootstrap.com/) (MIT). The paths are embedded in
 the code: nothing is fetched from the network, so it works offline and as a single file.
