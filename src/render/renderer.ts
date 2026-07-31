@@ -29,6 +29,19 @@ import { drawWirePreview } from "./wires";
 const W_OUTER = 9;
 const W_INNER = 5.5;
 const W_HIT = 16;
+/**
+ * Radius of the fillet where a branch changes direction.
+ *
+ * Only where exactly two branches meet, which is a bend in one run rather than
+ * a junction. Where three or more meet the boot is the fitting, and a fillet
+ * under it would be invisible anyway.
+ *
+ * Wire is stiff: it has a bend radius, and a harness laid on a board turns in a
+ * curve. Drawing that turn as a square corner is the reason strands offset from
+ * the run needed a special case at every node, and the reason the drawing never
+ * looked like the thing it represents.
+ */
+const BEND_R = 16;
 /** Radius of the invisible circle that makes a junction grabbable. */
 const NODE_HIT_R = 11;
 const MIN_ZOOM = 0.15;
@@ -145,6 +158,7 @@ export class Renderer implements RendererApi {
       drawTable(table, doc.meta, this.t, gTables, wireErrors.get(table.id));
     }
     for (const seg of doc.segments) this.drawSegment(doc, seg, gSegOuter, gSegInner, gSegLabels);
+    this.drawBends(doc, gSegOuter, gSegInner);
     if (!exporting) drawWirePreview(doc, this.store.selection, gStrands);
     for (const node of doc.nodes) drawJunctionBoot(doc, node, gBoot);
     for (const node of doc.nodes) {
@@ -164,6 +178,48 @@ export class Renderer implements RendererApi {
 
   /* ---------------- branches ---------------- */
 
+  /**
+   * How far back a branch stops short of a node so a fillet can take the turn.
+   * Zero unless exactly two branches meet there, and never more than half the
+   * branch, so a short stretch between two bends cannot be eaten from both ends.
+   */
+  private bendInset(doc: HarnessDoc, nodeId: string, ownLength: number): number {
+    const attached = segmentsOf(doc, nodeId);
+    if (attached.length !== 2) return 0;
+    const halves = attached.map((s) => {
+      const e = segmentEnds(doc, s);
+      return e ? Math.hypot(e[1].x - e[0].x, e[1].y - e[0].y) / 2 : 0;
+    });
+    return Math.min(BEND_R, ownLength / 2, ...halves);
+  }
+
+  /** Fillets at the nodes where one run simply changes direction. */
+  private drawBends(doc: HarnessDoc, outer: SVGGElement, inner: SVGGElement): void {
+    for (const node of doc.nodes) {
+      const attached = segmentsOf(doc, node.id);
+      if (attached.length !== 2) continue;
+
+      const arms: Point[] = [];
+      for (const seg of attached) {
+        const ends = segmentEnds(doc, seg);
+        if (!ends) continue;
+        const far = ends[0].id === node.id ? ends[1] : ends[0];
+        const dx = far.x - node.x;
+        const dy = far.y - node.y;
+        const len = Math.hypot(dx, dy);
+        if (!len) continue;
+        const r = this.bendInset(doc, node.id, len);
+        arms.push({ x: node.x + (dx / len) * r, y: node.y + (dy / len) * r });
+      }
+      if (arms.length !== 2) continue;
+
+      const d = `M${arms[0]!.x},${arms[0]!.y} Q${node.x},${node.y} ${arms[1]!.x},${arms[1]!.y}`;
+      const shape = { d, fill: "none", "stroke-linecap": "round", "pointer-events": "none" };
+      el("path", { ...shape, stroke: palette().bundleOuter, "stroke-width": W_OUTER }, outer);
+      el("path", { ...shape, stroke: palette().bundleInner, "stroke-width": W_INNER }, inner);
+    }
+  }
+
   private drawSegment(
     doc: HarnessDoc,
     seg: Segment,
@@ -174,7 +230,21 @@ export class Renderer implements RendererApi {
     const ends = segmentEnds(doc, seg);
     if (!ends) return;
     const [a, b] = ends;
-    const line = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, "stroke-linecap": "round" };
+
+    // the drawn line stops short of a bend; the hit line does not, so the whole
+    // branch stays grabbable right up to the node
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const ux = (b.x - a.x) / len;
+    const uy = (b.y - a.y) / len;
+    const ia = this.bendInset(doc, a.id, len);
+    const ib = this.bendInset(doc, b.id, len);
+    const line = {
+      x1: a.x + ux * ia,
+      y1: a.y + uy * ia,
+      x2: b.x - ux * ib,
+      y2: b.y - uy * ib,
+      "stroke-linecap": "round",
+    };
 
     el(
       "line",
@@ -190,7 +260,11 @@ export class Renderer implements RendererApi {
     el(
       "line",
       {
-        ...line,
+        x1: a.x,
+        y1: a.y,
+        x2: b.x,
+        y2: b.y,
+        "stroke-linecap": "round",
         stroke: "transparent",
         "stroke-width": W_HIT,
         "data-ent": "segment",
