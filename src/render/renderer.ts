@@ -36,6 +36,12 @@ const W_HIT = 16;
 const NODE_HIT_R = 11;
 /** Length of the arrowheads that mark a mated pair. */
 const JOINT_ARROW = 7;
+/**
+ * Clearance between the face of a connector and where the arrow of its joint
+ * begins. Started any nearer, the arrowhead is drawn under the symbol, which is
+ * painted over it: the arrow then looks as though it stops short of nothing.
+ */
+const JOINT_GAP = 4;
 /** Size of the handle a bend is dragged by, shown only on a selected branch. */
 const BEND_HANDLE_R = 5;
 const MIN_ZOOM = 0.15;
@@ -428,41 +434,58 @@ export class Renderer implements RendererApi {
       // once per pair, from whichever end the document lists first
       if (!other || doc.nodes.indexOf(other) < doc.nodes.indexOf(node)) continue;
 
-      const dx = other.x - node.x;
-      const dy = other.y - node.y;
-      const span = Math.hypot(dx, dy);
-      const clear = (n: HNode): number => (connectorSymbol(n.style)?.tip ?? 40) * 0.55;
-      const head = clear(node);
-      const tail = clear(other);
-      if (span <= head + tail + JOINT_ARROW * 2) continue; // no room: the pairing is plain to see
+      // Each end starts at the nose of its connector and leaves along the axis
+      // that connector faces, because that is the direction it plugs in: an
+      // arrow cutting diagonally across from one body to the other says the two
+      // are near each other, which is not what a joint is. Where the two axes
+      // do not line up the curve takes up the difference.
+      const mouth = (n: HNode): { at: Point; away: Point } => {
+        const angle = this.attachAngle(doc, n) + Math.PI; // away from the bundle
+        const away = { x: Math.cos(angle), y: Math.sin(angle) };
+        const nose = (connectorSymbol(n.style)?.tip ?? 40) + JOINT_GAP;
+        return { at: { x: n.x + away.x * nose, y: n.y + away.y * nose }, away };
+      };
 
-      const ux = dx / span;
-      const uy = dy / span;
-      const from = { x: node.x + ux * head, y: node.y + uy * head };
-      const to = { x: other.x - ux * tail, y: other.y - uy * tail };
-      const stroke = palette().textDim;
+      const a = mouth(node);
+      const b = mouth(other);
+      const span = dist(a.at, b.at);
+      if (span <= JOINT_ARROW * 2.5) continue; // nose to nose: the pairing is plain to see
+
+      const reach = clamp(span * 0.45, JOINT_ARROW * 2, 90);
       const line = {
-        stroke,
+        stroke: palette().textDim,
         "stroke-width": 1.6,
         "stroke-linecap": "round",
+        "stroke-linejoin": "round",
         "pointer-events": "none",
         fill: "none",
       };
-      el("line", { ...line, x1: from.x, y1: from.y, x2: to.x, y2: to.y }, parent);
-      for (const [tip, sign] of [
-        [from, 1],
-        [to, -1],
-      ] as const) {
-        const bx = tip.x + ux * JOINT_ARROW * sign;
-        const by = tip.y + uy * JOINT_ARROW * sign;
+      el(
+        "path",
+        {
+          ...line,
+          d:
+            `M${a.at.x.toFixed(1)},${a.at.y.toFixed(1)} ` +
+            `C${(a.at.x + a.away.x * reach).toFixed(1)},${(a.at.y + a.away.y * reach).toFixed(1)} ` +
+            `${(b.at.x + b.away.x * reach).toFixed(1)},${(b.at.y + b.away.y * reach).toFixed(1)} ` +
+            `${b.at.x.toFixed(1)},${b.at.y.toFixed(1)}`,
+        },
+        parent,
+      );
+
+      // a head at each nose, pointing into its own connector: neither end of a
+      // joint is the source, and the arrow lies along the axis it arrives on
+      for (const end of [a, b]) {
+        const back = { x: end.away.x * JOINT_ARROW, y: end.away.y * JOINT_ARROW };
         const wing = JOINT_ARROW * 0.5;
         el(
           "path",
           {
             ...line,
             d:
-              `M${bx - uy * wing},${by + ux * wing} L${tip.x},${tip.y} ` +
-              `L${bx + uy * wing},${by - ux * wing}`,
+              `M${(end.at.x + back.x - end.away.y * wing).toFixed(1)},${(end.at.y + back.y + end.away.x * wing).toFixed(1)} ` +
+              `L${end.at.x.toFixed(1)},${end.at.y.toFixed(1)} ` +
+              `L${(end.at.x + back.x + end.away.y * wing).toFixed(1)},${(end.at.y + back.y - end.away.x * wing).toFixed(1)}`,
           },
           parent,
         );

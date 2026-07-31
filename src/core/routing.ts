@@ -32,7 +32,16 @@ interface Link {
   to: string;
 }
 
-/** Adjacency list over node ids. Built once per routing pass. */
+/**
+ * Adjacency list over node ids. Built once per routing pass.
+ *
+ * A mated pair is a step in this graph with no branch behind it: the two
+ * connectors plug together, so a circuit written straight through the joint can
+ * be built, and saying it cannot would be wrong. It carries no segment id
+ * because it is not a branch — nothing is cut to its length and nothing is
+ * drawn along it — and everything that walks a route has to be ready for the
+ * gap where a branch would otherwise be.
+ */
 function adjacency(doc: HarnessDoc): Map<string, Link[]> {
   const graph = new Map<string, Link[]>();
   const add = (from: string, seg: string, to: string): void => {
@@ -44,8 +53,14 @@ function adjacency(doc: HarnessDoc): Map<string, Link[]> {
     add(s.a, s.id, s.b);
     add(s.b, s.id, s.a);
   }
+  for (const n of doc.nodes) {
+    if (n.mate && doc.nodes.some((o) => o.id === n.mate && o.mate === n.id)) add(n.id, JOINT, n.mate);
+  }
   return graph;
 }
+
+/** Stands in for the branch a joint does not have. */
+export const JOINT = "";
 
 /**
  * Shortest chain of branches between two nodes, as segment ids, or `null` when
@@ -55,6 +70,11 @@ function adjacency(doc: HarnessDoc): Map<string, Link[]> {
  * only ever one route and the choice does not arise. It matters only in the
  * malformed case of a loop, where fewest hops at least keeps the answer
  * deterministic instead of depending on the order segments were drawn in.
+ *
+ * A joint crossed on the way leaves no id in the list, because it is not a
+ * branch. What comes back is the branches on one side followed by the branches
+ * on the other, and the seam between them is found again by asking the nodes:
+ * that is what `pathNodes` does, and what anything walking a route must do.
  */
 export function findPath(doc: HarnessDoc, from: string, to: string): string[] | null {
   if (from === to) return [];
@@ -73,7 +93,7 @@ export function findPath(doc: HarnessDoc, from: string, to: string): string[] | 
         const path: string[] = [];
         for (let at = to; at !== from;) {
           const step = cameFrom.get(at)!;
-          path.push(step.seg);
+          if (step.seg !== JOINT) path.push(step.seg);
           at = step.node;
         }
         return path.reverse();
@@ -122,6 +142,29 @@ export function pathLengthMm(doc: HarnessDoc, path: readonly string[]): number |
 }
 
 /**
+ * Where a route steps from one branch to the next without a node in common:
+ * it crossed a joint there.
+ *
+ * The path holds no id for the joint, because a joint is not a branch, so the
+ * seam is found by asking the geometry instead — the branch it lands on does
+ * not touch the node it left, and the two nodes are mated.
+ */
+function jumpsJoint(doc: HarnessDoc, from: string, path: readonly string[]): boolean {
+  let at = from;
+  for (const id of path) {
+    const seg = doc.segments.find((s) => s.id === id);
+    if (!seg) return false;
+    if (seg.a !== at && seg.b !== at) {
+      const mate = doc.nodes.find((n) => n.id === at)?.mate;
+      if (!mate || (seg.a !== mate && seg.b !== mate)) return false;
+      return true;
+    }
+    at = seg.a === at ? seg.b : seg.a;
+  }
+  return false;
+}
+
+/**
  * Every wire in the list with the branches it runs through.
  *
  * Two cases deliberately come back as `unreachable: false` with an empty path,
@@ -151,7 +194,12 @@ export function routeWires(doc: HarnessDoc): RoutedWire[] {
 
     const path = findPath(doc, a.id, b.id);
     if (!path) return { wire, path: [], lengthMm: null, unreachable: true };
-    return { wire, path, lengthMm: pathLengthMm(doc, path), unreachable: false };
+    // A circuit written straight through a joint is two wires, one each side,
+    // and the branches on both sides added together are not the length of
+    // either. There is no single figure to cut to, so there is none to give:
+    // an unknown length has to stay visibly unknown.
+    const lengthMm = jumpsJoint(doc, a.id, path) ? null : pathLengthMm(doc, path);
+    return { wire, path, lengthMm, unreachable: false };
   });
 }
 
@@ -174,13 +222,25 @@ export function wireRowsWithLength(doc: HarnessDoc): WireRow[] {
   return routeWires(doc).map(({ wire, lengthMm }) => (lengthMm === null ? wire : { ...wire, lengthMm }));
 }
 
-/** Nodes a wire passes through, ends included. Used by the drawing. */
+/**
+ * Nodes a wire passes through, ends included. Used by the drawing.
+ *
+ * A branch that does not touch the node the walk is standing on is the far side
+ * of a joint, and the walk steps across to the mate to carry on — the joint
+ * itself leaves no id in the path, so this is where it is found again.
+ */
 export function pathNodes(doc: HarnessDoc, from: string, path: readonly string[]): string[] {
   const nodes = [from];
   let at = from;
   for (const id of path) {
     const seg = doc.segments.find((s) => s.id === id);
     if (!seg) break;
+    if (seg.a !== at && seg.b !== at) {
+      const mate = doc.nodes.find((n) => n.id === at)?.mate;
+      if (!mate || (seg.a !== mate && seg.b !== mate)) break;
+      at = mate;
+      nodes.push(at);
+    }
     at = seg.a === at ? seg.b : seg.a;
     nodes.push(at);
   }

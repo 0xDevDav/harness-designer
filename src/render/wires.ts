@@ -103,6 +103,12 @@ interface Step {
   forward: boolean;
   node: string;
   endNode: string;
+  /**
+   * The route crossed a joint to get here, so nothing joins this stretch to the
+   * one before it. Two connectors plugged together are not a wire: the circuit
+   * carries on, the wire does not.
+   */
+  crossed: boolean;
 }
 
 /** The stretches of a route, walked from one end. Stretches of no length drop out. */
@@ -112,6 +118,15 @@ function walk(doc: HarnessDoc, route: RoutedWire, startNodeId: string): Step[] {
   for (const segId of route.path) {
     const seg = findSegment(doc, segId);
     if (!seg) break;
+    // a branch that does not touch where the walk stands is the far side of a
+    // joint, and the walk steps across to the mate to carry on
+    let crossed = false;
+    if (seg.a !== at && seg.b !== at) {
+      const mate = findNode(doc, at)?.mate;
+      if (!mate || (seg.a !== mate && seg.b !== mate)) break;
+      at = mate;
+      crossed = true;
+    }
     const nextId = seg.a === at ? seg.b : seg.a;
     if (!findNode(doc, at) || !findNode(doc, nextId)) break;
     const forward = seg.a === at;
@@ -119,6 +134,7 @@ function walk(doc: HarnessDoc, route: RoutedWire, startNodeId: string): Step[] {
     if (!path) break;
     if (!forward) path.reverse();
 
+    const before = out.length;
     for (let i = 1; i < path.length; i++) {
       const from = path[i - 1]!;
       const to = path[i]!;
@@ -133,6 +149,7 @@ function walk(doc: HarnessDoc, route: RoutedWire, startNodeId: string): Step[] {
         forward,
         node: i === 1 ? at : "",
         endNode: i === path.length - 1 ? nextId : "",
+        crossed: crossed && out.length === before,
       });
     }
     at = nextId;
@@ -194,7 +211,9 @@ function bundleSides(doc: HarnessDoc, runs: readonly Step[][]): Map<string, numb
     for (let i = 1; i < run.length; i++) {
       const a = run[i - 1]!;
       const b = run[i]!;
-      if (a.seg === b.seg) continue;
+      // two stretches of one branch are one side already, and two with a joint
+      // between them never touch: neither has anything to ask of the other
+      if (a.seg === b.seg || b.crossed) continue;
       const key = a.seg < b.seg ? `${a.seg}|${b.seg}` : `${b.seg}|${a.seg}`;
       const seen = wishes.get(key);
       if (seen) seen.weight++;
@@ -239,7 +258,7 @@ function bundleSides(doc: HarnessDoc, runs: readonly Step[][]): Map<string, numb
     for (let i = 1; i < run.length; i++) {
       const a = run[i - 1]!;
       const b = run[i]!;
-      if (a.seg === b.seg) continue;
+      if (a.seg === b.seg || b.crossed) continue;
       const turn = a.dir.x * b.dir.y - a.dir.y * b.dir.x;
       if (Math.abs(turn) < 1e-6) continue;
       const side = sideAt(sides, a);
@@ -368,8 +387,8 @@ function goingKey(
   for (let i = 1; i < chain.length; i++) {
     const a = chain[i - 1]!;
     const b = chain[i]!;
-    // a turn inside a branch is not a fan-out: nothing chooses anything there
-    if (a.seg === b.seg) continue;
+    // a turn inside a branch is not a fan-out, and a joint is not a turn at all
+    if (a.seg === b.seg || (onward ? b.crossed : a.crossed)) continue;
     key.push(fanAngle(onward ? back(a.dir) : a.dir, sideAt(sides, a), onward ? b.dir : back(b.dir)));
   }
   return key;
@@ -668,27 +687,44 @@ export function drawWirePreview(doc: HarnessDoc, sel: Selection | null, parent: 
   for (const route of wanted) {
     const run = runs.get(route.wire.index);
     if (!run?.length) continue;
-    const gap = (i: number): number =>
-      BUNDLE_EDGE + (laneOf.get(run[i]!.seg)?.get(route.wire.index) ?? 0) * STRAND_GAP;
-
-    const corners = strandCorners(run, gap, sides);
-    if (corners.length < 2) continue;
-    const d = roundedPath(corners);
-    if (!d) continue;
 
     const bands = colorsOf(route.wire.color) ?? [UNKNOWN];
     const base = bands[0] ?? UNKNOWN;
-    const stroke = { d, fill: "none", "pointer-events": "none", "stroke-linecap": "round" };
 
-    el("path", { ...stroke, stroke: palette().paper, "stroke-width": CASING_W }, parent);
-    el("path", { ...stroke, stroke: base, "stroke-width": STRAND_W }, parent);
+    // A circuit written straight through a joint is two wires, so it is drawn
+    // as two: the run is cut where it crossed, and nothing is drawn between the
+    // pieces, because between them there is no wire — there are two connectors
+    // plugged together.
+    for (const piece of atJoints(run)) {
+      const gap = (i: number): number =>
+        BUNDLE_EDGE + (laneOf.get(piece[i]!.seg)?.get(route.wire.index) ?? 0) * STRAND_GAP;
 
-    // A tracer is a second colour on the same wire, drawn as a fine core along
-    // the base rather than as dashes: at this size dashes turn into speckle and
-    // a bundle of striped wires reads as static.
-    if (bands[1]) {
-      el("path", { ...stroke, stroke: bands[1], "stroke-width": STRAND_W * 0.45 }, parent);
+      const corners = strandCorners(piece, gap, sides);
+      if (corners.length < 2) continue;
+      const d = roundedPath(corners);
+      if (!d) continue;
+
+      const stroke = { d, fill: "none", "pointer-events": "none", "stroke-linecap": "round" };
+      el("path", { ...stroke, stroke: palette().paper, "stroke-width": CASING_W }, parent);
+      el("path", { ...stroke, stroke: base, "stroke-width": STRAND_W }, parent);
+
+      // A tracer is a second colour on the same wire, drawn as a fine core along
+      // the base rather than as dashes: at this size dashes turn into speckle and
+      // a bundle of striped wires reads as static.
+      if (bands[1]) {
+        el("path", { ...stroke, stroke: bands[1], "stroke-width": STRAND_W * 0.45 }, parent);
+      }
     }
   }
   return wanted.length;
+}
+
+/** The run cut into the separate wires it is really made of, one per joint crossed. */
+function atJoints(run: readonly Step[]): Step[][] {
+  const pieces: Step[][] = [];
+  for (const step of run) {
+    if (step.crossed || !pieces.length) pieces.push([]);
+    pieces[pieces.length - 1]!.push(step);
+  }
+  return pieces;
 }

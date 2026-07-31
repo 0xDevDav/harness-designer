@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { normalizeDoc } from "@/core/doc";
 import { formatLengthMm, parseLengthMm } from "@/core/length";
-import { findPath, pathLengthMm, routeWires, segmentLoad, wireRowsWithLength } from "@/core/routing";
+import {
+  findPath,
+  pathLengthMm,
+  pathNodes,
+  routeWires,
+  segmentLoad,
+  wireRowsWithLength,
+} from "@/core/routing";
 import type { HarnessDoc } from "@/core/types";
 
 const HEAD = ["Cavità", "Verso", "Funzione", "Colore", "Sezione"];
@@ -211,5 +218,78 @@ describe("wireRowsWithLength", () => {
     const rows = wireRowsWithLength(doc);
     expect(rows[0]!.lengthMm).toBe(1000);
     expect(rows[1]!.lengthMm).toBeUndefined();
+  });
+});
+
+describe("routing across a joint", () => {
+  /**
+   * Two harness halves that plug into each other:
+   *
+   *   A ---300--- X  ||  Y ---400--- B
+   *
+   * Nothing joins X to Y but the fact that they are mated.
+   */
+  const jointed = (mated: boolean, rows: Record<string, string[][]> = {}): HarnessDoc => {
+    const doc = normalizeDoc({
+      nodes: [
+        { id: "a", x: 0, y: 0, kind: "connector", name: "A" },
+        { id: "x", x: 100, y: 0, kind: "connector", name: "X" },
+        { id: "y", x: 200, y: 0, kind: "connector", name: "Y" },
+        { id: "b", x: 300, y: 0, kind: "connector", name: "B" },
+      ],
+      segments: [
+        { id: "sa", a: "a", b: "x", len: "300 mm" },
+        { id: "sb", a: "y", b: "b", len: "400 mm" },
+      ],
+      tables: Object.entries(rows).map(([node, r]) => ({
+        id: "t" + node,
+        x: 0,
+        y: 0,
+        kind: "table",
+        node,
+        head: HEAD,
+        rows: r,
+      })),
+    });
+    if (mated) {
+      doc.nodes.find((n) => n.id === "x")!.mate = "y";
+      doc.nodes.find((n) => n.id === "y")!.mate = "x";
+    }
+    return normalizeDoc(doc);
+  };
+
+  it("finds no way across two halves that are merely near each other", () => {
+    expect(findPath(jointed(false), "a", "b")).toBeNull();
+  });
+
+  it("goes through once they are mated, and the joint leaves no branch behind", () => {
+    // the joint is not a branch, so it contributes no id: both sides, nothing between
+    expect(findPath(jointed(true), "a", "b")).toEqual(["sa", "sb"]);
+    expect(findPath(jointed(true), "b", "a")).toEqual(["sb", "sa"]);
+  });
+
+  it("stops calling a circuit through a joint unbuildable", () => {
+    const rows = { a: [["1", "B.1", "massa", "nero", "1.5"]], b: [["1", "A.1", "massa", "verde", "1.5"]] };
+    // the two mirrored rows are one wire, so one complaint and not two
+    expect(routeWires(jointed(false, rows)).filter((r) => r.unreachable)).toHaveLength(1);
+    expect(routeWires(jointed(true, rows)).filter((r) => r.unreachable)).toHaveLength(0);
+  });
+
+  it("gives no cut length across a joint, because there is no single wire to cut", () => {
+    const rows = { a: [["1", "B.1", "massa", "nero", "1.5"]], b: [["1", "A.1", "massa", "nero", "1.5"]] };
+    const routed = routeWires(jointed(true, rows));
+    expect(routed[0]?.path).toEqual(["sa", "sb"]);
+    // 300 + 400 would be the circuit, and the length of neither of its two wires
+    expect(routed[0]?.lengthMm).toBeNull();
+  });
+
+  it("still adds up a route that stays on one side", () => {
+    const rows = { a: [["1", "X.1", "massa", "nero", "1.5"]], x: [["1", "A.1", "massa", "nero", "1.5"]] };
+    expect(routeWires(jointed(true, rows))[0]?.lengthMm).toBe(300);
+  });
+
+  it("walks the nodes across the joint, naming both halves of it", () => {
+    const doc = jointed(true);
+    expect(pathNodes(doc, "a", ["sa", "sb"])).toEqual(["a", "x", "y", "b"]);
   });
 });
