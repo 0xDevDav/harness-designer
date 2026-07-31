@@ -147,6 +147,19 @@ function strandPoints(
   }
   if (!norms.length) return [];
 
+  // Which side of the bundle the wire runs on, decided once for the whole
+  // route by where it turns. A wire laid round a bend takes the inside of it,
+  // because that is the shorter way and wire is not stretched to go the long
+  // way round for the sake of symmetry. Summing the turns rather than deciding
+  // corner by corner keeps the strand on one side end to end.
+  let turn = 0;
+  for (let i = 1; i < norms.length; i++) {
+    const p = norms[i - 1]!;
+    const c = norms[i]!;
+    turn += p.x * c.y - p.y * c.x;
+  }
+  if (turn < 0) for (let i = 0; i < shifts.length; i++) shifts[i] = -shifts[i]!;
+
   // One point per node, never two. Emitting the offset ends of each branch
   // separately puts two almost coincident vertices at every junction joined by
   // a stub, and rounding both ends of that stub eats it: that is where the

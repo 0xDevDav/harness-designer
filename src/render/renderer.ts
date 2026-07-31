@@ -124,13 +124,16 @@ export class Renderer implements RendererApi {
     // layer order is the visual contract: whatever comes later covers
     const gTables = el("g", {}, world);
     const gSegOuter = el("g", {}, world);
-    // Strands sit above the bundle outline but below its inner line, its
-    // length labels and the inline labels. They explain the branch, so they
-    // must never be the reason a dimension cannot be read.
-    const gStrands = el("g", { "pointer-events": "none" }, world);
     const gSegInner = el("g", {}, world);
     const gBoot = el("g", {}, world);
     const gJunctions = el("g", {}, world);
+    // Strands run over the bundle and over the junction boots, so a wire is
+    // followed from end to end without disappearing under every fitting on the
+    // way. They stay under the dimensions and the inline labels, which is why
+    // the branch labels have a layer of their own up here rather than sitting
+    // with the branch that owns them.
+    const gStrands = el("g", { "pointer-events": "none" }, world);
+    const gSegLabels = el("g", {}, world);
     const gInlines = el("g", {}, world);
     const gConnectors = el("g", {}, world);
     const gOverlay = el("g", { "pointer-events": "none" }, world);
@@ -141,7 +144,7 @@ export class Renderer implements RendererApi {
     for (const table of doc.tables) {
       drawTable(table, doc.meta, this.t, gTables, wireErrors.get(table.id));
     }
-    for (const seg of doc.segments) this.drawSegment(doc, seg, gSegOuter, gSegInner);
+    for (const seg of doc.segments) this.drawSegment(doc, seg, gSegOuter, gSegInner, gSegLabels);
     if (!exporting) drawWirePreview(doc, this.store.selection, gStrands);
     for (const node of doc.nodes) drawJunctionBoot(doc, node, gBoot);
     for (const node of doc.nodes) {
@@ -161,7 +164,13 @@ export class Renderer implements RendererApi {
 
   /* ---------------- branches ---------------- */
 
-  private drawSegment(doc: HarnessDoc, seg: Segment, outer: SVGGElement, inner: SVGGElement): void {
+  private drawSegment(
+    doc: HarnessDoc,
+    seg: Segment,
+    outer: SVGGElement,
+    inner: SVGGElement,
+    labels: SVGGElement,
+  ): void {
     const ends = segmentEnds(doc, seg);
     if (!ends) return;
     const [a, b] = ends;
@@ -220,7 +229,7 @@ export class Renderer implements RendererApi {
         "data-id": seg.id,
         style: "cursor:pointer",
       },
-      inner,
+      labels,
     );
 
     // only the length is underlined, which sets it apart from note references
@@ -238,7 +247,7 @@ export class Renderer implements RendererApi {
           transform: rotate,
           "pointer-events": "none",
         },
-        inner,
+        labels,
       );
     }
   }
