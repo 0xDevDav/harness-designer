@@ -1,0 +1,30 @@
+version: 2
+
+updates:
+  # Development tooling only: the application itself has no runtime
+  # dependencies, so nothing here can reach the published site.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # One pull request for the routine bumps, so the queue stays readable and
+      # the CI decides. Majors come separately, because those need reading.
+      dev-dependencies:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: chore
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci

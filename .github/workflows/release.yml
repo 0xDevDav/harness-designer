@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to release, for example v1.0.0
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the generated notes need the history behind the tag
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # see the comment in ci.yml: the lock is written on Windows and npm ci
+      # refuses it on Linux
+      - run: npm install --no-audit --no-fund
+
+      # a tag that does not pass the gates is not a release
+      - run: npm run typecheck
+      - run: npm test
+
+      - run: npm run build
+      - run: npm run build:standalone
+
+      - name: Package the artefacts
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          mkdir -p out
+          # the single file is the point of this release: it is named so that
+          # what it is, and which version, is clear once downloaded
+          cp dist-standalone/index.html "out/harness-designer-${VERSION}-standalone.html"
+          (cd dist && zip -qr "../out/harness-designer-${VERSION}-site.zip" .)
+          ls -lh out
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES=$(cat <<'EOF'
+          ## Downloads
+
+          | File | What it is |
+          |------|------------|
+          | `harness-designer-VERSION-standalone.html` | The whole program in one file. Download it and open it with a double click: no server, no install, works offline. |
+          | `harness-designer-VERSION-site.zip` | The static site. Unzip it into the public folder of any web host. |
+
+          Or try it without downloading anything: **https://0xdevdav.github.io/harness-designer/**
+
+          ---
+          EOF
+          )
+          NOTES="${NOTES//VERSION/$VERSION}"
+          printf '%s\n' "$NOTES" > notes.md
+          gh release create "$TAG" out/* \
+            --title "Harness Designer $VERSION" \
+            --notes-file notes.md \
+            --generate-notes
