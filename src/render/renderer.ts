@@ -430,9 +430,53 @@ export class Renderer implements RendererApi {
     this.drawSelection(doc, parent);
   }
 
+  /**
+   * A selected branch, lit along its own line: a wide soft halo under the
+   * bundle plus a thin bright edge on it. Nothing is dashed, so nothing here
+   * can be read as a wire.
+   */
+  private drawSegmentSelection(doc: HarnessDoc, segId: string, parent: SVGGElement): void {
+    const seg = findSegment(doc, segId);
+    const ends = seg ? segmentEnds(doc, seg) : null;
+    if (!ends) return;
+    const [a, b] = ends;
+    const line = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, "stroke-linecap": "round" };
+
+    el(
+      "line",
+      { ...line, stroke: palette().selection, "stroke-width": W_OUTER + 11, opacity: 0.22 },
+      parent,
+    );
+    el(
+      "line",
+      { ...line, stroke: palette().selection, "stroke-width": W_OUTER + 2, opacity: 0.55 },
+      parent,
+    );
+
+    // the ends are marked so a branch stays distinguishable from the one next
+    // to it when several meet at a junction
+    for (const p of [a, b]) {
+      el(
+        "circle",
+        { cx: p.x, cy: p.y, r: 4.5, fill: "none", stroke: palette().selection, "stroke-width": 2 },
+        parent,
+      );
+    }
+  }
+
   private drawSelection(doc: HarnessDoc, parent: SVGGElement): void {
     const sel = this.store.selection;
     if (!sel) return;
+
+    // A branch is a line, so it is lit along its length rather than boxed. A
+    // rectangle round a diagonal branch encloses mostly empty sheet, and its
+    // dashed edges run alongside the strands closely enough to be mistaken for
+    // one of them, which defeats the preview it sits on top of.
+    if (sel.type === "segment") {
+      this.drawSegmentSelection(doc, sel.id, parent);
+      return;
+    }
+
     const box = this.entityBBox(sel);
     if (!box) return;
     el(
