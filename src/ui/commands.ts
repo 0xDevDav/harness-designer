@@ -17,7 +17,7 @@ import { sampleDoc } from "@/core/sample";
 import type { Point, Table } from "@/core/types";
 import { validateDoc } from "@/core/validate";
 import { buildWireList, wireListRows } from "@/core/wirelist";
-import { LOCALES, getLocale, setLocale } from "@/i18n";
+import { getLocale, locales, setLocale } from "@/i18n";
 import { exportPngFile, exportSvgFile, exportWireCsv, printDrawing } from "@/io/exporters";
 import { saveDocToFile } from "@/io/file";
 import { tableSize } from "@/render/tables";
@@ -449,8 +449,9 @@ export function registerBuiltinCommands(app: AppContext): void {
       titleKey: "cmd.language",
       // changing the locale rebuilds the interface through onLocaleChange
       run: () => {
-        const index = LOCALES.indexOf(getLocale());
-        const next = LOCALES[(index + 1) % LOCALES.length];
+        const all = locales();
+        const index = all.indexOf(getLocale());
+        const next = all[(index + 1) % all.length];
         if (next) setLocale(next);
       },
     },

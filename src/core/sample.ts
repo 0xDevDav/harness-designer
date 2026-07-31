@@ -14,7 +14,10 @@ import type { Translate } from "@/i18n";
 function colour(key: string): string {
   const entry = WIRE_PALETTE.find((c) => c.key === key);
   if (!entry) return key;
-  return getLocale() === "en" ? entry.en : entry.it;
+  // Italian for Italian, English for everything else: a German reading the
+  // sample is better served by "yellow" than by "giallo", and colorOf reads
+  // both back either way.
+  return getLocale() === "it" ? entry.it : entry.en;
 }
 
 /** Two-band colour, base over tracer, in the interface language. */

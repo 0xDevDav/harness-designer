@@ -14,7 +14,7 @@
  */
 import type { AppContext } from "@/app/context";
 import { validateDoc } from "@/core/validate";
-import { LOCALES, LOCALE_NAMES, getLocale, setLocale } from "@/i18n";
+import { getLocale, localeName, locales, setLocale } from "@/i18n";
 import type { Locale } from "@/i18n";
 import { closeMenu, openMenu } from "@/ui/menu";
 import type { MenuItem } from "@/ui/menu";
@@ -475,8 +475,8 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
   const languageMenu = (ev: MouseEvent): void =>
     dropdown(
       ev.currentTarget as HTMLElement,
-      LOCALES.map((value: Locale) => ({
-        label: (getLocale() === value ? "● " : "○ ") + LOCALE_NAMES[value],
+      locales().map((value: Locale) => ({
+        label: (getLocale() === value ? "● " : "○ ") + localeName(value),
         run: () => {
           setLocale(value);
           app.refreshUi();

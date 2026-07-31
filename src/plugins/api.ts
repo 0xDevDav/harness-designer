@@ -191,6 +191,20 @@ export interface PluginAPI {
      * keys with the plugin id.
      */
     add(locale: Locale, messages: Messages): void;
+    /**
+     * Adds a whole language, which then appears in the language menu like the
+     * built-in ones.
+     *
+     * `name` is written in the language itself: whoever is looking for their
+     * own tongue is not reading the current one. Keys the language does not
+     * translate fall back to Italian, so a partial translation is usable from
+     * the first key.
+     *
+     * If the user had that language selected before, it is applied as soon as
+     * it is registered: plugins load after startup, and leaving them on the
+     * fallback until they pick it again would look like the choice was lost.
+     */
+    registerLocale(locale: Locale, name: string, messages: Messages): void;
   };
   ui: {
     toast(message: string, options?: ToastOptions): void;

@@ -16,7 +16,7 @@
 import type { AppContext, Exporter, PluginHostApi, PluginRecord, PluginSource } from "@/app/context";
 import { registerColorName } from "@/core/colors";
 import { registerRule } from "@/core/validate";
-import { addMessages } from "@/i18n";
+import { addMessages, registerLocale } from "@/i18n";
 import { safeGet, safeRemove, safeSet } from "@/io/storage";
 import { registerConnectorSymbol } from "@/render/connectors";
 import { BUNDLED_SOURCES } from "./bundled";
@@ -398,6 +398,14 @@ export function createPluginHost(opts: {
         add: (locale, messages) => {
           markContribution(entry, "i18n");
           addMessages(locale, messages);
+        },
+        // A language is not revoked when the plugin is disabled: it would pull
+        // the interface out from under whoever is reading it. It stays until
+        // the page is reloaded, at which point the plugin is not there to add
+        // it again and the choice falls back on its own.
+        registerLocale: (locale, name, messages) => {
+          markContribution(entry, "i18n");
+          registerLocale(locale, name, messages);
         },
       },
 

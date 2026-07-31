@@ -6,7 +6,7 @@ import { Store } from "./core/store";
 import { normalizeDoc } from "./core/doc";
 import { sampleDoc } from "./core/sample";
 import type { HarnessDoc, Issue, Point, Selection } from "./core/types";
-import { LOCALES, detectLocale, getLocale, onLocaleChange, setLocale, t } from "./i18n";
+import { detectLocale, getLocale, locales, onLocaleChange, setLocale, t } from "./i18n";
 import { Renderer } from "./render/renderer";
 import { attachInteraction } from "./ui/interaction";
 import { closeMenu, openMenu } from "./ui/menu";
@@ -332,6 +332,6 @@ if (location.protocol === "file:") {
 
 // handy for console diagnostics and for in-browser integration tests
 Object.defineProperty(window, "harness", {
-  value: { app, store, renderer, t, LOCALES, isInlineEditing },
+  value: { app, store, renderer, t, locales, isInlineEditing },
   writable: false,
 });

@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, test, vi } from "vitest";
-import { LOCALES, addMessages, getLocale, missingKeys, setLocale, t } from "@/i18n";
+import { it } from "@/i18n/it";
+import { addMessages, getLocale, locales, missingKeys, registerLocale, setLocale, t } from "@/i18n";
 import { it as messagesIt } from "@/i18n/it";
 import { en as messagesEn } from "@/i18n/en";
 
@@ -44,7 +45,7 @@ describe("dictionary coverage", () => {
   });
 
   test("missingKeys answers for every declared locale", () => {
-    for (const locale of LOCALES) {
+    for (const locale of locales()) {
       expect(Array.isArray(missingKeys(locale))).toBe(true);
     }
     expect(missingKeys("it")).toEqual([]);
@@ -82,7 +83,9 @@ describe("translation", () => {
   });
 
   test("an unknown locale is ignored", () => {
-    setLocale("de" as never);
+    // a code no plugin would register: "de" is a real language and another test
+    // adds it, which would make this one depend on the order they run in
+    setLocale("zz");
     expect(getLocale()).toBe("it");
   });
 });
@@ -108,5 +111,47 @@ describe("falling back to Italian", () => {
     setLocale("en");
     expect(t("test.pluginKey")).toBe("From plugin");
     setLocale("it");
+  });
+});
+
+describe("languages added at runtime", () => {
+  test("a registered locale joins the list and can be selected", () => {
+    expect(locales()).not.toContain("de");
+
+    registerLocale("de", "Deutsch", { "topbar.save": "Speichern" });
+
+    expect(locales()).toContain("de");
+    setLocale("de");
+    expect(getLocale()).toBe("de");
+    expect(t("topbar.save")).toBe("Speichern");
+    setLocale("it");
+  });
+
+  test("what the new locale does not translate falls back to Italian", () => {
+    registerLocale("nb", "Norsk", { "topbar.save": "Lagre" });
+    setLocale("nb");
+
+    expect(t("topbar.save")).toBe("Lagre");
+    // untranslated: the information has to survive, in some language
+    expect(t("topbar.open")).toBe(it["topbar.open"]);
+    setLocale("it");
+  });
+
+  test("registering the same locale again adds to it instead of replacing it", () => {
+    registerLocale("sv", "Svenska", { "topbar.save": "Spara" });
+    registerLocale("sv", "Svenska", { "topbar.open": "Öppna…" });
+    setLocale("sv");
+
+    expect(t("topbar.save")).toBe("Spara");
+    expect(t("topbar.open")).toBe("Öppna…");
+    setLocale("it");
+  });
+
+  test("missingKeys reports what a partial language still owes", () => {
+    registerLocale("da", "Dansk", { "topbar.save": "Gem" });
+    const missing = missingKeys("da");
+
+    expect(missing).not.toContain("topbar.save");
+    expect(missing.length).toBeGreaterThan(300);
   });
 });
