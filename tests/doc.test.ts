@@ -8,12 +8,16 @@ import {
   findInline,
   findNode,
   findSegment,
+  addBend,
+  faceNode,
   findTable,
   mateConnectors,
   mateOf,
   mergeNodes,
   nextName,
   normalizeMates,
+  removeBend,
+  segmentPath,
   unmateConnector,
   nodeForTable,
   normalizeConnectors,
@@ -676,6 +680,106 @@ describe("columns and names", () => {
       mergeNodes(doc, ["left", "x"], "left");
       expect(findNode(doc, "left")?.mate).toBe("y");
       expect(findNode(doc, "y")?.mate).toBe("left");
+    });
+  });
+
+  describe("bends and squaring", () => {
+    /** One branch, both ends off the same axis so there is a corner to make. */
+    const oneBranch = (square: boolean): HarnessDoc =>
+      normalizeDoc({
+        square,
+        nodes: [
+          { id: "a", x: 0, y: 0, kind: "connector", name: "A" },
+          { id: "b", x: 300, y: 100, kind: "connector", name: "B" },
+        ],
+        segments: [{ id: "s", a: "a", b: "b", len: "300 mm" }],
+      });
+
+    it("runs straight when the drawing is not square", () => {
+      const doc = oneBranch(false);
+      expect(segmentPath(doc, doc.segments[0]!)!).toHaveLength(2);
+    });
+
+    it("corners by itself when it is, taking the longer way first", () => {
+      const doc = oneBranch(true);
+      // 300 across against 100 down: across first, so the corner is under B
+      expect(segmentPath(doc, doc.segments[0]!)!).toEqual([
+        { x: 0, y: 0 },
+        { x: 300, y: 0 },
+        { x: 300, y: 100 },
+      ]);
+    });
+
+    it("takes the other corner when flipped", () => {
+      const doc = oneBranch(true);
+      doc.segments[0]!.flip = true;
+      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 0, y: 100 });
+    });
+
+    it("makes no corner for ends that already line up", () => {
+      const doc = oneBranch(true);
+      findNode(doc, "b")!.y = 0;
+      expect(segmentPath(doc, doc.segments[0]!)!).toHaveLength(2);
+    });
+
+    it("aims the corner so the cable leaves a node the way asked", () => {
+      const doc = oneBranch(true);
+      faceNode(doc, "a", false); // A's cable is to come out vertically
+      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 0, y: 100 });
+      faceNode(doc, "a", true);
+      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 300, y: 0 });
+      // aiming from the far end asks for the mirror image
+      faceNode(doc, "b", true);
+      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 0, y: 100 });
+    });
+
+    it("leaves a branch bent by hand alone", () => {
+      const doc = oneBranch(true);
+      doc.segments[0]!.points = [{ x: 50, y: 90 }];
+      faceNode(doc, "a", false);
+      expect(doc.segments[0]!.flip).toBeUndefined();
+      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 50, y: 90 });
+    });
+
+    it("puts a bend on the leg it was asked for, keeping the order", () => {
+      const doc = oneBranch(false);
+      const seg = doc.segments[0]!;
+      addBend(doc, seg, { x: 200, y: 66 });
+      addBend(doc, seg, { x: 100, y: 33 });
+      expect(seg.points).toEqual([
+        { x: 100, y: 33 },
+        { x: 200, y: 66 },
+      ]);
+    });
+
+    it("drops the field once the last bend goes", () => {
+      const doc = oneBranch(false);
+      const seg = doc.segments[0]!;
+      addBend(doc, seg, { x: 150, y: 50 });
+      expect(removeBend(seg, 0)).toBe(true);
+      expect(seg.points).toBeUndefined();
+      expect(removeBend(seg, 0)).toBe(false);
+    });
+
+    it("survives being written into a file and read back", () => {
+      const doc = oneBranch(false);
+      doc.segments[0]!.points = [{ x: 10, y: 20 }];
+      const reopened = normalizeDoc(JSON.parse(JSON.stringify(doc)));
+      expect(reopened.segments[0]!.points).toEqual([{ x: 10, y: 20 }]);
+    });
+
+    it("shares the bends out when the branch is split", () => {
+      const doc = oneBranch(false);
+      const seg = doc.segments[0]!;
+      // an L up and over: 100 up, 300 across, 100 down, cut halfway along
+      seg.points = [
+        { x: 0, y: -100 },
+        { x: 300, y: -100 },
+      ];
+      const mid = splitSegment(doc, seg, 0.5);
+      expect(mid).not.toBeNull();
+      expect(seg.points).toEqual([{ x: 0, y: -100 }]);
+      expect(doc.segments[1]!.points).toEqual([{ x: 300, y: -100 }]);
     });
   });
 

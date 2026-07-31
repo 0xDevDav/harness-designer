@@ -440,6 +440,18 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
   snap.append(track, snapLabel);
   snap.addEventListener("click", run(app, "view.snap"));
 
+  const square = document.createElement("button");
+  square.type = "button";
+  square.className = "switch";
+  setTip(square, `${t("topbar.square")} · ${t("topbar.square.tip")}`);
+  const squareTrack = document.createElement("span");
+  squareTrack.className = "switch__track";
+  const squareLabel = document.createElement("span");
+  squareLabel.className = "btn__label--optional";
+  squareLabel.textContent = t("topbar.square");
+  square.append(squareTrack, squareLabel);
+  square.addEventListener("click", run(app, "doc.square"));
+
   nav.append(
     group(
       t("topbar.section.view"),
@@ -447,6 +459,7 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
       button({ iconName: "fit", tip: `${t("topbar.fit")} (F)`, onClick: run(app, "view.fit") }),
       button({ iconName: "zoomIn", tip: `${t("cmd.zoomIn")} (+)`, onClick: run(app, "view.zoomIn") }),
       snap,
+      square,
     ),
   );
 
@@ -510,6 +523,9 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
   const syncSnap = (): void => {
     snap.classList.toggle("is-on", store.snapEnabled);
     snap.setAttribute("aria-pressed", String(store.snapEnabled));
+    // squaring is a property of the drawing, so this one follows the document
+    square.classList.toggle("is-on", store.doc.square === true);
+    square.setAttribute("aria-pressed", String(store.doc.square === true));
   };
   /** The problem counter is the drawing's health light. */
   const syncCheck = (): void => {

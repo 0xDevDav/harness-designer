@@ -15,11 +15,12 @@ import {
   findInline,
   findNode,
   findSegment,
+  faceNode,
   findTable,
   nodeDegree,
-  segmentEnds,
+  segmentPath,
 } from "@/core/doc";
-import { clamp, projectT, snapTo } from "@/core/geometry";
+import { clamp, projectPolyline, snapTo } from "@/core/geometry";
 import type { Store } from "@/core/store";
 import type { EntityType, Point, Selection } from "@/core/types";
 import { onLocaleChange } from "@/i18n";
@@ -29,21 +30,28 @@ import type { Translate } from "@/i18n";
 const SNAP_RADIUS_PX = 14;
 /** Below this threshold the movement counts as a click, not a drag. */
 const DRAG_THRESHOLD_PX = 3;
+/** How far a node has to be dragged before its corners take the direction from it. */
+const TURN_AFTER = 12;
 /** Wheel lines and pages converted to pixels, for an even zoom step. */
 const WHEEL_LINE_PX = 16;
 const WHEEL_PAGE_PX = 400;
 
 const ENTITY_TYPES: readonly string[] = ["node", "segment", "inline", "table"];
 
-type DragKind = "node" | "table" | "inline";
+type DragKind = "node" | "table" | "inline" | "bend";
 
 interface DragState {
   pointerId: number;
   kind: DragKind;
   id: string;
+  /** which bend of the branch, when the thing being dragged is one */
+  bend?: number;
   /** offset between pointer and element origin, in document coordinates */
   ox: number;
   oy: number;
+  /** where the element started, so the direction of the drag can be read off it */
+  fx: number;
+  fy: number;
   /** starting position on screen, for the drag threshold */
   sx: number;
   sy: number;
@@ -100,6 +108,14 @@ export function attachInteraction(opts: {
     const id = el?.getAttribute("data-id") ?? "";
     if (!id || !ENTITY_TYPES.includes(type)) return null;
     return { type: type as EntityType, id };
+  };
+
+  /** The bend handle under the pointer, if the pointer is on one. */
+  const bendFromTarget = (target: EventTarget | null): { seg: string; index: number } | null => {
+    const el = target instanceof Element ? target.closest('[data-ent="bend"]') : null;
+    const seg = el?.getAttribute("data-id") ?? "";
+    const index = Number(el?.getAttribute("data-bend"));
+    return seg && Number.isInteger(index) ? { seg, index } : null;
   };
 
   const setHover = (id: string | null): void => {
@@ -271,6 +287,30 @@ export function attachInteraction(opts: {
       return;
     }
 
+    // A bend handle sits on top of the branch it belongs to and is only there
+    // while that branch is selected, so it is looked for first and does not
+    // change the selection: dragging one is an edit to the branch already in
+    // hand, not the picking of something else.
+    const handle = bendFromTarget(ev.target);
+    if (handle) {
+      const bend = findSegment(store.doc, handle.seg)?.points?.[handle.index];
+      drag = {
+        pointerId: ev.pointerId,
+        kind: "bend",
+        id: handle.seg,
+        bend: handle.index,
+        ox: 0,
+        oy: 0,
+        fx: bend?.x ?? world.x,
+        fy: bend?.y ?? world.y,
+        sx: ev.clientX,
+        sy: ev.clientY,
+        live: false,
+      };
+      svg.setPointerCapture(ev.pointerId);
+      return;
+    }
+
     const target = selectionFromTarget(ev.target);
     if (!target) {
       store.select(null);
@@ -291,12 +331,12 @@ export function attachInteraction(opts: {
     const base = { pointerId: ev.pointerId, id: target.id, sx: ev.clientX, sy: ev.clientY, live: false };
     if (target.type === "node") {
       const n = findNode(store.doc, target.id);
-      if (n) drag = { ...base, kind: "node", ox: world.x - n.x, oy: world.y - n.y };
+      if (n) drag = { ...base, kind: "node", ox: world.x - n.x, oy: world.y - n.y, fx: n.x, fy: n.y };
     } else if (target.type === "table") {
       const tb = findTable(store.doc, target.id);
-      if (tb) drag = { ...base, kind: "table", ox: world.x - tb.x, oy: world.y - tb.y };
+      if (tb) drag = { ...base, kind: "table", ox: world.x - tb.x, oy: world.y - tb.y, fx: tb.x, fy: tb.y };
     } else if (target.type === "inline") {
-      drag = { ...base, kind: "inline", ox: 0, oy: 0 };
+      drag = { ...base, kind: "inline", ox: 0, oy: 0, fx: world.x, fy: world.y };
     }
     if (drag) svg.setPointerCapture(ev.pointerId);
   };
@@ -318,6 +358,18 @@ export function attachInteraction(opts: {
         if (!n) return;
         n.x = snap(world.x - state.ox);
         n.y = snap(world.y - state.oy);
+        // In a square drawing the corner follows the hand: drag a connector
+        // sideways and its cable comes out of it sideways. Until the movement
+        // has a direction worth reading, nothing is aimed at all.
+        const gone = Math.hypot(n.x - state.fx, n.y - state.fy);
+        if (doc.square && gone > TURN_AFTER) {
+          faceNode(doc, n.id, Math.abs(n.x - state.fx) >= Math.abs(n.y - state.fy));
+        }
+      } else if (state.kind === "bend") {
+        const bend = findSegment(doc, state.id)?.points?.[state.bend ?? -1];
+        if (!bend) return;
+        bend.x = snap(world.x);
+        bend.y = snap(world.y);
       } else if (state.kind === "table") {
         const tb = findTable(doc, state.id);
         if (!tb) return;
@@ -326,9 +378,9 @@ export function attachInteraction(opts: {
       } else {
         const inline = findInline(doc, state.id);
         const seg = inline ? findSegment(doc, inline.seg) : undefined;
-        const ends = seg ? segmentEnds(doc, seg) : null;
-        if (!inline || !ends) return;
-        inline.t = projectT(ends[0], ends[1], world);
+        const path = seg ? segmentPath(doc, seg) : null;
+        if (!inline || !path) return;
+        inline.t = projectPolyline(path, world);
       }
     }, "move");
   };

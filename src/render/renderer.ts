@@ -1,6 +1,7 @@
 import type { RendererApi } from "@/app/context";
 import { colorOf, isLightColor } from "@/core/colors";
 import {
+  branchDirection,
   findInline,
   findNode,
   findSegment,
@@ -9,10 +10,11 @@ import {
   nodeDegree,
   nodeForTable,
   segmentEnds,
+  segmentPath,
   segmentsOf,
   tableForNode,
 } from "@/core/doc";
-import { clamp, readableAngle } from "@/core/geometry";
+import { alongPolyline, clamp, dist, readableAngle } from "@/core/geometry";
 import type { Store } from "@/core/store";
 import type { HarnessDoc, HNode, Inline, Point, Rect, Segment, Selection } from "@/core/types";
 import type { Translate } from "@/i18n";
@@ -22,7 +24,7 @@ import { drawTable, tableSize } from "./tables";
 import { checkWireEnds } from "@/core/wireends";
 import { el, text, textWidth } from "./svg";
 import { palette, withPaper } from "./palette";
-import { BEND_R, drawWirePreview, fillet } from "./wires";
+import { BEND_R, drawWirePreview, fillet, filletedPath } from "./wires";
 
 /* ---------------- rendering constants ---------------- */
 
@@ -34,6 +36,8 @@ const W_HIT = 16;
 const NODE_HIT_R = 11;
 /** Length of the arrowheads that mark a mated pair. */
 const JOINT_ARROW = 7;
+/** Size of the handle a bend is dragged by, shown only on a selected branch. */
+const BEND_HANDLE_R = 5;
 const MIN_ZOOM = 0.15;
 const MAX_ZOOM = 4;
 /** Highest zoom the automatic fit may reach; beyond it the drawing blows up. */
@@ -42,6 +46,13 @@ const FIT_ZOOM = 2;
 const CONTENT_MARGIN = 70;
 /** Box used when the document is empty. */
 const EMPTY_BOX: Rect = { x: 0, y: 0, w: 800, h: 600 };
+
+/** A point `by` along the way from `from` towards `toward`. */
+function stepFrom(from: Point, toward: Point, by: number): Point {
+  const len = dist(from, toward);
+  if (!len) return { ...from };
+  return { x: from.x + ((toward.x - from.x) / len) * by, y: from.y + ((toward.y - from.y) / len) * by };
+}
 
 const gridPattern = (): string =>
   '<pattern id="gridP" width="20" height="20" patternUnits="userSpaceOnUse">' +
@@ -202,15 +213,14 @@ export class Renderer implements RendererApi {
 
       const arms: Point[] = [];
       for (const seg of attached) {
-        const ends = segmentEnds(doc, seg);
-        if (!ends) continue;
-        const far = ends[0].id === node.id ? ends[1] : ends[0];
-        const dx = far.x - node.x;
-        const dy = far.y - node.y;
-        const len = Math.hypot(dx, dy);
-        if (!len) continue;
-        const r = this.bendInset(doc, node.id, len);
-        arms.push({ x: node.x + (dx / len) * r, y: node.y + (dy / len) * r });
+        // the way the cable leaves, which on a branch that bends is not the way
+        // its far end lies
+        const dir = branchDirection(doc, seg, node.id);
+        const path = segmentPath(doc, seg);
+        if (!dir || !path) continue;
+        if (seg.b === node.id) path.reverse();
+        const r = this.bendInset(doc, node.id, dist(path[0]!, path[1] ?? path[0]!));
+        arms.push({ x: node.x + dir.x * r, y: node.y + dir.y * r });
       }
       if (arms.length !== 2) continue;
 
@@ -228,44 +238,48 @@ export class Renderer implements RendererApi {
     inner: SVGGElement,
     labels: SVGGElement,
   ): void {
+    const path = segmentPath(doc, seg);
     const ends = segmentEnds(doc, seg);
-    if (!ends) return;
+    if (!path || !ends) return;
     const [a, b] = ends;
 
-    // the drawn line stops short of a bend; the hit line does not, so the whole
-    // branch stays grabbable right up to the node
-    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-    const ux = (b.x - a.x) / len;
-    const uy = (b.y - a.y) / len;
-    const ia = this.bendInset(doc, a.id, len);
-    const ib = this.bendInset(doc, b.id, len);
-    const line = {
-      x1: a.x + ux * ia,
-      y1: a.y + uy * ia,
-      x2: b.x - ux * ib,
-      y2: b.y - uy * ib,
-      "stroke-linecap": "round",
-    };
+    // The drawn run stops short of the node so a fillet can take the turn there;
+    // the hit run does not, so the branch stays grabbable right up to it. Bends
+    // along the way are turned on the same fillet, so a branch that changes
+    // direction looks the same whether it does it at a node or on its own.
+    const trimmed = [...path];
+    const first = trimmed[0]!;
+    const second = trimmed[1]!;
+    const beforeLast = trimmed[trimmed.length - 2]!;
+    const last = trimmed[trimmed.length - 1]!;
+    trimmed[0] = stepFrom(first, second, this.bendInset(doc, a.id, dist(first, second)));
+    trimmed[trimmed.length - 1] = stepFrom(
+      last,
+      beforeLast,
+      this.bendInset(doc, b.id, dist(beforeLast, last)),
+    );
+
+    const d = filletedPath(trimmed, BEND_R);
+    const shape = { d, fill: "none", "stroke-linecap": "round", "stroke-linejoin": "round" };
 
     el(
-      "line",
-      { ...line, stroke: palette().bundleOuter, "stroke-width": W_OUTER, "pointer-events": "none" },
+      "path",
+      { ...shape, stroke: palette().bundleOuter, "stroke-width": W_OUTER, "pointer-events": "none" },
       outer,
     );
     el(
-      "line",
-      { ...line, stroke: palette().bundleInner, "stroke-width": W_INNER, "pointer-events": "none" },
+      "path",
+      { ...shape, stroke: palette().bundleInner, "stroke-width": W_INNER, "pointer-events": "none" },
       inner,
     );
-    // invisible thick line: the branch stays grabbable with a fingertip too
+    // invisible thick run: the branch stays grabbable with a fingertip too
     el(
-      "line",
+      "path",
       {
-        x1: a.x,
-        y1: a.y,
-        x2: b.x,
-        y2: b.y,
+        d: filletedPath(path, BEND_R),
+        fill: "none",
         "stroke-linecap": "round",
+        "stroke-linejoin": "round",
         stroke: "transparent",
         "stroke-width": W_HIT,
         "data-ent": "segment",
@@ -275,10 +289,35 @@ export class Renderer implements RendererApi {
       inner,
     );
 
+    // the bends are handles only while the branch is selected: shown always they
+    // would speckle the drawing with dots that mean nothing to whoever reads it
+    if (this.store.isSelected({ type: "segment", id: seg.id })) {
+      (seg.points ?? []).forEach((p, i) => {
+        el(
+          "circle",
+          {
+            cx: p.x,
+            cy: p.y,
+            r: BEND_HANDLE_R,
+            fill: palette().bundleInner,
+            stroke: palette().selection,
+            "stroke-width": 2,
+            "data-ent": "bend",
+            "data-id": seg.id,
+            "data-bend": i,
+            style: "cursor:move",
+          },
+          inner,
+        );
+      });
+    }
+
     const label = [seg.len, seg.refs].filter(Boolean).join(" ");
     if (!label) return;
 
-    const angle = Math.atan2(b.y - a.y, b.x - a.x);
+    // halfway along the run it actually takes, not halfway between its ends
+    const middle = alongPolyline(path, 0.5);
+    const angle = middle.angle;
     let nx = -Math.sin(angle);
     let ny = Math.cos(angle);
     // the label always sits above the branch, whichever way it was drawn
@@ -286,8 +325,8 @@ export class Renderer implements RendererApi {
       nx = -nx;
       ny = -ny;
     }
-    const lx = (a.x + b.x) / 2 + nx * 14;
-    const ly = (a.y + b.y) / 2 + ny * 14;
+    const lx = middle.point.x + nx * 14;
+    const ly = middle.point.y + ny * 14;
     const deg = readableAngle(angle);
     const rotate = `rotate(${deg} ${lx} ${ly})`;
 
@@ -367,10 +406,8 @@ export class Renderer implements RendererApi {
   /** Angle of the attached branch, from the node towards the bundle. */
   private attachAngle(doc: HarnessDoc, node: HNode): number {
     const seg = segmentsOf(doc, node.id)[0];
-    if (!seg) return 0;
-    const other = findNode(doc, seg.a === node.id ? seg.b : seg.a);
-    if (!other) return 0;
-    return Math.atan2(other.y - node.y, other.x - node.x);
+    const dir = seg ? branchDirection(doc, seg, node.id) : null;
+    return dir ? Math.atan2(dir.y, dir.x) : 0;
   }
 
   /**
@@ -477,14 +514,15 @@ export class Renderer implements RendererApi {
 
   private drawInline(doc: HarnessDoc, inline: Inline, parent: SVGGElement): void {
     const seg = findSegment(doc, inline.seg);
-    if (!seg) return;
-    const ends = segmentEnds(doc, seg);
-    if (!ends) return;
-    const [a, b] = ends;
+    const path = seg ? segmentPath(doc, seg) : null;
+    if (!path) return;
 
-    const x = a.x + (b.x - a.x) * inline.t;
-    const y = a.y + (b.y - a.y) * inline.t;
-    const deg = readableAngle(Math.atan2(b.y - a.y, b.x - a.x));
+    // a fraction of the way along the run, so a label keeps its place on a
+    // branch that bends and lies along the leg it has landed on
+    const at = alongPolyline(path, inline.t);
+    const x = at.point.x;
+    const y = at.point.y;
+    const deg = readableAngle(at.angle);
     const label = inline.text;
     const w = Math.max(26, textWidth(label, 11, true) + 12);
     const h = 15;
@@ -572,13 +610,19 @@ export class Renderer implements RendererApi {
    */
   private drawSegmentSelection(doc: HarnessDoc, segId: string, parent: SVGGElement): void {
     const seg = findSegment(doc, segId);
-    const ends = seg ? segmentEnds(doc, seg) : null;
-    if (!ends) return;
-    const [a, b] = ends;
-    const line = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, "stroke-linecap": "round" };
+    const path = seg ? segmentPath(doc, seg) : null;
+    if (!path) return;
+    const a = path[0]!;
+    const b = path[path.length - 1]!;
+    const line = {
+      d: filletedPath(path, BEND_R),
+      fill: "none",
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+    };
 
-    el("line", { ...line, stroke: palette().selection, "stroke-width": W_OUTER + 11, opacity: 0.22 }, parent);
-    el("line", { ...line, stroke: palette().selection, "stroke-width": W_OUTER + 2, opacity: 0.55 }, parent);
+    el("path", { ...line, stroke: palette().selection, "stroke-width": W_OUTER + 11, opacity: 0.22 }, parent);
+    el("path", { ...line, stroke: palette().selection, "stroke-width": W_OUTER + 2, opacity: 0.55 }, parent);
 
     // the ends are marked so a branch stays distinguishable from the one next
     // to it when several meet at a junction
@@ -679,28 +723,24 @@ export class Renderer implements RendererApi {
     }
     if (selection.type === "segment") {
       const seg = findSegment(doc, selection.id);
-      const ends = seg ? segmentEnds(doc, seg) : null;
-      if (!ends) return null;
-      const [a, b] = ends;
+      const path = seg ? segmentPath(doc, seg) : null;
+      if (!path) return null;
+      const xs = path.map((p) => p.x);
+      const ys = path.map((p) => p.y);
       return {
-        x: Math.min(a.x, b.x) - 10,
-        y: Math.min(a.y, b.y) - 10,
-        w: Math.abs(a.x - b.x) + 20,
-        h: Math.abs(a.y - b.y) + 20,
+        x: Math.min(...xs) - 10,
+        y: Math.min(...ys) - 10,
+        w: Math.max(...xs) - Math.min(...xs) + 20,
+        h: Math.max(...ys) - Math.min(...ys) + 20,
       };
     }
     if (selection.type === "inline") {
       const inline = findInline(doc, selection.id);
       const seg = inline ? findSegment(doc, inline.seg) : undefined;
-      const ends = seg ? segmentEnds(doc, seg) : null;
-      if (!inline || !ends) return null;
-      const [a, b] = ends;
-      return {
-        x: a.x + (b.x - a.x) * inline.t - 30,
-        y: a.y + (b.y - a.y) * inline.t - 14,
-        w: 60,
-        h: 28,
-      };
+      const path = seg ? segmentPath(doc, seg) : null;
+      if (!inline || !path) return null;
+      const at = alongPolyline(path, inline.t).point;
+      return { x: at.x - 30, y: at.y - 14, w: 60, h: 28 };
     }
     return this.tableBox(doc, selection.id);
   }
@@ -724,6 +764,8 @@ export class Renderer implements RendererApi {
     };
 
     for (const node of doc.nodes) add(node.x, node.y);
+    // a branch can bend well outside the box its two ends make
+    for (const seg of doc.segments) for (const p of seg.points ?? []) add(p.x, p.y);
     for (const table of doc.tables) {
       const { w, h } = tableSize(table, doc.meta, this.t);
       add(table.x, table.y);

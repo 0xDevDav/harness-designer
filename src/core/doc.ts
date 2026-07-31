@@ -1,7 +1,7 @@
 import { DOC_VERSION } from "./types";
-import type { DocMeta, HarnessDoc, HNode, Inline, Segment, Table } from "./types";
+import type { DocMeta, HarnessDoc, HNode, Inline, Point, Segment, Table } from "./types";
 import { seedIds, uid } from "./ids";
-import { T_MAX, T_MIN, clamp } from "./geometry";
+import { T_MAX, T_MIN, alongPolyline, clamp, dist, polylineLength, projectPolyline } from "./geometry";
 
 /* ============================ Construction ============================ */
 
@@ -18,7 +18,17 @@ export function emptyMeta(): DocMeta {
 }
 
 export function emptyDoc(): HarnessDoc {
-  return { version: DOC_VERSION, meta: emptyMeta(), nodes: [], segments: [], inlines: [], tables: [] };
+  // a fresh drawing is square, because that is how these are drawn; one already
+  // laid out on the diagonal says so in its own file and is left alone
+  return {
+    version: DOC_VERSION,
+    meta: emptyMeta(),
+    nodes: [],
+    segments: [],
+    inlines: [],
+    tables: [],
+    square: true,
+  };
 }
 
 export const cloneDoc = (d: HarnessDoc): HarnessDoc => JSON.parse(JSON.stringify(d)) as HarnessDoc;
@@ -44,6 +54,9 @@ const num = (v: unknown, fallback = 0): number => {
 export function normalizeDoc(input: unknown): HarnessDoc {
   const raw = (typeof input === "object" && input !== null ? input : {}) as Partial<HarnessDoc>;
   const doc = emptyDoc();
+  // a file that does not mention it was drawn before this existed, and squaring
+  // it off on open would rearrange a drawing nobody asked to rearrange
+  doc.square = raw.square === true;
 
   const meta = (typeof raw.meta === "object" && raw.meta !== null ? raw.meta : {}) as Partial<DocMeta>;
   doc.meta = {
@@ -95,7 +108,14 @@ export function normalizeDoc(input: unknown): HarnessDoc {
     if (seenPairs.has(pair)) continue;
     seenSegIds.add(id);
     seenPairs.add(pair);
-    doc.segments.push({ id, a, b, len: str(src.len), refs: str(src.refs) });
+    const segment: Segment = { id, a, b, len: str(src.len), refs: str(src.refs) };
+    // a bend that is not a pair of finite numbers is not a bend
+    const bends = asArray(src.points)
+      .filter((p): p is Point => typeof p === "object" && p !== null)
+      .map((p) => ({ x: num((p as Partial<Point>).x), y: num((p as Partial<Point>).y) }));
+    if (bends.length) segment.points = bends;
+    if (src.flip === true) segment.flip = true;
+    doc.segments.push(segment);
   }
 
   // --- inline labels: must sit on a segment that exists
@@ -212,6 +232,95 @@ export function segmentEnds(doc: HarnessDoc, s: Segment): [HNode, HNode] | null 
   const a = findNode(doc, s.a);
   const b = findNode(doc, s.b);
   return a && b ? [a, b] : null;
+}
+
+/**
+ * The corner a branch turns by itself when the drawing is square.
+ *
+ * Two ends that do not line up are joined by one right angle rather than a
+ * diagonal, and there are only two ways to do that: along then across, or
+ * across then along. The default takes the longer way first, so the corner
+ * lands near the far end and the run reads as a straight branch with a jog at
+ * the end rather than as a staircase; `flip` takes the other one.
+ *
+ * Ends that do line up need no corner at all, and get none, so a squared
+ * drawing is mostly plain straight branches.
+ */
+function autoCorner(a: Point, b: Point, flip: boolean): Point[] {
+  const dx = Math.abs(b.x - a.x);
+  const dy = Math.abs(b.y - a.y);
+  if (dx < 0.5 || dy < 0.5) return [];
+  return [dx >= dy !== flip ? { x: b.x, y: a.y } : { x: a.x, y: b.y }];
+}
+
+/**
+ * Aims the automatic corner of every branch at a node, so the cable leaves that
+ * node along the axis asked for.
+ *
+ * This is what makes dragging a node in a square drawing behave: the corner
+ * follows the hand. Drag a connector sideways and its cable comes out of it
+ * sideways; drag it up and the cable comes out of the top. Without it the
+ * corner is decided by which way round the branch happens to be stored, and the
+ * connector spins to face a direction the person dragging it never asked for.
+ *
+ * Branches bent by hand are left alone: they have been given a shape, and this
+ * is only about the shape a branch takes when it has not.
+ */
+export function faceNode(doc: HarnessDoc, nodeId: string, horizontal: boolean): void {
+  for (const seg of segmentsOf(doc, nodeId)) {
+    if (seg.points?.length) continue;
+    const ends = segmentEnds(doc, seg);
+    if (!ends) continue;
+    const dx = Math.abs(ends[1].x - ends[0].x);
+    const dy = Math.abs(ends[1].y - ends[0].y);
+    if (dx < 0.5 || dy < 0.5) continue; // the ends line up: there is no corner to aim
+    const wantFirstHorizontal = seg.a === nodeId ? horizontal : !horizontal;
+    if (dx >= dy !== wantFirstHorizontal) seg.flip = true;
+    else delete seg.flip;
+  }
+}
+
+/**
+ * Every point a branch passes through, from `a` to `b`, corners included.
+ *
+ * This is what the whole drawing measures, places and offsets against, so that
+ * "the branch" is one thing however it gets from one end to the other: straight,
+ * squared off by itself, or bent by hand.
+ *
+ * Bends put in by hand win. Squaring is what a branch does when left alone, and
+ * a branch that has been given a shape has not been left alone.
+ */
+export function segmentPath(doc: HarnessDoc, seg: Segment): Point[] | null {
+  const ends = segmentEnds(doc, seg);
+  if (!ends) return null;
+  const a = { x: ends[0].x, y: ends[0].y };
+  const b = { x: ends[1].x, y: ends[1].y };
+  const bends = seg.points?.length
+    ? seg.points.map((p) => ({ ...p }))
+    : doc.square
+      ? autoCorner(a, b, seg.flip === true)
+      : [];
+  return [a, ...bends, b];
+}
+
+/**
+ * Unit vector of a branch leaving one of its nodes.
+ *
+ * The way the cable actually goes, which on a branch that bends is not the way
+ * the far end lies. Everything that has to point along a branch at a node — the
+ * fillet, the way a connector faces — asks this rather than subtracting the two
+ * ends.
+ */
+export function branchDirection(doc: HarnessDoc, seg: Segment, fromNodeId: string): Point | null {
+  const path = segmentPath(doc, seg);
+  if (!path) return null;
+  if (seg.b === fromNodeId) path.reverse();
+  const from = path[0]!;
+  for (const to of path.slice(1)) {
+    const len = dist(from, to);
+    if (len > 0.01) return { x: (to.x - from.x) / len, y: (to.y - from.y) / len };
+  }
+  return null;
 }
 
 export const segmentsOf = (doc: HarnessDoc, nodeId: string): Segment[] =>
@@ -479,25 +588,78 @@ export function addInline(doc: HarnessDoc, segId: string, t: number, text: strin
   return it;
 }
 
+/**
+ * Adds a bend where the branch is closest to `at`, and returns its index.
+ *
+ * Which leg of the run the point falls on is what decides where in the order
+ * the bend goes, so bends stay in the order the cable meets them however the
+ * user clicks them in.
+ */
+export function addBend(doc: HarnessDoc, seg: Segment, at: Point): number | null {
+  const path = segmentPath(doc, seg);
+  if (!path) return null;
+  const target = projectPolyline(path, at) * polylineLength(path);
+
+  let walked = 0;
+  let leg = 0;
+  for (let i = 1; i < path.length; i++) {
+    leg = i - 1;
+    const step = dist(path[i - 1]!, path[i]!);
+    if (target <= walked + step) break;
+    walked += step;
+  }
+
+  const points = [...(seg.points ?? [])];
+  points.splice(leg, 0, { x: at.x, y: at.y });
+  seg.points = points;
+  return leg;
+}
+
+/** Removes one bend, and the field with it once the branch runs straight again. */
+export function removeBend(seg: Segment, index: number): boolean {
+  const points = seg.points;
+  if (!points || index < 0 || index >= points.length) return false;
+  const left = points.filter((_, i) => i !== index);
+  if (left.length) seg.points = left;
+  else delete seg.points;
+  return true;
+}
+
 /** Splits a branch by inserting a junction at parametric position t. */
 export function splitSegment(doc: HarnessDoc, seg: Segment, t: number): HNode | null {
-  const ends = segmentEnds(doc, seg);
-  if (!ends) return null;
-  const [a, b] = ends;
-  const mid = createJunction(doc, a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
-  doc.segments.push({ id: uid("s"), a: mid.id, b: seg.b, len: "", refs: "" });
+  const path = segmentPath(doc, seg);
+  if (!path) return null;
+  const total = polylineLength(path);
+  const cut = alongPolyline(path, t).point;
+  const mid = createJunction(doc, cut.x, cut.y);
+
+  // the bends are shared out by which side of the cut they fall on
+  const before: Point[] = [];
+  const after: Point[] = [];
+  let walked = 0;
+  for (let i = 1; i < path.length - 1; i++) {
+    walked += dist(path[i - 1]!, path[i]!);
+    (walked <= t * total ? before : after).push({ ...path[i]! });
+  }
+
+  const tail: Segment = { id: uid("s"), a: mid.id, b: seg.b, len: "", refs: "" };
+  if (after.length) tail.points = after;
+  doc.segments.push(tail);
+
   // labels past the cut point move to the new stretch
-  const newSeg = doc.segments[doc.segments.length - 1]!;
   for (const it of doc.inlines) {
     if (it.seg !== seg.id) continue;
     if (it.t > t) {
-      it.seg = newSeg.id;
+      it.seg = tail.id;
       it.t = clamp((it.t - t) / (1 - t), T_MIN, T_MAX);
     } else {
       it.t = clamp(it.t / t, T_MIN, T_MAX);
     }
   }
+
   seg.b = mid.id;
+  if (before.length) seg.points = before;
+  else delete seg.points;
   normalizeConnectors(doc);
   return mid;
 }
@@ -541,7 +703,10 @@ export function mergeNodes(doc: HarnessDoc, ids: readonly string[], intoId: stri
   const dropped = new Set<string>();
   const pairs = new Set<string>();
   for (const s of doc.segments) {
-    const pair = [s.a, s.b].sort().join(" ");
+    // the same NUL separator normalizeDoc uses, and for the same reason:
+    // written as an escape, because a raw byte in the source makes the file
+    // binary to Git and to text search and the diff is lost
+    const pair = [s.a, s.b].sort().join("\u0000");
     if (s.a === s.b || pairs.has(pair)) dropped.add(s.id);
     else pairs.add(pair);
   }

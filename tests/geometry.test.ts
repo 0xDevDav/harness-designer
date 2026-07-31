@@ -3,10 +3,13 @@ import {
   GRID,
   T_MAX,
   T_MIN,
+  alongPolyline,
   clamp,
   dist,
   inflate,
   lerpPoint,
+  polylineLength,
+  projectPolyline,
   projectT,
   readableAngle,
   rectUnion,
@@ -131,5 +134,53 @@ describe("dist, lerpPoint, inflate", () => {
 
   it("inflates a box on every side", () => {
     expect(inflate({ x: 10, y: 10, w: 20, h: 20 }, 5)).toEqual({ x: 5, y: 5, w: 30, h: 30 });
+  });
+});
+
+describe("polylines", () => {
+  /** An L: 100 across, then 100 down. */
+  const bent = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+    { x: 100, y: 100 },
+  ];
+
+  it("measures the run, not the distance between the ends", () => {
+    expect(polylineLength(bent)).toBe(200);
+    expect(polylineLength([{ x: 0, y: 0 }])).toBe(0);
+  });
+
+  it("places a fraction of the way along by distance travelled", () => {
+    expect(alongPolyline(bent, 0.5).point).toEqual({ x: 100, y: 0 });
+    expect(alongPolyline(bent, 0.25).point).toEqual({ x: 50, y: 0 });
+    expect(alongPolyline(bent, 0.75).point).toEqual({ x: 100, y: 50 });
+  });
+
+  it("lies along the leg it has landed on", () => {
+    expect(alongPolyline(bent, 0.25).angle).toBeCloseTo(0);
+    expect(alongPolyline(bent, 0.75).angle).toBeCloseTo(Math.PI / 2);
+  });
+
+  it("agrees with the two-point version on a straight run", () => {
+    const straight = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+    ];
+    for (const t of [0.1, 0.5, 0.9]) {
+      expect(alongPolyline(straight, t).point).toEqual(lerpPoint(straight[0]!, straight[1]!, t));
+    }
+    expect(projectPolyline(straight, { x: 30, y: 40 })).toBeCloseTo(
+      projectT(straight[0]!, straight[1]!, { x: 30, y: 40 }),
+    );
+  });
+
+  it("projects onto the nearest leg", () => {
+    expect(projectPolyline(bent, { x: 50, y: -20 })).toBeCloseTo(0.25);
+    expect(projectPolyline(bent, { x: 130, y: 50 })).toBeCloseTo(0.75);
+  });
+
+  it("keeps a label off the ends", () => {
+    expect(projectPolyline(bent, { x: -500, y: 0 })).toBe(T_MIN);
+    expect(projectPolyline(bent, { x: 100, y: 500 })).toBe(T_MAX);
   });
 });

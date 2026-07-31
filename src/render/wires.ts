@@ -19,10 +19,10 @@
  */
 
 import { colorsOf } from "@/core/colors";
-import { findNode, findSegment, nodeDegree, segmentsOf } from "@/core/doc";
+import { findNode, findSegment, nodeDegree, segmentPath, segmentsOf } from "@/core/doc";
 import { endpointConnector, namedNodes, routeWires } from "@/core/routing";
 import type { RoutedWire } from "@/core/routing";
-import type { HarnessDoc, HNode, Point, Selection } from "@/core/types";
+import type { HarnessDoc, Point, Selection } from "@/core/types";
 import { palette } from "./palette";
 import { el } from "./svg";
 
@@ -84,33 +84,56 @@ function wiresFor(doc: HarnessDoc, sel: Selection | null, routes: RoutedWire[]):
 
 /* ---------------- the run a strand follows ---------------- */
 
-/** One branch of a route, in the direction the wire travels along it. */
+/**
+ * One straight stretch of a route, in the direction the wire travels along it.
+ *
+ * A branch that bends contributes several of these, all naming the same branch,
+ * which is what keeps them on one lane and one side of it. `node` and `endNode`
+ * are filled in only where a stretch really does start or end at a node, so a
+ * bend can be told from a junction by looking rather than by counting.
+ */
 interface Step {
   seg: string;
-  from: HNode;
-  to: HNode;
+  from: Point;
+  to: Point;
   /** unit vector from `from` to `to` */
   dir: Point;
   len: number;
   /** true when the wire travels the branch the way the document stores it */
   forward: boolean;
+  node: string;
+  endNode: string;
 }
 
-/** The branches of a route, walked from one end. Branches of no length drop out. */
+/** The stretches of a route, walked from one end. Stretches of no length drop out. */
 function walk(doc: HarnessDoc, route: RoutedWire, startNodeId: string): Step[] {
   const out: Step[] = [];
   let at = startNodeId;
   for (const segId of route.path) {
     const seg = findSegment(doc, segId);
-    const from = findNode(doc, at);
-    if (!seg || !from) break;
+    if (!seg) break;
     const nextId = seg.a === at ? seg.b : seg.a;
-    const to = findNode(doc, nextId);
-    if (!to) break;
-    const len = Math.hypot(to.x - from.x, to.y - from.y);
-    if (len > 0.01) {
-      const dir = { x: (to.x - from.x) / len, y: (to.y - from.y) / len };
-      out.push({ seg: segId, from, to, dir, len, forward: seg.a === at });
+    if (!findNode(doc, at) || !findNode(doc, nextId)) break;
+    const forward = seg.a === at;
+    const path = segmentPath(doc, seg);
+    if (!path) break;
+    if (!forward) path.reverse();
+
+    for (let i = 1; i < path.length; i++) {
+      const from = path[i - 1]!;
+      const to = path[i]!;
+      const len = Math.hypot(to.x - from.x, to.y - from.y);
+      if (len <= 0.01) continue;
+      out.push({
+        seg: segId,
+        from,
+        to,
+        dir: { x: (to.x - from.x) / len, y: (to.y - from.y) / len },
+        len,
+        forward,
+        node: i === 1 ? at : "",
+        endNode: i === path.length - 1 ? nextId : "",
+      });
     }
     at = nextId;
   }
@@ -120,6 +143,21 @@ function walk(doc: HarnessDoc, route: RoutedWire, startNodeId: string): Step[] {
 /** Unit vector to the left of a direction. */
 const leftOf = (d: Point): Point => ({ x: -d.y, y: d.x });
 const back = (d: Point): Point => ({ x: -d.x, y: -d.y });
+
+/**
+ * The side of the bundle a stretch runs on, as a vector.
+ *
+ * The side is a property of the branch, but a branch that bends has no single
+ * perpendicular, so what is stored per branch is which of its two sides — as a
+ * sign against the direction the document stores it in — and the vector is
+ * worked out afresh on each stretch. That is what carries the band round a bend
+ * inside a branch without it changing sides halfway along.
+ */
+function sideAt(sides: Map<string, number>, step: Step): Point {
+  const sign = (sides.get(step.seg) ?? 1) * (step.forward ? 1 : -1);
+  const n = leftOf(step.dir);
+  return { x: n.x * sign, y: n.y * sign };
+}
 
 /* ---------------- which side of each branch the strands run on ---------------- */
 
@@ -147,14 +185,16 @@ const back = (d: Point): Point => ({ x: -d.x, y: -d.y });
  * The whole assignment is then flipped, if it helps, so that the band settles
  * on the inside of most bends — the shorter way round, and where wire lies.
  */
-function bundleSides(doc: HarnessDoc, runs: readonly Step[][]): Map<string, Point> {
+function bundleSides(doc: HarnessDoc, runs: readonly Step[][]): Map<string, number> {
   // a wish is "these two branches agree" or "these two branches disagree", the
-  // sense depending on whether either is travelled against the way it is stored
+  // sense depending on whether either is travelled against the way it is stored.
+  // Two stretches of the same branch ask for nothing: they are one side already.
   const wishes = new Map<string, { a: string; b: string; apart: boolean; weight: number }>();
   for (const run of runs) {
     for (let i = 1; i < run.length; i++) {
       const a = run[i - 1]!;
       const b = run[i]!;
+      if (a.seg === b.seg) continue;
       const key = a.seg < b.seg ? `${a.seg}|${b.seg}` : `${b.seg}|${a.seg}`;
       const seen = wishes.get(key);
       if (seen) seen.weight++;
@@ -189,34 +229,28 @@ function bundleSides(doc: HarnessDoc, runs: readonly Step[][]): Map<string, Poin
     flipped.set(b.of, (a.apart !== b.apart) !== wish.apart);
   }
 
-  const sides = new Map<string, Point>();
-  for (const s of doc.segments) {
-    const a = findNode(doc, s.a);
-    const b = findNode(doc, s.b);
-    if (!a || !b) continue;
-    const len = Math.hypot(b.x - a.x, b.y - a.y);
-    if (!len) continue;
-    const n = leftOf({ x: (b.x - a.x) / len, y: (b.y - a.y) / len });
-    const away = leader(s.id).apart ? -1 : 1;
-    sides.set(s.id, { x: n.x * away, y: n.y * away });
-  }
+  const sides = new Map<string, number>();
+  for (const s of doc.segments) sides.set(s.id, leader(s.id).apart ? -1 : 1);
 
-  // one vote per bend per group: is the band on the inside of it?
+  // one vote per turn per group: is the band on the inside of it? Turns inside
+  // a branch are left out — the band has no choice there, so it has no opinion.
   const inside = new Map<string, number>();
   for (const run of runs) {
     for (let i = 1; i < run.length; i++) {
       const a = run[i - 1]!;
-      const turn = a.dir.x * run[i]!.dir.y - a.dir.y * run[i]!.dir.x;
-      const side = sides.get(a.seg);
-      if (!side || Math.abs(turn) < 1e-6) continue;
+      const b = run[i]!;
+      if (a.seg === b.seg) continue;
+      const turn = a.dir.x * b.dir.y - a.dir.y * b.dir.x;
+      if (Math.abs(turn) < 1e-6) continue;
+      const side = sideAt(sides, a);
       const left = leftOf(a.dir);
       const onLeft = side.x * left.x + side.y * left.y > 0 ? 1 : -1;
       const group = leader(a.seg).of;
       inside.set(group, (inside.get(group) ?? 0) + (turn > 0 ? onLeft : -onLeft));
     }
   }
-  for (const [id, side] of sides) {
-    if ((inside.get(leader(id).of) ?? 0) < 0) sides.set(id, { x: -side.x, y: -side.y });
+  for (const [id, sign] of sides) {
+    if ((inside.get(leader(id).of) ?? 0) < 0) sides.set(id, -sign);
   }
   return sides;
 }
@@ -268,8 +302,8 @@ function outwardEnds(doc: HarnessDoc, runs: readonly Step[][]): Map<string, stri
   const ends = new Map<string, number>();
   for (const run of runs) {
     if (!run.length) continue;
-    for (const id of [run[0]!.from.id, run[run.length - 1]!.to.id]) {
-      ends.set(id, (ends.get(id) ?? 0) + 1);
+    for (const id of [run[0]!.node, run[run.length - 1]!.endNode]) {
+      if (id) ends.set(id, (ends.get(id) ?? 0) + 1);
     }
   }
   let root = "";
@@ -314,26 +348,29 @@ function outwardEnds(doc: HarnessDoc, runs: readonly Step[][]): Map<string, stri
  * branches are told apart by the third, which is what keeps a group travelling
  * together from being shuffled at every node on the way.
  */
-function goingKey(run: readonly Step[], segId: string, farNode: string, sides: Map<string, Point>): number[] {
-  const at = run.findIndex((s) => s.seg === segId);
-  if (at < 0) return [];
-  const onward = run[at]!.to.id === farNode;
+function goingKey(
+  run: readonly Step[],
+  segId: string,
+  farNode: string,
+  sides: Map<string, number>,
+): number[] {
+  const first = run.findIndex((s) => s.seg === segId);
+  if (first < 0) return [];
+  let last = first;
+  while (last + 1 < run.length && run[last + 1]!.seg === segId) last++;
+  const onward = run[last]!.endNode === farNode;
 
   const chain: Step[] = [];
-  if (onward) for (let i = at; i < run.length; i++) chain.push(run[i]!);
-  else for (let i = at; i >= 0; i--) chain.push(run[i]!);
+  if (onward) for (let i = first; i < run.length; i++) chain.push(run[i]!);
+  else for (let i = last; i >= 0; i--) chain.push(run[i]!);
 
   const key: number[] = [];
   for (let i = 1; i < chain.length; i++) {
     const a = chain[i - 1]!;
     const b = chain[i]!;
-    key.push(
-      fanAngle(
-        onward ? back(a.dir) : a.dir,
-        sides.get(a.seg) ?? { x: 0, y: 0 },
-        onward ? b.dir : back(b.dir),
-      ),
-    );
+    // a turn inside a branch is not a fan-out: nothing chooses anything there
+    if (a.seg === b.seg) continue;
+    key.push(fanAngle(onward ? back(a.dir) : a.dir, sideAt(sides, a), onward ? b.dir : back(b.dir)));
   }
   return key;
 }
@@ -371,7 +408,7 @@ function lanes(
   shown: readonly RoutedWire[],
   runs: Map<number, Step[]>,
   far: Map<string, string>,
-  sides: Map<string, Point>,
+  sides: Map<string, number>,
 ): Map<string, Map<number, number>> {
   const reach = (r: RoutedWire): number => r.lengthMm ?? r.path.length;
 
@@ -439,15 +476,15 @@ interface Corner extends Point {
 function strandCorners(
   run: readonly Step[],
   gap: (i: number) => number,
-  sides: Map<string, Point>,
+  sides: Map<string, number>,
 ): Corner[] {
   const out: Corner[] = [];
   const add = (p: Point, r: number): void => {
     out.push({ x: p.x, y: p.y, r });
   };
-  /** The point of `node` as seen from branch `i`: pushed out by that branch's gap. */
+  /** A point of stretch `i`, pushed out by that stretch's own side and gap. */
   const off = (i: number, node: Point): Point => {
-    const side = sides.get(run[i]!.seg) ?? { x: 0, y: 0 };
+    const side = sideAt(sides, run[i]!);
     const d = gap(i);
     return { x: node.x + side.x * d, y: node.y + side.y * d };
   };
@@ -469,7 +506,7 @@ function strandCorners(
       const meet = along(start, before.dir, step);
       if (Math.hypot(meet.x - node.x, meet.y - node.y) <= widest * MITER_LIMIT) {
         const left = leftOf(before.dir);
-        const side = sides.get(before.seg) ?? { x: 0, y: 0 };
+        const side = sideAt(sides, before);
         const onLeft = side.x * left.x + side.y * left.y > 0;
         // the inside of a corner is the left of it when the run turns left
         const cutting = onLeft === turn > 0;
@@ -596,6 +633,11 @@ function roundedPath(input: readonly Corner[]): string {
     d += ` L${fmt(a)} ${fillet(a, curr, b)}`;
   }
   return d + ` L${fmt(p[p.length - 1]!)}`;
+}
+
+/** A path through the points with every corner turned on the same radius. */
+export function filletedPath(points: readonly Point[], radius: number): string {
+  return roundedPath(points.map((p) => ({ x: p.x, y: p.y, r: radius })));
 }
 
 /**

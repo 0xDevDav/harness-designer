@@ -7,6 +7,7 @@
  * single undo step.
  */
 import {
+  addBend,
   addInline,
   createJunction,
   deleteEntity,
@@ -19,6 +20,8 @@ import {
   mateOf,
   mergeNodes,
   nextName,
+  removeBend,
+  segmentPath,
   unmateConnector,
   nodeForTable,
   renameNode,
@@ -308,10 +311,84 @@ function segmentItems(app: AppContext, id: string, world: Point): MenuItem[] {
         ),
     },
     { separator: true },
+    ...bendItems(app, id, world),
     { label: t("menu.addInline"), run: () => addInlineAt(app, id, world) },
     { label: t("menu.splitSegment"), run: () => splitAt(app, id, world) },
     { separator: true },
     { label: t("menu.deleteSegment"), danger: true, run: () => removeEntity(app, "segment", id) },
+  ];
+}
+
+/** How near the click has to land on a bend to be about that bend. */
+const BEND_REACH = 12;
+
+/**
+ * Adding or taking away a bend.
+ *
+ * Which of the two is offered depends on whether the click landed on a bend
+ * that is already there, because both at once on the same branch would mean
+ * reading two nearly identical lines to find the one wanted.
+ */
+function bendItems(app: AppContext, id: string, world: Point): MenuItem[] {
+  const seg = findSegment(app.doc, id);
+  if (!seg) return [];
+
+  // a branch cornering by itself is offered the other corner rather than a bend
+  // of its own: two ways to do the same thing, one of which then stops the
+  // corner following the node about, is a trap and not a choice
+  if (app.doc.square && !seg.points?.length) {
+    const path = segmentPath(app.doc, seg);
+    if (path && path.length > 2) {
+      return [
+        {
+          label: app.t("menu.flipBend"),
+          run: () =>
+            editDoc(
+              app,
+              (doc) => {
+                const target = findSegment(doc, id);
+                if (!target) return;
+                if (target.flip) delete target.flip;
+                else target.flip = true;
+              },
+              "flip-bend",
+            ),
+        },
+      ];
+    }
+  }
+
+  const near = (seg.points ?? []).findIndex((p) => Math.hypot(p.x - world.x, p.y - world.y) <= BEND_REACH);
+  if (near >= 0) {
+    return [
+      {
+        label: app.t("menu.removeBend"),
+        run: () =>
+          editDoc(
+            app,
+            (doc) => {
+              const target = findSegment(doc, id);
+              if (target) removeBend(target, near);
+            },
+            "remove-bend",
+          ),
+      },
+    ];
+  }
+  return [
+    {
+      label: app.t("menu.addBend"),
+      run: () =>
+        editDoc(
+          app,
+          (doc) => {
+            const target = findSegment(doc, id);
+            const snap = app.store.snapEnabled;
+            if (target) addBend(doc, target, { x: snapTo(world.x, snap), y: snapTo(world.y, snap) });
+          },
+          "add-bend",
+        ),
+    },
   ];
 }
 

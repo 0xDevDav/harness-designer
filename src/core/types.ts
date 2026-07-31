@@ -45,6 +45,25 @@ export interface Segment {
   /** Length as free text, e.g. "600 mm". */
   len: string;
   refs: string;
+  /**
+   * Points the branch bends through on its way from `a` to `b`, in order.
+   *
+   * Absent, which is the usual case, the branch is left to find its own way:
+   * straight, or squared off automatically when the drawing is drawn square.
+   * Present, it goes exactly this way and nothing rearranges it.
+   *
+   * A bend is not a node: nothing joins there, no wire ends there and it
+   * carries no name — it only says the cable turns. Making it a node instead
+   * would put a junction into the routing graph that no wire ever leaves by,
+   * and every count of branches in the drawing would go wrong.
+   */
+  points?: Point[];
+  /**
+   * Turns an automatic corner the other way: across then along, rather than
+   * along then across. Only ever consulted on a branch that has no bends of its
+   * own in a drawing that is square.
+   */
+  flip?: boolean;
 }
 
 export interface Inline {
@@ -95,6 +114,16 @@ export interface HarnessDoc {
   segments: Segment[];
   inlines: Inline[];
   tables: Table[];
+  /**
+   * Every branch runs horizontally or vertically, cornering by itself wherever
+   * its two ends do not line up.
+   *
+   * A property of the drawing and not a setting of the program: it decides the
+   * shape of what is on the sheet, so it is saved with it, it is undoable, and
+   * a drawing already laid out on the diagonal keeps its layout when opened
+   * rather than being squared off underneath the person who drew it.
+   */
+  square?: boolean;
 }
 
 export type EntityType = "node" | "segment" | "inline" | "table";

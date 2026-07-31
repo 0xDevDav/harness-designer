@@ -1,4 +1,5 @@
-import { findNode, segmentsOf } from "@/core/doc";
+import { branchDirection, segmentPath, segmentsOf } from "@/core/doc";
+import { dist, polylineLength } from "@/core/geometry";
 import type { HarnessDoc, HNode, Point } from "@/core/types";
 import { el } from "./svg";
 import { palette } from "./palette";
@@ -39,14 +40,19 @@ export function drawJunctionBoot(doc: HarnessDoc, node: HNode, parent: Element):
 
   const dirs: Direction[] = [];
   for (const s of segments) {
-    const other = findNode(doc, s.a === node.id ? s.b : s.a);
-    if (!other) continue;
-    const dx = other.x - node.x;
-    const dy = other.y - node.y;
-    const len = Math.hypot(dx, dy);
-    // two nodes on top of each other define no direction, so the tube is skipped
+    // The way the cable leaves, not the way its far end lies. On a branch that
+    // corners those are different, and taking the second one aims the mouth of
+    // the boot off the tube it is supposed to be swallowing.
+    const dir = branchDirection(doc, s, node.id);
+    const path = segmentPath(doc, s);
+    if (!dir || !path) continue;
+    if (s.b === node.id) path.reverse();
+    // how far the tube goes before it turns, which is as far as the boot may
+    // reach along it: the whole run would let it swallow a corner
+    const straight = dist(path[0]!, path[1] ?? path[0]!);
+    const len = Math.min(straight || polylineLength(path), polylineLength(path));
     if (len < 1e-6) continue;
-    dirs.push({ ux: dx / len, uy: dy / len, len, ang: Math.atan2(dy, dx) });
+    dirs.push({ ux: dir.x, uy: dir.y, len, ang: Math.atan2(dir.y, dir.x) });
   }
   if (dirs.length < 2) return;
   dirs.sort((p, q) => p.ang - q.ang);

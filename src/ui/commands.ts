@@ -395,6 +395,18 @@ export function registerBuiltinCommands(app: AppContext): void {
       // rebuilding it here would steal focus from the button just pressed
       run: (a) => a.store.setSnap(!a.store.snapEnabled),
     },
+    {
+      id: "doc.square",
+      titleKey: "cmd.square",
+      // an edit to the drawing and not a setting of the program: it changes the
+      // shape of what is on the sheet, so it is saved with it and undoable
+      run: (a) => {
+        a.store.edit((doc) => {
+          doc.square = !doc.square;
+        }, "square");
+        a.store.emit("settings", {});
+      },
+    },
 
     /* ---- inserting ---- */
     {
