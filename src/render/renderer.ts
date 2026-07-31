@@ -27,6 +27,7 @@ import { checkWireEnds } from "@/core/wireends";
 import { el, text, textWidth } from "./svg";
 import { palette, withPaper } from "./palette";
 import { BEND_R, drawWirePreview, fillet, filletedPath } from "./wires";
+import type { Sight } from "./wires";
 
 /* ---------------- rendering constants ---------------- */
 
@@ -173,7 +174,7 @@ export class Renderer implements RendererApi {
     }
     for (const seg of doc.segments) this.drawSegment(doc, seg, gSegOuter, gSegInner, gSegLabels);
     this.drawBends(doc, gSegOuter, gSegInner);
-    if (!exporting) drawWirePreview(doc, this.store.selection, gStrands);
+    if (!exporting) drawWirePreview(doc, this.store.selection, gStrands, this.sight());
     for (const node of doc.nodes) drawJunctionBoot(doc, node, gBoot);
     for (const node of doc.nodes) {
       if (node.kind !== "connector") this.drawJunction(doc, node, gJunctions);
@@ -197,6 +198,24 @@ export class Renderer implements RendererApi {
     if (this.zoomLabel) {
       this.zoomLabel.textContent = this.t("canvas.zoom", { percent: Math.round(view.k * 100) });
     }
+  }
+
+  /**
+   * The window on the drawing, in the drawing's own units.
+   *
+   * Only the strands use it, and only to leave out what cannot be seen: they
+   * are the one thing on the sheet whose cost is set by the length of what is
+   * drawn rather than by how many things there are, so they are the one thing
+   * worth measuring the window for.
+   */
+  private sight(): Sight {
+    const box = this.svg.getBoundingClientRect();
+    const view = this.store.view;
+    const k = view.k || 1;
+    return {
+      scale: k,
+      visible: { x: -view.x / k, y: -view.y / k, w: box.width / k, h: box.height / k },
+    };
   }
 
   /* ---------------- branches ---------------- */

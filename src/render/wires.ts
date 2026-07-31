@@ -22,7 +22,7 @@ import { colorsOf } from "@/core/colors";
 import { declaredColor, findNode, findSegment, nodeDegree, segmentPath, segmentsOf } from "@/core/doc";
 import { endpointConnector, namedNodes, routeWires } from "@/core/routing";
 import type { RoutedWire } from "@/core/routing";
-import type { HarnessDoc, Point, Selection } from "@/core/types";
+import type { HarnessDoc, Point, Rect, Selection } from "@/core/types";
 import { palette } from "./palette";
 import { el } from "./svg";
 
@@ -73,6 +73,48 @@ const MIN_BEND_R = 3.5;
 const MITER_LIMIT = 2.6;
 /** Fallback for a colour cell that names nothing recognizable. */
 const UNKNOWN = "#9aa3ad";
+/**
+ * How wide a mark has to come out on screen before it is worth drawing, in
+ * screen pixels.
+ *
+ * Below it the marks of a wire are narrower than the pixels they would be drawn
+ * on: what appears is not a banded wire but a smear the colour of the average
+ * of its bands, which is not information. The wire keeps its main colour, which
+ * is the one the eye is following at that size anyway, and the bands come back
+ * as soon as there is room to see them.
+ */
+const MARK_MIN_PX = 1;
+
+/**
+ * What can actually be seen: how big a unit of the drawing comes out on screen,
+ * and which part of the sheet is in the window.
+ *
+ * The strands are drawn to it rather than to the whole sheet. A bundle of
+ * banded wires is tens of thousands of separate marks, and the ones off the
+ * edge of the window cost exactly what the ones in front of the reader cost and
+ * show nothing at all. Left out, everything is drawn, which is what a caller
+ * with no window — a test, an export — should get.
+ */
+export interface Sight {
+  /** screen pixels to one unit of the drawing */
+  scale: number;
+  /** the part of the drawing in the window, in the drawing's own units */
+  visible: Rect;
+}
+
+/** True when a box lies wholly outside the window, with room to spare. */
+function outOfSight(
+  sight: Sight | null,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  pad: number,
+): boolean {
+  if (!sight) return false;
+  const v = sight.visible;
+  return x1 < v.x - pad || x0 > v.x + v.w + pad || y1 < v.y - pad || y0 > v.y + v.h + pad;
+}
 
 /** The wires a selection is asking about, or an empty list when it asks about nothing. */
 function wiresFor(doc: HarnessDoc, sel: Selection | null, routes: RoutedWire[]): RoutedWire[] {
@@ -636,7 +678,39 @@ export function fillet(a: Point, vertex: Point, b: Point): string {
 }
 
 /**
- * An SVG path through the corners, each turned on its own radius.
+ * One piece of a strand: a straight, or a circular arc turning a corner. `at`
+ * is how far along the whole strand the piece begins, so a place given as a
+ * distance can be found by halving the interval rather than by walking.
+ */
+type Piece = { at: number; len: number } & (
+  | { kind: "line"; from: Point; to: Point }
+  | { kind: "arc"; centre: Point; r: number; start: number; sweep: number; to: Point }
+);
+
+/**
+ * A strand as shapes rather than as a string: the same run, in a form that can
+ * be both written out as a path and measured along.
+ *
+ * Measuring is the point. The marks of a banded wire have to sit at set
+ * distances along it, and the obvious way to find those places is to draw the
+ * line and ask the browser — `getPointAtLength` on a real `<path>`. That works
+ * and it is ruinous: the element has to be in the document to be measured, so
+ * every question forces a fresh layout of a tree that the answers are
+ * themselves making bigger, and the cost climbs with the square of the number
+ * of marks. A trunk carrying seventy banded wires took fifteen seconds.
+ *
+ * A strand is only straights and circular arcs, and both are a line of school
+ * trigonometry to walk along. Working them out here costs nothing, asks the
+ * browser nothing, and is exact rather than sampled.
+ */
+interface Trail {
+  start: Point;
+  pieces: Piece[];
+  len: number;
+}
+
+/**
+ * The corners turned into pieces, each on its own radius.
  *
  * The corner is cut back along both arms by however much that radius needs at
  * that angle, and the cut shrinks on short arms so a brief stretch between two
@@ -644,12 +718,22 @@ export function fillet(a: Point, vertex: Point, b: Point): string {
  * shrinks with it, because an arc that no longer fits has to be a tighter arc
  * rather than a wrong one.
  */
-function roundedPath(input: readonly Corner[]): string {
+function trail(input: readonly Corner[]): Trail {
   const p = dedupe(input);
-  if (p.length < 2) return "";
-  if (p.length === 2) return `M${fmt(p[0]!)} L${fmt(p[1]!)}`;
+  const pieces: Piece[] = [];
+  const start = p[0] ?? { x: 0, y: 0 };
+  let here: Point = start;
+  let along = 0;
+  const put = (piece: Piece): void => {
+    pieces.push(piece);
+    along += piece.len;
+  };
+  const lineTo = (to: Point): void => {
+    const len = Math.hypot(to.x - here.x, to.y - here.y);
+    if (len > 1e-6) put({ kind: "line", from: here, to, len, at: along });
+    here = to;
+  };
 
-  let d = `M${fmt(p[0]!)}`;
   for (let i = 1; i < p.length - 1; i++) {
     const prev = p[i - 1]!;
     const curr = p[i]!;
@@ -658,17 +742,76 @@ function roundedPath(input: readonly Corner[]): string {
     const outLen = Math.hypot(next.x - curr.x, next.y - curr.y);
     const from = { x: (curr.x - prev.x) / inLen, y: (curr.y - prev.y) / inLen };
     const to = { x: (next.x - curr.x) / outLen, y: (next.y - curr.y) / outLen };
-    const bend = Math.abs(Math.atan2(from.x * to.y - from.y * to.x, from.x * to.x + from.y * to.y));
+    const cross = from.x * to.y - from.y * to.x;
+    const bend = Math.abs(Math.atan2(cross, from.x * to.x + from.y * to.y));
     const cut = Math.min(curr.r * Math.tan(bend / 2), inLen / 2, outLen / 2);
     if (cut < 0.05) {
-      d += ` L${fmt(curr)}`;
+      lineTo(curr);
       continue;
     }
     const a = lerp(curr, prev, cut / inLen);
     const b = lerp(curr, next, cut / outLen);
-    d += ` L${fmt(a)} ${fillet(a, curr, b)}`;
+    lineTo(a);
+    // Both arms are cut back by the same amount, which is what makes the arc
+    // tangent to each: the radius then follows from that cut and the turn.
+    const radius = cut / Math.tan(bend / 2);
+    const turn = cross > 0 ? 1 : -1;
+    const left = leftOf(from);
+    const centre = { x: a.x + left.x * radius * turn, y: a.y + left.y * radius * turn };
+    put({
+      kind: "arc",
+      centre,
+      r: radius,
+      start: Math.atan2(a.y - centre.y, a.x - centre.x),
+      sweep: turn * bend,
+      to: b,
+      len: radius * bend,
+      at: along,
+    });
+    here = b;
   }
-  return d + ` L${fmt(p[p.length - 1]!)}`;
+  if (p.length > 1) lineTo(p[p.length - 1]!);
+
+  return { start, pieces, len: along };
+}
+
+/** The trail written out as an SVG path. */
+function pathData(t: Trail): string {
+  if (!t.pieces.length) return "";
+  let d = `M${fmt(t.start)}`;
+  for (const piece of t.pieces) {
+    d +=
+      piece.kind === "line"
+        ? ` L${fmt(piece.to)}`
+        : ` A${piece.r.toFixed(1)},${piece.r.toFixed(1)} 0 0 ${piece.sweep > 0 ? 1 : 0} ${fmt(piece.to)}`;
+  }
+  return d;
+}
+
+/** The point a given distance along the trail, clamped to its two ends. */
+function pointAt(t: Trail, distance: number): Point {
+  const want = Math.max(0, Math.min(distance, t.len));
+  // the last piece that starts at or before the distance asked for
+  let lo = 0;
+  let hi = t.pieces.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (t.pieces[mid]!.at <= want) lo = mid;
+    else hi = mid - 1;
+  }
+  const piece = t.pieces[lo];
+  if (piece) {
+    const u = piece.len > 0 ? Math.min((want - piece.at) / piece.len, 1) : 0;
+    if (piece.kind === "line") return lerp(piece.from, piece.to, u);
+    const angle = piece.start + piece.sweep * u;
+    return { x: piece.centre.x + Math.cos(angle) * piece.r, y: piece.centre.y + Math.sin(angle) * piece.r };
+  }
+  return t.start;
+}
+
+/** An SVG path through the corners, each turned on its own radius. */
+function roundedPath(input: readonly Corner[]): string {
+  return pathData(trail(input));
 }
 
 /** A path through the points with every corner turned on the same radius. */
@@ -680,7 +823,12 @@ export function filletedPath(points: readonly Point[], radius: number): string {
  * Draws the strands for the current selection. Returns how many wires were
  * shown, so the interface can say so rather than leaving the user to count.
  */
-export function drawWirePreview(doc: HarnessDoc, sel: Selection | null, parent: SVGGElement): number {
+export function drawWirePreview(
+  doc: HarnessDoc,
+  sel: Selection | null,
+  parent: SVGGElement,
+  sight: Sight | null = null,
+): number {
   const routes = routeWires(doc);
   const wanted = wiresFor(doc, sel, routes);
   if (!wanted.length) return 0;
@@ -734,6 +882,23 @@ export function drawWirePreview(doc: HarnessDoc, sel: Selection | null, parent: 
 
       const corners = strandCorners(piece, gap, sides);
       if (corners.length < 2) return;
+
+      // A strand that falls outside the window is not drawn at all. It is the
+      // same picture — nothing on screen changes — for a fraction of the work,
+      // and on a big harness most of the strands of any selection are off the
+      // edge of it.
+      let x0 = Infinity;
+      let y0 = Infinity;
+      let x1 = -Infinity;
+      let y1 = -Infinity;
+      for (const c of corners) {
+        x0 = Math.min(x0, c.x);
+        y0 = Math.min(y0, c.y);
+        x1 = Math.max(x1, c.x);
+        y1 = Math.max(y1, c.y);
+      }
+      if (outOfSight(sight, x0, y0, x1, y1, CASING_W)) return;
+
       const d = roundedPath(corners);
       if (!d) return;
 
@@ -760,50 +925,44 @@ export function drawWirePreview(doc: HarnessDoc, sel: Selection | null, parent: 
       const ground = bands.length === 2 ? BAND_GROUND_PAIR : BAND_GROUND;
       const share = (1 - ground) / (bands.length - 1);
       const mark = share * BAND_PERIOD;
+      if (sight && mark * sight.scale < MARK_MIN_PX) return;
 
       // The marks lean, because on a real wire they are wound round it: seen
-      // from the side a band crosses at an angle, not square. Each one is drawn
-      // as a four-cornered patch with its two ends on the two edges of the wire,
-      // the far edge running ahead of the near one by the lean. A patch is a
-      // shape and not an approximation, so it stays exact however far in the
-      // drawing is zoomed — laying thin lanes side by side instead gives a
-      // staircase that shows itself the moment anyone looks closely.
-      const rail = (shift: number): { at: SVGPathElement; len: number } | null => {
-        const line = roundedPath(strandCorners(piece, (i) => gap(i) + shift, sides));
-        if (!line) return null;
-        // measurable but invisible: only its geometry is wanted
-        const at = el("path", { d: line, fill: "none", "pointer-events": "none" }, parent);
-        if (!(at instanceof SVGPathElement)) return null;
-        return { at, len: at.getTotalLength() };
-      };
+      // from the side a band crosses at an angle, not square. Each one is a
+      // four-cornered patch with its two ends on the two edges of the wire, the
+      // far edge running ahead of the near one by the lean. A patch is a shape
+      // and not an approximation, so it stays exact however far in the drawing
+      // is zoomed — laying thin lanes side by side instead gives a staircase
+      // that shows itself the moment anyone looks closely.
+      //
+      // The two edges are worked out, not drawn and measured, and all the marks
+      // of one colour go into one path rather than one shape each. Both for the
+      // same reason: a bundle of banded wires used to put thousands of elements
+      // on the sheet and ask the browser for the position of every corner of
+      // every one of them, and the drawing stopped being usable long before the
+      // harness stopped being ordinary.
+      const near = trail(strandCorners(piece, (i) => gap(i) - STRAND_W / 2, sides));
+      const far = trail(strandCorners(piece, (i) => gap(i) + STRAND_W / 2, sides));
+      if (near.len < 1 || far.len < 1) return;
+      const spot = (p: Point): string => `${p.x.toFixed(2)},${p.y.toFixed(2)}`;
 
-      const near = rail(-STRAND_W / 2);
-      const far = rail(STRAND_W / 2);
-      if (!near || !far || near.len < 1) return;
+      const lean = SPIRAL_LEAN / near.len;
+      /** The place on the far edge opposite a distance along the near one. */
+      const across = (along: number): Point => pointAt(far, Math.min(along / near.len + lean, 1) * far.len);
 
       bands.slice(1).forEach((color, k) => {
         const begins = (ground + k * share) * BAND_PERIOD;
+        let marks = "";
         for (let along = begins; along + mark < near.len; along += BAND_PERIOD) {
-          const a = along / near.len;
-          const b = (along + mark) / near.len;
-          const lean = SPIRAL_LEAN / near.len;
-          // the far edge is the same two positions, moved on by the lean
-          const corners = [
-            near.at.getPointAtLength(a * near.len),
-            far.at.getPointAtLength(Math.min(a + lean, 1) * far.len),
-            far.at.getPointAtLength(Math.min(b + lean, 1) * far.len),
-            near.at.getPointAtLength(b * near.len),
-          ];
-          el(
-            "polygon",
-            {
-              points: corners.map((c) => `${c.x.toFixed(2)},${c.y.toFixed(2)}`).join(" "),
-              fill: color,
-              "pointer-events": "none",
-            },
-            parent,
-          );
+          const from = pointAt(near, along);
+          // one mark is smaller than the slack allowed here, so its own corner
+          // is enough to place it
+          if (outOfSight(sight, from.x, from.y, from.x, from.y, BAND_PERIOD)) continue;
+          marks +=
+            `M${spot(from)} L${spot(across(along))}` +
+            ` L${spot(across(along + mark))} L${spot(pointAt(near, along + mark))}Z`;
         }
+        if (marks) el("path", { d: marks, fill: color, "pointer-events": "none" }, parent);
       });
     });
   }
