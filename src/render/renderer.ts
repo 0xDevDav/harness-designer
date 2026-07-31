@@ -21,7 +21,7 @@ import { drawTable, tableSize } from "./tables";
 import { checkWireEnds } from "@/core/wireends";
 import { el, text, textWidth } from "./svg";
 import { palette, withPaper } from "./palette";
-import { BEND_R, drawWirePreview } from "./wires";
+import { BEND_R, drawWirePreview, fillet } from "./wires";
 
 /* ---------------- rendering constants ---------------- */
 
@@ -184,10 +184,12 @@ export class Renderer implements RendererApi {
    * Fillets at the nodes where one run simply changes direction.
    *
    * Only where exactly two branches meet. Where three or more do, the boot is
-   * the fitting and a fillet under it would be invisible anyway. The radius is
-   * `BEND_R` from `wires.ts`, because the strands inside the bundle turn on it
-   * too and a cable that bends on one radius with its own wires on another
-   * reads as a mistake before you can say why.
+   * the fitting and a fillet under it would be invisible anyway.
+   *
+   * The cut is `BEND_R` from `wires.ts` and the arc follows from it, which is
+   * the same thing the strands inside the bundle are drawn on: a cable that
+   * bends on one radius with its own wires on another reads as a mistake before
+   * you can say why.
    */
   private drawBends(doc: HarnessDoc, outer: SVGGElement, inner: SVGGElement): void {
     for (const node of doc.nodes) {
@@ -208,7 +210,7 @@ export class Renderer implements RendererApi {
       }
       if (arms.length !== 2) continue;
 
-      const d = `M${arms[0]!.x},${arms[0]!.y} Q${node.x},${node.y} ${arms[1]!.x},${arms[1]!.y}`;
+      const d = `M${arms[0]!.x},${arms[0]!.y} ${fillet(arms[0]!, node, arms[1]!)}`;
       const shape = { d, fill: "none", "stroke-linecap": "round", "pointer-events": "none" };
       el("path", { ...shape, stroke: palette().bundleOuter, "stroke-width": W_OUTER }, outer);
       el("path", { ...shape, stroke: palette().bundleInner, "stroke-width": W_INNER }, inner);
@@ -525,10 +527,16 @@ export class Renderer implements RendererApi {
     }
   }
 
+  /**
+   * Everything selected, drawn the same way whether one element or several were
+   * picked. Ctrl adds to the selection and the elements it adds are not lesser
+   * ones, so they get the same outline rather than a fainter one.
+   */
   private drawSelection(doc: HarnessDoc, parent: SVGGElement): void {
-    const sel = this.store.selection;
-    if (!sel) return;
+    for (const sel of this.store.selected()) this.drawOneSelection(doc, sel, parent);
+  }
 
+  private drawOneSelection(doc: HarnessDoc, sel: Selection, parent: SVGGElement): void {
     // A branch is a line, so it is lit along its length rather than boxed. A
     // rectangle round a diagonal branch encloses mostly empty sheet, and its
     // dashed edges run alongside the strands closely enough to be mistaken for

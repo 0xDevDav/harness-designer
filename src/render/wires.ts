@@ -19,7 +19,7 @@
  */
 
 import { colorsOf } from "@/core/colors";
-import { findNode, findSegment, segmentsOf } from "@/core/doc";
+import { findNode, findSegment, nodeDegree, segmentsOf } from "@/core/doc";
 import { endpointConnector, namedNodes, routeWires } from "@/core/routing";
 import type { RoutedWire } from "@/core/routing";
 import type { HarnessDoc, HNode, Point, Selection } from "@/core/types";
@@ -82,41 +82,6 @@ function wiresFor(doc: HarnessDoc, sel: Selection | null, routes: RoutedWire[]):
   return [];
 }
 
-/**
- * Lane each wire occupies, handed out again in every branch.
- *
- * The rule is that the innermost lane of a branch always sits the same fixed
- * distance from it, so a spur carrying one wire draws that wire against the
- * bundle instead of holding the wide lane it needed back on the trunk.
- *
- * Within a branch the longer a wire runs the closer in it sits, which is how a
- * harness is built up: what goes the whole way is laid first and ends up in the
- * core, and what peels off early is added on the outside. The order is the same
- * in every branch, so closing up can never make two strands cross. They only
- * ever compact.
- *
- * Branch count stands in when a length has not been filled in, so an
- * undimensioned drawing still orders by reach instead of by the order the
- * tables happen to be in.
- */
-function lanes(shown: readonly RoutedWire[]): Map<string, Map<number, number>> {
-  const reach = (r: RoutedWire): number => r.lengthMm ?? r.path.length;
-  const order = [...shown].sort((a, b) => reach(b) - reach(a) || a.wire.index - b.wire.index);
-
-  const out = new Map<string, Map<number, number>>();
-  for (const route of order) {
-    for (const seg of route.path) {
-      let rank = out.get(seg);
-      if (!rank) {
-        rank = new Map<number, number>();
-        out.set(seg, rank);
-      }
-      rank.set(route.wire.index, rank.size);
-    }
-  }
-  return out;
-}
-
 /* ---------------- the run a strand follows ---------------- */
 
 /** One branch of a route, in the direction the wire travels along it. */
@@ -154,6 +119,7 @@ function walk(doc: HarnessDoc, route: RoutedWire, startNodeId: string): Step[] {
 
 /** Unit vector to the left of a direction. */
 const leftOf = (d: Point): Point => ({ x: -d.y, y: d.x });
+const back = (d: Point): Point => ({ x: -d.x, y: -d.y });
 
 /* ---------------- which side of each branch the strands run on ---------------- */
 
@@ -181,17 +147,7 @@ const leftOf = (d: Point): Point => ({ x: -d.y, y: d.x });
  * The whole assignment is then flipped, if it helps, so that the band settles
  * on the inside of most bends — the shorter way round, and where wire lies.
  */
-function bundleSides(
-  doc: HarnessDoc,
-  routes: readonly RoutedWire[],
-  byName: Map<string, HNode>,
-): Map<string, Point> {
-  const runs: Step[][] = [];
-  for (const route of routes) {
-    const start = byName.get(endpointConnector(route.wire.from));
-    if (start && route.path.length) runs.push(walk(doc, route, start.id));
-  }
-
+function bundleSides(doc: HarnessDoc, runs: readonly Step[][]): Map<string, Point> {
   // a wish is "these two branches agree" or "these two branches disagree", the
   // sense depending on whether either is travelled against the way it is stored
   const wishes = new Map<string, { a: string; b: string; apart: boolean; weight: number }>();
@@ -265,9 +221,195 @@ function bundleSides(
   return sides;
 }
 
+/* ---------------- which lane each wire takes ---------------- */
+
+/**
+ * The turn from one branch to another at a node, as an angle the lanes can be
+ * sorted on.
+ *
+ * Measured from the branch the wires arrive along, rotating the way that leads
+ * *off* the band rather than across it, and always taken the long way round so
+ * that every branch at the node gets a place on one scale: a little for the
+ * branch that peels away on the far side from the wires, half a turn for
+ * carrying straight on, most of a turn for the branch that leaves on the same
+ * side the wires are already running.
+ *
+ * Sorted on that scale, inner lane first, a fan-out cannot cross itself. A wire
+ * turning away from the band is nearest the cable and needs to cross nothing to
+ * go; one carrying straight on holds its place; one turning back over the band
+ * is outermost and passes outside the others rather than through them.
+ */
+function fanAngle(arrive: Point, side: Point, leave: Point): number {
+  // the band lies to one rotational side of the branch, and the scale has to
+  // run the other way, or every wire would be sorted through the cable
+  const away = arrive.x * side.y - arrive.y * side.x > 0 ? -1 : 1;
+  const cross = away * (arrive.x * leave.y - arrive.y * leave.x);
+  const angle = Math.atan2(cross, arrive.x * leave.x + arrive.y * leave.y);
+  return angle <= 0 ? angle + 2 * Math.PI : angle;
+}
+
+/**
+ * The end of each branch the lanes are ordered from.
+ *
+ * A branch has two ends and they can want different orders, so one has to win,
+ * and it has to be the same one all the way along a run or the wires would swap
+ * lanes in the middle of a straight. Spreading a single direction out from one
+ * node settles it: every branch is read from its far end, away from that node,
+ * which means every wire is placed by where it is *going* rather than by any
+ * property of the wire itself.
+ *
+ * The node it spreads from is the connector the most wires end at, which is
+ * both a leaf — so nothing has to interleave at the point it starts from — and
+ * the one whose fan-out is worth getting right. What is left over, wires that
+ * cross from one branch of a junction to another without touching the trunk,
+ * takes the crossings, and there are few of those by construction.
+ */
+function outwardEnds(doc: HarnessDoc, runs: readonly Step[][]): Map<string, string> {
+  const ends = new Map<string, number>();
+  for (const run of runs) {
+    if (!run.length) continue;
+    for (const id of [run[0]!.from.id, run[run.length - 1]!.to.id]) {
+      ends.set(id, (ends.get(id) ?? 0) + 1);
+    }
+  }
+  let root = "";
+  let best = -1;
+  for (const node of doc.nodes) {
+    const score = (ends.get(node.id) ?? 0) * 2 + (nodeDegree(doc, node.id) <= 1 ? 1 : 0);
+    if (score > best) {
+      best = score;
+      root = node.id;
+    }
+  }
+
+  const depth = new Map<string, number>([[root, 0]]);
+  for (let queue = [root]; queue.length;) {
+    const next: string[] = [];
+    for (const at of queue) {
+      for (const s of segmentsOf(doc, at)) {
+        const other = s.a === at ? s.b : s.a;
+        if (depth.has(other)) continue;
+        depth.set(other, depth.get(at)! + 1);
+        next.push(other);
+      }
+    }
+    queue = next;
+  }
+
+  const far = new Map<string, string>();
+  for (const s of doc.segments) {
+    const a = depth.get(s.a) ?? Number.POSITIVE_INFINITY;
+    const b = depth.get(s.b) ?? Number.POSITIVE_INFINITY;
+    far.set(s.id, b >= a ? s.b : s.a);
+  }
+  return far;
+}
+
+/**
+ * Where a wire is going, as the turns it makes from a branch outward: the fan
+ * angle at the next node, then at the one after, and so on.
+ *
+ * Two wires that part company at the first junction are told apart by the first
+ * number and never looked at again. Two that run together for three more
+ * branches are told apart by the third, which is what keeps a group travelling
+ * together from being shuffled at every node on the way.
+ */
+function goingKey(run: readonly Step[], segId: string, farNode: string, sides: Map<string, Point>): number[] {
+  const at = run.findIndex((s) => s.seg === segId);
+  if (at < 0) return [];
+  const onward = run[at]!.to.id === farNode;
+
+  const chain: Step[] = [];
+  if (onward) for (let i = at; i < run.length; i++) chain.push(run[i]!);
+  else for (let i = at; i >= 0; i--) chain.push(run[i]!);
+
+  const key: number[] = [];
+  for (let i = 1; i < chain.length; i++) {
+    const a = chain[i - 1]!;
+    const b = chain[i]!;
+    key.push(
+      fanAngle(
+        onward ? back(a.dir) : a.dir,
+        sides.get(a.seg) ?? { x: 0, y: 0 },
+        onward ? b.dir : back(b.dir),
+      ),
+    );
+  }
+  return key;
+}
+
+/** A wire that runs out of route sorts as though it carried straight on. */
+function compareKeys(a: readonly number[], b: readonly number[]): number {
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const d = (a[i] ?? Math.PI) - (b[i] ?? Math.PI);
+    if (Math.abs(d) > 1e-6) return d;
+  }
+  return 0;
+}
+
+/**
+ * Lane each wire occupies, handed out again in every branch.
+ *
+ * The innermost lane of a branch always sits the same fixed distance from it,
+ * so a spur carrying one wire draws that wire against the bundle instead of
+ * holding the wide lane it needed back on the trunk.
+ *
+ * The order within a branch is by where each wire is going, so that the wires
+ * leaving at the next junction are already gathered on the side they leave
+ * from. Ordering by length instead — longest innermost, on the reasoning that
+ * what goes the whole way is laid first — reads well on a straight and falls
+ * apart at every fork, because how far a wire runs says nothing about which way
+ * it turns. A wire that had to cross the whole band to reach its branch now
+ * finds itself on the outside of it already.
+ *
+ * Length still breaks the ties, which is what orders the wires that really are
+ * going the same way, and branch count stands in when a length has not been
+ * filled in so that an undimensioned drawing does not fall back on the order
+ * the tables happen to be in.
+ */
+function lanes(
+  shown: readonly RoutedWire[],
+  runs: Map<number, Step[]>,
+  far: Map<string, string>,
+  sides: Map<string, Point>,
+): Map<string, Map<number, number>> {
+  const reach = (r: RoutedWire): number => r.lengthMm ?? r.path.length;
+
+  const onBranch = new Map<string, RoutedWire[]>();
+  for (const route of shown) {
+    for (const seg of route.path) {
+      const list = onBranch.get(seg);
+      if (list) list.push(route);
+      else onBranch.set(seg, [route]);
+    }
+  }
+
+  const out = new Map<string, Map<number, number>>();
+  for (const [segId, wires] of onBranch) {
+    const key = new Map<number, number[]>();
+    for (const route of wires) {
+      key.set(
+        route.wire.index,
+        goingKey(runs.get(route.wire.index) ?? [], segId, far.get(segId) ?? "", sides),
+      );
+    }
+    const rank = new Map<number, number>();
+    [...wires]
+      .sort(
+        (a, b) =>
+          compareKeys(key.get(a.wire.index)!, key.get(b.wire.index)!) ||
+          reach(b) - reach(a) ||
+          a.wire.index - b.wire.index,
+      )
+      .forEach((route, i) => rank.set(route.wire.index, i));
+    out.set(segId, rank);
+  }
+  return out;
+}
+
 /* ---------------- the strand itself ---------------- */
 
-/** A vertex of a strand, with the radius its corner is rounded to. */
+/** A vertex of a strand, with the radius the turn there is taken on. */
 interface Corner extends Point {
   r: number;
 }
@@ -332,7 +474,15 @@ function strandCorners(
         // the inside of a corner is the left of it when the run turns left
         const cutting = onLeft === turn > 0;
         const arm = (gap(i - 1) + gap(i)) / 2;
-        add(meet, cutting ? Math.max(MIN_BEND_R, BEND_R - arm) : BEND_R + arm);
+        // The radius the cable itself turns on here: it stops `BEND_R` short of
+        // the node and curves through, so a gentle change of direction comes out
+        // as a wide arc and a sharp one as a tight arc. The strands take that
+        // radius and step in or out of it by their own distance, which is what
+        // being concentric with the cable means and what holds the spacing of
+        // the band even the whole way round.
+        const lean = Math.abs(Math.atan2(turn, before.dir.x * after.dir.x + before.dir.y * after.dir.y));
+        const cable = BEND_R / Math.max(Math.tan(lean / 2), 1e-3);
+        add(meet, cutting ? Math.max(MIN_BEND_R, cable - arm) : cable + arm);
         continue;
       }
       // a hairpin: the lines meet somewhere off the sheet, so blunt the corner
@@ -352,8 +502,13 @@ function strandCorners(
     const shift = Math.hypot(end.x - start.x, end.y - start.y);
     if (shift < 0.05) continue; // straight on at the same distance: no corner at all
     const ramp = Math.min(Math.max(shift * 0.9, 5), 16, before.len * 0.45, after.len * 0.45);
-    add(along(start, before.dir, -ramp), ramp * 0.75);
-    add(along(end, after.dir, ramp), ramp * 0.75);
+    // A lane change leans off the run by very little over a fair distance, and
+    // a shallow lean wants a wide radius to be rounded at all: the two ends of
+    // the ramp are asked for one that uses the whole of it, and meet in the
+    // middle as a single S.
+    const round = ramp / Math.max(Math.tan(Math.atan2(shift, 2 * ramp) / 2), 1e-3);
+    add(along(start, before.dir, -ramp), round);
+    add(along(end, after.dir, ramp), round);
   }
 
   const last = run[run.length - 1]!;
@@ -380,11 +535,41 @@ const lerp = (a: Point, b: Point, t: number): Point => ({
 const fmt = (p: Point): string => `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
 
 /**
- * An SVG path through the corners, each rounded on its own radius. The corner
- * is cut back along both its arms and bridged with a quadratic curve through
- * the original vertex — the same fillet the branch itself is drawn with, so the
- * two agree — and the cut shrinks on short arms so a brief stretch between two
- * junctions cannot round itself away entirely.
+ * A circular fillet from `a` round `vertex` to `b`, as one SVG command.
+ *
+ * It has to be a real arc. The obvious thing — a quadratic curve with the
+ * corner as its control point — is a parabola, and two parabolas cut back by
+ * amounts in the ratio of their radii are not offsets of each other but scaled
+ * copies about the vertex. The gap between them closes through the turn: at the
+ * apex of a right-angled bend two strands end up at seven tenths of the spacing
+ * they hold on the straight, so a band that was even coming in arrives at the
+ * corner squeezed and comes out even again. Concentric arcs are the same
+ * distance apart the whole way round, which is what the eye is checking.
+ *
+ * The arms are assumed cut back equally, which is what makes the arc tangent to
+ * both: the radius follows from that cut and the angle of the turn.
+ */
+export function fillet(a: Point, vertex: Point, b: Point): string {
+  const inLen = Math.hypot(vertex.x - a.x, vertex.y - a.y);
+  const outLen = Math.hypot(b.x - vertex.x, b.y - vertex.y);
+  if (inLen < 0.01 || outLen < 0.01) return `L${fmt(b)}`;
+  const from = { x: (vertex.x - a.x) / inLen, y: (vertex.y - a.y) / inLen };
+  const to = { x: (b.x - vertex.x) / outLen, y: (b.y - vertex.y) / outLen };
+  const cross = from.x * to.y - from.y * to.x;
+  const half = Math.tan(Math.abs(Math.atan2(cross, from.x * to.x + from.y * to.y)) / 2);
+  if (half < 1e-4) return `L${fmt(b)}`;
+  const radius = Math.min(inLen, outLen) / half;
+  return `A${radius.toFixed(1)},${radius.toFixed(1)} 0 0 ${cross > 0 ? 1 : 0} ${fmt(b)}`;
+}
+
+/**
+ * An SVG path through the corners, each turned on its own radius.
+ *
+ * The corner is cut back along both arms by however much that radius needs at
+ * that angle, and the cut shrinks on short arms so a brief stretch between two
+ * junctions cannot round itself away entirely — at which point the radius
+ * shrinks with it, because an arc that no longer fits has to be a tighter arc
+ * rather than a wrong one.
  */
 function roundedPath(input: readonly Corner[]): string {
   const p = dedupe(input);
@@ -398,12 +583,17 @@ function roundedPath(input: readonly Corner[]): string {
     const next = p[i + 1]!;
     const inLen = Math.hypot(curr.x - prev.x, curr.y - prev.y);
     const outLen = Math.hypot(next.x - curr.x, next.y - curr.y);
-    const r = Math.min(curr.r, inLen / 2, outLen / 2);
-    if (r < 0.05) {
+    const from = { x: (curr.x - prev.x) / inLen, y: (curr.y - prev.y) / inLen };
+    const to = { x: (next.x - curr.x) / outLen, y: (next.y - curr.y) / outLen };
+    const bend = Math.abs(Math.atan2(from.x * to.y - from.y * to.x, from.x * to.x + from.y * to.y));
+    const cut = Math.min(curr.r * Math.tan(bend / 2), inLen / 2, outLen / 2);
+    if (cut < 0.05) {
       d += ` L${fmt(curr)}`;
       continue;
     }
-    d += ` L${fmt(lerp(curr, prev, r / inLen))} Q${fmt(curr)} ${fmt(lerp(curr, next, r / outLen))}`;
+    const a = lerp(curr, prev, cut / inLen);
+    const b = lerp(curr, next, cut / outLen);
+    d += ` L${fmt(a)} ${fillet(a, curr, b)}`;
   }
   return d + ` L${fmt(p[p.length - 1]!)}`;
 }
@@ -417,18 +607,25 @@ export function drawWirePreview(doc: HarnessDoc, sel: Selection | null, parent: 
   const wanted = wiresFor(doc, sel, routes);
   if (!wanted.length) return 0;
 
-  const laneOf = lanes(wanted);
   const byName = namedNodes(doc);
-  // decided from every wire in the drawing, not only the ones on show, so the
-  // band does not jump to the other side of the cable as the selection changes
-  const sides = bundleSides(doc, routes, byName);
+  const runs = new Map<number, Step[]>();
+  for (const route of routes) {
+    const start = byName.get(endpointConnector(route.wire.from));
+    if (start && route.path.length) runs.set(route.wire.index, walk(doc, route, start.id));
+  }
+
+  // The side and the outward direction are read from every wire in the drawing,
+  // not only the ones on show, so that neither the band nor the order within it
+  // rearranges itself as the selection moves about. Only the lanes themselves
+  // are counted from what is on show, because a lane is a place in a row and
+  // the row is what you can see.
+  const all = [...runs.values()];
+  const sides = bundleSides(doc, all);
+  const laneOf = lanes(wanted, runs, outwardEnds(doc, all), sides);
 
   for (const route of wanted) {
-    const start = byName.get(endpointConnector(route.wire.from));
-    if (!start || !route.path.length) continue;
-
-    const run = walk(doc, route, start.id);
-    if (!run.length) continue;
+    const run = runs.get(route.wire.index);
+    if (!run?.length) continue;
     const gap = (i: number): number =>
       BUNDLE_EDGE + (laneOf.get(run[i]!.seg)?.get(route.wire.index) ?? 0) * STRAND_GAP;
 
