@@ -19,7 +19,7 @@
  */
 
 import { colorsOf } from "@/core/colors";
-import { findNode, findSegment, nodeDegree, segmentPath, segmentsOf } from "@/core/doc";
+import { declaredColor, findNode, findSegment, nodeDegree, segmentPath, segmentsOf } from "@/core/doc";
 import { endpointConnector, namedNodes, routeWires } from "@/core/routing";
 import type { RoutedWire } from "@/core/routing";
 import type { HarnessDoc, Point, Selection } from "@/core/types";
@@ -688,21 +688,37 @@ export function drawWirePreview(doc: HarnessDoc, sel: Selection | null, parent: 
     const run = runs.get(route.wire.index);
     if (!run?.length) continue;
 
-    const bands = colorsOf(route.wire.color) ?? [UNKNOWN];
-    const base = bands[0] ?? UNKNOWN;
-
     // A circuit written straight through a joint is two wires, so it is drawn
     // as two: the run is cut where it crossed, and nothing is drawn between the
     // pieces, because between them there is no wire — there are two connectors
     // plugged together.
-    for (const piece of atJoints(run)) {
+    //
+    // And each of the two is drawn in the colour its own end declares. The wire
+    // list keeps one colour per wire, taken from whichever table it read first,
+    // which is right until a joint makes them two wires: then the far half
+    // would be painted in the near half's colour, and the whole point of a
+    // joint is that the colour is allowed to change there.
+    const pieces = atJoints(run);
+    const written = route.jointed
+      ? [declaredColor(doc, route.wire.from), declaredColor(doc, route.wire.to)]
+      : [];
+    const colorOfPiece = (i: number): string => {
+      if (!route.jointed) return route.wire.color;
+      if (i === 0 && written[0]) return written[0];
+      if (i === pieces.length - 1 && written[1]) return written[1];
+      return route.wire.color;
+    };
+
+    pieces.forEach((piece, index) => {
+      const bands = colorsOf(colorOfPiece(index)) ?? [UNKNOWN];
+      const base = bands[0] ?? UNKNOWN;
       const gap = (i: number): number =>
         BUNDLE_EDGE + (laneOf.get(piece[i]!.seg)?.get(route.wire.index) ?? 0) * STRAND_GAP;
 
       const corners = strandCorners(piece, gap, sides);
-      if (corners.length < 2) continue;
+      if (corners.length < 2) return;
       const d = roundedPath(corners);
-      if (!d) continue;
+      if (!d) return;
 
       const stroke = { d, fill: "none", "pointer-events": "none", "stroke-linecap": "round" };
       el("path", { ...stroke, stroke: palette().paper, "stroke-width": CASING_W }, parent);
@@ -714,7 +730,7 @@ export function drawWirePreview(doc: HarnessDoc, sel: Selection | null, parent: 
       if (bands[1]) {
         el("path", { ...stroke, stroke: bands[1], "stroke-width": STRAND_W * 0.45 }, parent);
       }
-    }
+    });
   }
   return wanted.length;
 }

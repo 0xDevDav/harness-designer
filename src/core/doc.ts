@@ -520,6 +520,28 @@ export interface CavityTable {
   owner: string;
 }
 
+/**
+ * The colour a connector declares for one of its own cavities, given the
+ * endpoint as the wire list writes it: `C5.2`.
+ *
+ * The wire list keeps one row per wire and so one colour, taken from whichever
+ * table it read first. That is right for a wire, and wrong the moment a joint
+ * lies on the way, because then the two tables are describing two wires. This
+ * asks each end what it says about its own, which no merge can get wrong.
+ */
+export function declaredColor(doc: HarnessDoc, endpoint: string): string {
+  const m = DEST_RE.exec(endpoint.trim());
+  if (!m) return "";
+  const owner = m[1];
+  const cavity = m[2];
+  for (const ct of cavityTables(doc)) {
+    if (ct.owner !== owner) continue;
+    const row = ct.table.rows.find((r) => cell(r, ct.cols.cavity) === cavity);
+    if (row) return cell(row, ct.cols.color);
+  }
+  return "";
+}
+
 /** Tables usable by the check and the wire list: they have Cavity, Dest and an owner. */
 export function cavityTables(doc: HarnessDoc): CavityTable[] {
   const out: CavityTable[] = [];

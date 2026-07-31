@@ -25,6 +25,13 @@ export interface RoutedWire {
    * at all, which the cross-reference rule already reports.
    */
   unreachable: boolean;
+  /**
+   * A mated pair lies on the way, so what the two tables describe is not one
+   * wire but two, one each side of it. They may be different colours and
+   * different sections, and neither the checks nor the drawing may treat the
+   * two ends as descriptions of the same piece of wire.
+   */
+  jointed: boolean;
 }
 
 interface Link {
@@ -188,18 +195,24 @@ export function routeWires(doc: HarnessDoc): RoutedWire[] {
   return buildWireList(doc).map((wire) => {
     const a = byName.get(endpointConnector(wire.from));
     const b = byName.get(endpointConnector(wire.to));
-    const idle = { wire, path: [] as string[], lengthMm: null, unreachable: false };
+    const idle = { wire, path: [] as string[], lengthMm: null, unreachable: false, jointed: false };
     if (!a || !b) return idle;
     if (!attached.has(a.id) || !attached.has(b.id)) return idle;
 
     const path = findPath(doc, a.id, b.id);
-    if (!path) return { wire, path: [], lengthMm: null, unreachable: true };
+    if (!path) return { wire, path: [], lengthMm: null, unreachable: true, jointed: false };
     // A circuit written straight through a joint is two wires, one each side,
     // and the branches on both sides added together are not the length of
     // either. There is no single figure to cut to, so there is none to give:
     // an unknown length has to stay visibly unknown.
-    const lengthMm = jumpsJoint(doc, a.id, path) ? null : pathLengthMm(doc, path);
-    return { wire, path, lengthMm, unreachable: false };
+    const jointed = jumpsJoint(doc, a.id, path);
+    return {
+      wire,
+      path,
+      lengthMm: jointed ? null : pathLengthMm(doc, path),
+      unreachable: false,
+      jointed,
+    };
   });
 }
 

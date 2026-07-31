@@ -469,3 +469,69 @@ describe("joint-cavities", () => {
     expect(joint(doc)).toHaveLength(0);
   });
 });
+
+describe("colours across a joint", () => {
+  /**
+   * A and B wired to each other, with the two halves of the harness plugged
+   * together in the middle:
+   *
+   *   A --- X  ||  Y --- B
+   */
+  const through = (mated: boolean, aColor: string, bColor: string): HarnessDoc => {
+    const doc = normalizeDoc({
+      nodes: [
+        { id: "a", x: 0, y: 0, kind: "connector", name: "A" },
+        { id: "x", x: 100, y: 0, kind: "connector", name: "X" },
+        { id: "y", x: 200, y: 0, kind: "connector", name: "Y" },
+        { id: "b", x: 300, y: 0, kind: "connector", name: "B" },
+      ],
+      segments: [
+        { id: "sa", a: "a", b: "x", len: "300 mm" },
+        { id: "sb", a: "y", b: "b", len: "400 mm" },
+      ],
+      tables: [
+        {
+          id: "ta",
+          node: "a",
+          x: 0,
+          y: 0,
+          kind: "table",
+          head: CAV_HEAD,
+          rows: [["1", "B.1", aColor, "1.5"]],
+        },
+        {
+          id: "tb",
+          node: "b",
+          x: 0,
+          y: 0,
+          kind: "table",
+          head: CAV_HEAD,
+          rows: [["1", "A.1", bColor, "1.5"]],
+        },
+      ],
+    });
+    if (mated) {
+      doc.nodes.find((n) => n.id === "x")!.mate = "y";
+      doc.nodes.find((n) => n.id === "y")!.mate = "x";
+    }
+    return normalizeDoc(doc);
+  };
+
+  const colourIssues = (doc: HarnessDoc): Issue[] =>
+    validateDoc(doc, t).filter((i) => i.message.startsWith("validate.colorMismatch"));
+
+  it("complains when one wire is given two colours", () => {
+    expect(colourIssues(through(false, "Rosso", "Verde"))).toHaveLength(1);
+  });
+
+  it("says nothing when a joint makes them two wires", () => {
+    // the whole point of a joint: what arrives and what leaves are two wires,
+    // and two wires meeting at one are very often two different colours
+    expect(colourIssues(through(true, "Rosso", "Verde"))).toHaveLength(0);
+  });
+
+  it("still says nothing when they happen to agree", () => {
+    expect(colourIssues(through(true, "Rosso", "Rosso"))).toHaveLength(0);
+    expect(colourIssues(through(false, "Rosso", "Rosso"))).toHaveLength(0);
+  });
+});

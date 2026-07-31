@@ -13,6 +13,12 @@ export interface ValidationContext {
   tables: CavityTable[];
   /** cavity tables indexed by connector name */
   byOwner: Map<string, CavityTable>;
+  /**
+   * Pairs of cavities the drawing joins through a mated pair, as `A.1|B.2` with
+   * the two ends in the order they sort. What those two rows describe is two
+   * wires and not one, so nothing may compare them as if they were one piece.
+   */
+  jointed: Set<string>;
 }
 
 export interface ValidationRule {
@@ -133,7 +139,7 @@ const duplicateCavities: ValidationRule = {
  */
 const crossReferences: ValidationRule = {
   id: "cross-references",
-  run({ doc, t, tables, byOwner }) {
+  run({ doc, t, tables, byOwner, jointed }) {
     const issues: Issue[] = [];
     for (const { table, cols, owner } of tables) {
       for (const row of table.rows) {
@@ -210,8 +216,11 @@ const crossReferences: ValidationRule = {
           if (ka && kb) return ka === kb;
           return a.toLowerCase().replace(/\s+/g, "") === b.toLowerCase().replace(/\s+/g, "");
         };
-        // compared once per wire, from the alphabetically lower end
-        if (from < dest) {
+        // Compared once per wire, from the alphabetically lower end — and not
+        // at all when a joint lies between the two. There the tables describe
+        // two wires, one each side of it, and two wires meeting at a joint are
+        // very often two different colours: that is what a joint is for.
+        if (from < dest && !jointed.has([from, dest].sort().join("|"))) {
           if (here.color && there.color && !same(here.color, there.color)) {
             issues.push({
               rule: "cross-references",
@@ -405,7 +414,12 @@ export function validateDoc(doc: HarnessDoc, t: Translate): Issue[] {
   const tables = cavityTables(doc);
   const byOwner = new Map<string, CavityTable>();
   for (const ct of tables) if (!byOwner.has(ct.owner)) byOwner.set(ct.owner, ct);
-  const ctx: ValidationContext = { doc, t, tables, byOwner };
+  // worked out once: every rule that has to know asks the same question
+  const jointed = new Set<string>();
+  for (const route of routeWires(doc)) {
+    if (route.jointed) jointed.add([route.wire.from, route.wire.to].sort().join("|"));
+  }
+  const ctx: ValidationContext = { doc, t, tables, byOwner, jointed };
 
   const issues: Issue[] = [];
   for (const rule of allRules()) {

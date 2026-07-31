@@ -4,6 +4,7 @@ import type { HarnessDoc, Inline, Table } from "@/core/types";
 import {
   addInline,
   cavityTables,
+  declaredColor,
   deleteEntity,
   findInline,
   findNode,
@@ -828,5 +829,47 @@ describe("columns and names", () => {
     });
     expect(nextName(doc, "C")).toBe("C3");
     expect(nextName(doc, "W")).toBe("W1");
+  });
+});
+
+describe("declaredColor", () => {
+  const doc = (): HarnessDoc =>
+    normalizeDoc({
+      nodes: [
+        { id: "a", x: 0, y: 0, kind: "connector", name: "C5" },
+        { id: "b", x: 100, y: 0, kind: "connector", name: "C7" },
+      ],
+      segments: [{ id: "s", a: "a", b: "b", len: "100 mm" }],
+      tables: [
+        {
+          id: "t5",
+          node: "a",
+          x: 0,
+          y: 0,
+          kind: "table",
+          head: CAV_HEAD,
+          rows: [["2", "C7.1", "bianco", "1.5"]],
+        },
+        {
+          id: "t7",
+          node: "b",
+          x: 0,
+          y: 0,
+          kind: "table",
+          head: CAV_HEAD,
+          rows: [["1", "C5.2", "verde", "1.5"]],
+        },
+      ],
+    });
+
+  it("asks each end what it says about its own cavity", () => {
+    expect(declaredColor(doc(), "C5.2")).toBe("bianco");
+    expect(declaredColor(doc(), "C7.1")).toBe("verde");
+  });
+
+  it("has nothing to say about an endpoint with no cavity, or one that is not there", () => {
+    expect(declaredColor(doc(), "W1")).toBe("");
+    expect(declaredColor(doc(), "C5.9")).toBe("");
+    expect(declaredColor(doc(), "")).toBe("");
   });
 });
