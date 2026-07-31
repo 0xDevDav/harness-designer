@@ -18,7 +18,7 @@
  * then never cleaned and the update never lands. What is written here is only
  * what `npm run dev` sees.
  */
-const VERSION = "1.1.3";
+const VERSION = "1.1.4";
 const CACHE_PREFIX = "harness-designer-";
 const CACHE = CACHE_PREFIX + VERSION;
 
