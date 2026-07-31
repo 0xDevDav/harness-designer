@@ -36,18 +36,24 @@ const STRAND_W = 2.2;
  * strands of similar colour merge into one thick line: the gap between wires
  * has to be drawn, not merely left.
  */
-const CASING_MARGIN = 1.8;
+const CASING_W = STRAND_W + 1.8;
 /**
- * Narrowest a single band may be drawn on a wire of three colours or more.
+ * Share of every repeat the first colour holds.
  *
- * Its share of a two-colour width would be a smear, so the wire widens to fit —
- * up to the lane pitch, past which it would touch its neighbour. A wire of many
- * colours therefore comes out slightly fatter, which is fair warning that there
- * is more to read on it.
+ * It is the ground the wire is made of; the rest are what is printed on it and
+ * divide what is left. Equal bands would say a four-colour wire is quartered,
+ * and that is not what one looks like.
+ *
+ * A wire of two is mostly its own colour with a good stripe of the other, so
+ * the ground keeps more of the repeat than it does once there are marks to fit
+ * in beside it.
  */
-const BAND_MIN = 0.95;
-/** Thin edge round a banded wire, so its outermost band has one. */
-const BAND_EDGE = 0.7;
+const BAND_GROUND_PAIR = 0.7;
+const BAND_GROUND = 0.5;
+/** How far a banded wire runs before its pattern of marks begins again. */
+const BAND_PERIOD = 15;
+/** How far the far edge of a mark runs ahead of its near one, which is its lean. */
+const SPIRAL_LEAN = 3.5;
 /**
  * Radius of the fillet where a run changes direction.
  *
@@ -731,55 +737,73 @@ export function drawWirePreview(doc: HarnessDoc, sel: Selection | null, parent: 
       const d = roundedPath(corners);
       if (!d) return;
 
-      const width = bands.length >= 3 ? Math.min(STRAND_GAP, bands.length * BAND_MIN) : STRAND_W;
       const stroke = { d, fill: "none", "pointer-events": "none", "stroke-linecap": "round" };
-      el("path", { ...stroke, stroke: palette().paper, "stroke-width": width + CASING_MARGIN }, parent);
+      el("path", { ...stroke, stroke: palette().paper, "stroke-width": CASING_W }, parent);
+      el("path", { ...stroke, stroke: base, "stroke-width": STRAND_W }, parent);
 
-      // A tracer is a second colour on the same wire, drawn as a fine core along
-      // the base rather than as dashes: at this size dashes turn into speckle and
-      // a bundle of striped wires reads as static. It is also what a two-colour
-      // wire looks like — a base with a stripe down it — so the drawing and the
-      // thing agree.
-      if (bands.length <= 2) {
-        el("path", { ...stroke, stroke: base, "stroke-width": STRAND_W }, parent);
-        if (bands[1]) {
-          el("path", { ...stroke, stroke: bands[1], "stroke-width": STRAND_W * 0.45 }, parent);
+      // Every colour after the first is a band printed across the wire and
+      // repeated along it, the way they really are: mostly the first colour,
+      // marked at intervals by the others in the order they were written.
+      //
+      // Across and not along. Drawn lengthwise they read as more wires lying
+      // beside this one, which is the one thing the preview must never say. It
+      // used to draw the second colour as a fine core down the middle and drop
+      // the third and fourth without a word, so "white,yellow,red,white" came
+      // out exactly like "white,yellow".
+      //
+      // The first colour is the ground and holds half of every repeat; the rest
+      // share the other half between them. It is already on, full length, so
+      // only the marks are drawn: each one a dash the length of its share, with
+      // as much space after it as the rest of the repeat, offset to where in the
+      // repeat it belongs.
+      if (bands.length < 2) return;
+      const ground = bands.length === 2 ? BAND_GROUND_PAIR : BAND_GROUND;
+      const share = (1 - ground) / (bands.length - 1);
+      const mark = share * BAND_PERIOD;
+
+      // The marks lean, because on a real wire they are wound round it: seen
+      // from the side a band crosses at an angle, not square. Each one is drawn
+      // as a four-cornered patch with its two ends on the two edges of the wire,
+      // the far edge running ahead of the near one by the lean. A patch is a
+      // shape and not an approximation, so it stays exact however far in the
+      // drawing is zoomed — laying thin lanes side by side instead gives a
+      // staircase that shows itself the moment anyone looks closely.
+      const rail = (shift: number): { at: SVGPathElement; len: number } | null => {
+        const line = roundedPath(strandCorners(piece, (i) => gap(i) + shift, sides));
+        if (!line) return null;
+        // measurable but invisible: only its geometry is wanted
+        const at = el("path", { d: line, fill: "none", "pointer-events": "none" }, parent);
+        if (!(at instanceof SVGPathElement)) return null;
+        return { at, len: at.getTotalLength() };
+      };
+
+      const near = rail(-STRAND_W / 2);
+      const far = rail(STRAND_W / 2);
+      if (!near || !far || near.len < 1) return;
+
+      bands.slice(1).forEach((color, k) => {
+        const begins = (ground + k * share) * BAND_PERIOD;
+        for (let along = begins; along + mark < near.len; along += BAND_PERIOD) {
+          const a = along / near.len;
+          const b = (along + mark) / near.len;
+          const lean = SPIRAL_LEAN / near.len;
+          // the far edge is the same two positions, moved on by the lean
+          const corners = [
+            near.at.getPointAtLength(a * near.len),
+            far.at.getPointAtLength(Math.min(a + lean, 1) * far.len),
+            far.at.getPointAtLength(Math.min(b + lean, 1) * far.len),
+            near.at.getPointAtLength(b * near.len),
+          ];
+          el(
+            "polygon",
+            {
+              points: corners.map((c) => `${c.x.toFixed(2)},${c.y.toFixed(2)}`).join(" "),
+              fill: color,
+              "pointer-events": "none",
+            },
+            parent,
+          );
         }
-        return;
-      }
-
-      // Three colours or more have no base and no tracer: they are bands, and
-      // the only honest way to draw them is as bands. Laid along the wire and
-      // side by side across it, so each is visible for the whole length instead
-      // of the third and fourth being dropped, which is what used to happen —
-      // "white,yellow,red,white" was drawn exactly like "white,yellow".
-      //
-      // They are the same offset the strand already knows how to take, so each
-      // band is the run shifted by its own share of the width and stays parallel
-      // to its neighbours round every corner.
-      //
-      // A thin edge under them all, because a white band against the sheet
-      // colour of the casing has no edge of its own: "white,yellow,red,white"
-      // would read as a yellow and a red one floating with nothing round them.
-      el("path", { ...stroke, stroke: palette().swatchBorder, "stroke-width": width + BAND_EDGE }, parent);
-
-      const each = width / bands.length;
-      bands.forEach((color, k) => {
-        const shift = (k - (bands.length - 1) / 2) * each;
-        const path = roundedPath(strandCorners(piece, (i) => gap(i) + shift, sides));
-        if (!path) return;
-        el(
-          "path",
-          {
-            d: path,
-            fill: "none",
-            "pointer-events": "none",
-            "stroke-linecap": "butt",
-            stroke: color,
-            "stroke-width": each,
-          },
-          parent,
-        );
       });
     });
   }
