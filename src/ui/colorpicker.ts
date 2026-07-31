@@ -232,3 +232,45 @@ export function openColorPicker({ anchor, value, onPick }: PickerOptions): void 
 
   panel.querySelector<HTMLElement>(".picker__cell")?.focus();
 }
+
+/**
+ * Any colour at all, through the one the operating system already provides.
+ *
+ * The palette above is for wires, where a colour is a name from a fixed list
+ * and often two of them; a label is not a wire and takes a single free colour,
+ * so what it needs is a colour picker and not a wire palette. The browser has
+ * one built in, it works offline and it costs no dependency, which is the
+ * standing rule here.
+ *
+ * The control itself is never seen: it exists to be opened. It goes as soon as
+ * a colour is chosen, and if the picker is dismissed instead it goes on the way
+ * back — a cancelled pick fires nothing, so waiting for one would leave it in
+ * the page for good.
+ */
+export function pickFreeColor(current: string, onPick: (hex: string) => void): void {
+  const input = document.createElement("input");
+  input.type = "color";
+  input.value = /^#[0-9a-f]{6}$/i.test(current.trim()) ? current.trim() : "#e8942a";
+  input.style.cssText = "position:fixed;left:0;top:0;width:0;height:0;opacity:0;pointer-events:none";
+  document.body.appendChild(input);
+
+  let done = false;
+  const finish = (): void => {
+    if (done) return;
+    done = true;
+    window.removeEventListener("focus", onReturn);
+    input.remove();
+  };
+  const onReturn = (): void => {
+    // the picker has closed one way or the other; a chosen colour has already
+    // been reported by then, so anything left here is a dismissal
+    window.setTimeout(finish, 300);
+  };
+
+  input.addEventListener("change", () => {
+    onPick(input.value);
+    finish();
+  });
+  window.addEventListener("focus", onReturn);
+  input.click();
+}

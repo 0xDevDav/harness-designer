@@ -138,6 +138,7 @@ export const en = {
   "menu.deleteSegment": "Delete branch",
   "menu.editText": "Edit text…",
   "menu.colorHeader": "Colour",
+  "menu.freeColor": "Another colour…",
   "menu.deleteInline": "Delete label",
   "menu.addRow": "+ Row",
   "menu.renameTitle": "Rename title…",

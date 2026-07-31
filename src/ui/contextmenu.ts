@@ -33,6 +33,7 @@ import {
 import { cavityTable, cavityTableFor } from "@/core/factories";
 import { projectT, snapTo } from "@/core/geometry";
 import { visibleConnectorSymbols } from "@/render/connectors";
+import { pickFreeColor } from "./colorpicker";
 import { menuContributors, openMenu } from "./menu";
 import type { MenuItem } from "./menu";
 import { parseCsv } from "@/core/wirelist";
@@ -461,20 +462,27 @@ function inlineItems(app: AppContext, id: string): MenuItem[] {
     { header: t("menu.colorHeader") },
   ];
 
+  const paint = (hex: string): void =>
+    void editDoc(
+      app,
+      (doc) => {
+        const inline = findInline(doc, id);
+        if (inline) inline.color = hex;
+      },
+      "inline-color",
+    );
+
+  const now = (findInline(app.doc, id)?.color ?? "").toLowerCase();
   for (const color of INLINE_COLORS) {
-    items.push({
-      label: t(color.key),
-      run: () =>
-        editDoc(
-          app,
-          (doc) => {
-            const inline = findInline(doc, id);
-            if (inline) inline.color = color.hex;
-          },
-          "inline-color",
-        ),
-    });
+    // the one it already is says so, because a list of colours with no mark on
+    // it makes you change one to find out which you had
+    const chosen = now === color.hex;
+    items.push({ label: `${chosen ? "● " : "○ "}${t(color.key)}`, run: () => paint(color.hex) });
   }
+  items.push({
+    label: t("menu.freeColor"),
+    run: () => pickFreeColor(now, paint),
+  });
 
   items.push({ separator: true });
   items.push({ label: t("menu.deleteInline"), danger: true, run: () => removeEntity(app, "inline", id) });

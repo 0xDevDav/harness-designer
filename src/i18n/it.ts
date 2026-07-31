@@ -142,6 +142,7 @@ export const it = {
   "menu.deleteSegment": "Elimina ramo",
   "menu.editText": "Modifica testo…",
   "menu.colorHeader": "Colore",
+  "menu.freeColor": "Altro colore…",
   "menu.deleteInline": "Elimina etichetta",
   "menu.addRow": "+ Riga",
   "menu.renameTitle": "Rinomina titolo…",
