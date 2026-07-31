@@ -9,8 +9,16 @@
  * when it is served from a subfolder of the host, say /harness/.
  */
 
-/** Bump on every release: it renames the cache and invalidates the previous one. */
-const VERSION = "1.0.0";
+/**
+ * Renames the cache, which is what invalidates the previous one.
+ *
+ * The build stamps the version from package.json over this line, so it cannot
+ * drift from the program it caches — it did once, and a service worker whose
+ * own file never changes is one the browser never replaces: the old cache is
+ * then never cleaned and the update never lands. What is written here is only
+ * what `npm run dev` sees.
+ */
+const VERSION = "1.1.0";
 const CACHE_PREFIX = "harness-designer-";
 const CACHE = CACHE_PREFIX + VERSION;
 
