@@ -10,6 +10,9 @@
 import type { AppContext, Command, CommandRegistry } from "@/app/context";
 import { deleteEntity, emptyDoc, findTable } from "@/core/doc";
 import { autoLinkAll } from "@/core/autolink";
+import { copySelection, countOf, isEmptyClipping } from "@/core/clipboard";
+import { heldClipping, hold, pasteHeldAt } from "@/ui/clipboard";
+import { pointerAt } from "@/ui/pointer";
 import { snapTo } from "@/core/geometry";
 import { uid } from "@/core/ids";
 import { cavityTable, notesTable, revisionsTable, titleBlock, wireListHeadings } from "@/core/factories";
@@ -179,6 +182,19 @@ export function createCommandRegistry(): AppBindableRegistry {
 
 /* ============================ aiuti condivisi ============================ */
 
+/**
+ * True while text is selected somewhere on the page.
+ *
+ * Ctrl+C then belongs to the browser: somebody who has just swept over a line
+ * of a check report, or a cell of a table, is copying that text and not the
+ * element behind it. Saying the command is unavailable is enough — the keyboard
+ * only takes a combination away from the browser for a command it can run.
+ */
+function copyingText(): boolean {
+  const selection = typeof window === "undefined" ? null : window.getSelection();
+  return !!selection && !selection.isCollapsed && selection.toString().trim() !== "";
+}
+
 /** Centre of the drawing area in document coordinates: new items are born there. */
 function viewCenter(app: AppContext): Point {
   const canvas = document.querySelector(".canvas");
@@ -318,6 +334,32 @@ export function registerBuiltinCommands(app: AppContext): void {
       palette: false,
       enabled: (a) => a.store.canRedo,
       run: (a) => a.commands.run("edit.redo"),
+    },
+    {
+      id: "edit.copy",
+      titleKey: "cmd.copy",
+      shortcut: "Ctrl+C",
+      enabled: (a) => a.store.selection !== null && !copyingText(),
+      run: (a) => {
+        const clip = copySelection(a.doc, a.store.selected());
+        if (isEmptyClipping(clip)) {
+          // the only thing that refuses to be copied is the title block
+          a.toast.error(a.t("toast.copyRefused"));
+          return;
+        }
+        hold(clip);
+        const n = countOf(clip);
+        a.toast.show(n === 1 ? a.t("toast.copiedOne") : a.t("toast.copied", { n }));
+      },
+    },
+    {
+      id: "edit.paste",
+      titleKey: "cmd.paste",
+      shortcut: "Ctrl+V",
+      enabled: () => heldClipping() !== null,
+      // where the pointer is, which is what "here" means; the middle of the view
+      // when it is not on the sheet at all
+      run: (a) => pasteHeldAt(a, pointerAt() ?? viewCenter(a)),
     },
     {
       id: "edit.delete",

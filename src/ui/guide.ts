@@ -10,6 +10,7 @@ const LINES = [
   "guide.tab",
   "guide.branch",
   "guide.drag",
+  "guide.copy",
   "guide.keys",
 ] as const;
 

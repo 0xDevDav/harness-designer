@@ -27,6 +27,7 @@ import type { Facing } from "@/core/doc";
 import type { EntityType, Point, Selection } from "@/core/types";
 import { onLocaleChange } from "@/i18n";
 import type { Translate } from "@/i18n";
+import { notePointer } from "./pointer";
 
 /** Node snap radius, in screen pixels, converted through the zoom. */
 const SNAP_RADIUS_PX = 14;
@@ -448,6 +449,7 @@ export function attachInteraction(opts: {
       return;
     }
     const world = renderer.screenToWorld(ev);
+    notePointer(world);
     if (drag) {
       if (ev.pointerId !== drag.pointerId) return;
       applyDrag(drag, ev, world);
@@ -475,6 +477,7 @@ export function attachInteraction(opts: {
 
   const onPointerLeave = (): void => {
     if (drag || pan || pinch) return;
+    notePointer(null);
     setHover(null);
     if (renderer.branchPreviewTo) {
       renderer.branchPreviewTo = null; // niente anteprima appesa fuori dal foglio

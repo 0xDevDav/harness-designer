@@ -33,6 +33,7 @@ import {
 import { cavityTable, cavityTableFor } from "@/core/factories";
 import { projectT, snapTo } from "@/core/geometry";
 import { visibleConnectorSymbols } from "@/render/connectors";
+import { heldClipping, pasteHeldAt } from "./clipboard";
 import { pickFreeColor } from "./colorpicker";
 import { menuContributors, openMenu } from "./menu";
 import type { MenuItem } from "./menu";
@@ -55,8 +56,33 @@ export function contextMenuItems(
   cell?: MenuCell,
 ): MenuItem[] {
   const items = target ? itemsForTarget(app, target, world, cell) : backgroundItems(app, world);
+  // Copying and pasting are about the pointer, not about what was clicked, so
+  // they belong to every menu and always at the end of it, in one place the eye
+  // learns rather than in four different ones.
+  const both = clipboardItems(app, target, world);
+  if (both.length) items.push({ separator: true }, ...both);
   const contributed = contributedItems(app, target, world);
   if (contributed.length) items.push({ separator: true }, ...contributed);
+  return items;
+}
+
+/** Copy what was clicked, and put down what is held, exactly where the click was. */
+function clipboardItems(app: AppContext, target: Selection | null, world: Point): MenuItem[] {
+  const t = app.t;
+  const items: MenuItem[] = [];
+  // the right click has already put what it hit into the selection, keeping any
+  // group that was gathered around it, so the command copies exactly that
+  if (target && !(target.type === "table" && findTable(app.doc, target.id)?.kind === "title")) {
+    const group = app.store.selected().length;
+    items.push({
+      label: group > 1 ? t("menu.copyMany", { n: group }) : t("menu.copy"),
+      shortcut: "Ctrl+C",
+      run: () => app.commands.run("edit.copy"),
+    });
+  }
+  if (heldClipping()) {
+    items.push({ label: t("menu.pasteHere"), shortcut: "Ctrl+V", run: () => pasteHeldAt(app, world) });
+  }
   return items;
 }
 
