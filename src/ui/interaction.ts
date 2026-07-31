@@ -15,6 +15,7 @@ import {
   findInline,
   findNode,
   findSegment,
+  FACINGS,
   faceNode,
   findTable,
   nodeDegree,
@@ -22,6 +23,7 @@ import {
 } from "@/core/doc";
 import { clamp, projectPolyline, snapTo } from "@/core/geometry";
 import type { Store } from "@/core/store";
+import type { Facing } from "@/core/doc";
 import type { EntityType, Point, Selection } from "@/core/types";
 import { onLocaleChange } from "@/i18n";
 import type { Translate } from "@/i18n";
@@ -108,6 +110,19 @@ export function attachInteraction(opts: {
     const id = el?.getAttribute("data-id") ?? "";
     if (!id || !ENTITY_TYPES.includes(type)) return null;
     return { type: type as EntityType, id };
+  };
+
+  /**
+   * One of the buttons that point a connector. Pressing it is an edit and not a
+   * pick, so it is looked for before anything else and changes no selection:
+   * the connector stays selected and the buttons stay where they are, which is
+   * what lets the four be tried one after another.
+   */
+  const facingFromTarget = (target: EventTarget | null): { id: string; facing: Facing } | null => {
+    const el = target instanceof Element ? target.closest('[data-ent="facing"]') : null;
+    const id = el?.getAttribute("data-id") ?? "";
+    const facing = el?.getAttribute("data-facing") ?? "";
+    return id && (FACINGS as readonly string[]).includes(facing) ? { id, facing: facing as Facing } : null;
   };
 
   /** The bend handle under the pointer, if the pointer is on one. */
@@ -284,6 +299,21 @@ export function attachInteraction(opts: {
 
     if (store.tool === "branch") {
       branchStep(world);
+      return;
+    }
+
+    // Pressing one of the buttons that point a connector: an edit, taken before
+    // anything else and leaving the selection alone. Choosing the way it is
+    // already pointing puts it back to following its branch, so the same button
+    // both sets and clears.
+    const face = facingFromTarget(ev.target);
+    if (face) {
+      store.edit((doc) => {
+        const node = findNode(doc, face.id);
+        if (!node) return;
+        if (node.facing === face.facing) delete node.facing;
+        else node.facing = face.facing;
+      }, "facing");
       return;
     }
 

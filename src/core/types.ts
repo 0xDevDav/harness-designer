@@ -34,6 +34,15 @@ export interface HNode {
    * leaving it are two different wires that may well be two different colours.
    */
   mate?: string;
+  /**
+   * The way the connector points, when it has been said rather than worked out.
+   *
+   * Absent, it faces along the branch attached to it, which is right almost
+   * always and is what every drawing made before this did. Set, it faces where
+   * it was told: the symbol turns, its name follows, and in a square drawing
+   * the cable leaves it along that axis.
+   */
+  facing?: "right" | "left" | "up" | "down";
 }
 
 export interface Segment {

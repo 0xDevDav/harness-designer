@@ -700,20 +700,55 @@ describe("columns and names", () => {
       expect(segmentPath(doc, doc.segments[0]!)!).toHaveLength(2);
     });
 
-    it("corners by itself when it is, taking the longer way first", () => {
+    it("crosses over exactly halfway, along the longer axis first", () => {
       const doc = oneBranch(true);
-      // 300 across against 100 down: across first, so the corner is under B
+      // 300 across against 100 down: out along x, across at the midpoint, on again
       expect(segmentPath(doc, doc.segments[0]!)!).toEqual([
         { x: 0, y: 0 },
-        { x: 300, y: 0 },
+        { x: 150, y: 0 },
+        { x: 150, y: 100 },
         { x: 300, y: 100 },
       ]);
     });
 
-    it("takes the other corner when flipped", () => {
+    it("takes the other axis when flipped, still crossing over in the middle", () => {
       const doc = oneBranch(true);
       doc.segments[0]!.flip = true;
-      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 0, y: 100 });
+      expect(segmentPath(doc, doc.segments[0]!)!).toEqual([
+        { x: 0, y: 0 },
+        { x: 0, y: 50 },
+        { x: 300, y: 50 },
+        { x: 300, y: 100 },
+      ]);
+    });
+
+    it("follows a connector that has been told where to point", () => {
+      const doc = oneBranch(true);
+      // 300 across against 100 down, so left alone it goes out horizontally
+      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 150, y: 0 });
+      findNode(doc, "a")!.facing = "up";
+      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 0, y: 50 });
+      // the far end can say it just as well
+      delete findNode(doc, "a")!.facing;
+      findNode(doc, "b")!.facing = "down";
+      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 0, y: 50 });
+    });
+
+    it("keeps a facing across a save, and refuses one that means nothing", () => {
+      const doc = oneBranch(true);
+      findNode(doc, "a")!.facing = "left";
+      const reopened = normalizeDoc(JSON.parse(JSON.stringify(doc)));
+      expect(findNode(reopened, "a")?.facing).toBe("left");
+
+      const nonsense = normalizeDoc({ nodes: [{ id: "a", x: 0, y: 0, facing: "sideways" }] });
+      expect(findNode(nonsense, "a")?.facing).toBeUndefined();
+    });
+
+    it("leaves both ends along the same axis, which is what the crossover costs", () => {
+      const doc = oneBranch(true);
+      const path = segmentPath(doc, doc.segments[0]!)!;
+      expect(path[0]!.y).toBe(path[1]!.y); // horizontal out of A
+      expect(path[2]!.y).toBe(path[3]!.y); // and horizontal into B
     });
 
     it("makes no corner for ends that already line up", () => {
@@ -722,15 +757,15 @@ describe("columns and names", () => {
       expect(segmentPath(doc, doc.segments[0]!)!).toHaveLength(2);
     });
 
-    it("aims the corner so the cable leaves a node the way asked", () => {
+    it("aims the run so the cable leaves a node the way asked", () => {
       const doc = oneBranch(true);
       faceNode(doc, "a", false); // A's cable is to come out vertically
-      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 0, y: 100 });
+      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 0, y: 50 });
       faceNode(doc, "a", true);
-      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 300, y: 0 });
-      // aiming from the far end asks for the mirror image
-      faceNode(doc, "b", true);
-      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 0, y: 100 });
+      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 150, y: 0 });
+      // both ends share the axis now, so aiming either one aims the run
+      faceNode(doc, "b", false);
+      expect(segmentPath(doc, doc.segments[0]!)![1]).toEqual({ x: 0, y: 50 });
     });
 
     it("leaves a branch bent by hand alone", () => {

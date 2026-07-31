@@ -33,6 +33,17 @@ export function emptyDoc(): HarnessDoc {
 
 export const cloneDoc = (d: HarnessDoc): HarnessDoc => JSON.parse(JSON.stringify(d)) as HarnessDoc;
 
+/** The four ways a connector can be told to point. */
+export const FACINGS = ["right", "left", "up", "down"] as const;
+export type Facing = (typeof FACINGS)[number];
+
+/** Unit vector of a facing, in sheet coordinates. */
+export function facingVector(facing: Facing): Point {
+  if (facing === "right") return { x: 1, y: 0 };
+  if (facing === "left") return { x: -1, y: 0 };
+  return facing === "down" ? { x: 0, y: 1 } : { x: 0, y: -1 };
+}
+
 /* ============================ Normalization ============================ */
 
 const str = (v: unknown, fallback = ""): string =>
@@ -87,6 +98,7 @@ export function normalizeDoc(input: unknown): HarnessDoc {
     };
     const mate = str(src.mate);
     if (mate && mate !== id) node.mate = mate;
+    if ((FACINGS as readonly string[]).includes(str(src.facing))) node.facing = src.facing;
     doc.nodes.push(node);
   }
   normalizeMates(doc);
@@ -235,13 +247,17 @@ export function segmentEnds(doc: HarnessDoc, s: Segment): [HNode, HNode] | null 
 }
 
 /**
- * The corner a branch turns by itself when the drawing is square.
+ * The corners a branch turns by itself when the drawing is square.
  *
- * Two ends that do not line up are joined by one right angle rather than a
- * diagonal, and there are only two ways to do that: along then across, or
- * across then along. The default takes the longer way first, so the corner
- * lands near the far end and the run reads as a straight branch with a jog at
- * the end rather than as a staircase; `flip` takes the other one.
+ * Two ends that do not line up are joined by right angles rather than by a
+ * diagonal, and the crossover is put exactly halfway between them: out along
+ * one axis, across at the midpoint, and on again to the far end. Both ends then
+ * leave along the same axis and the jog sits in open sheet, away from whatever
+ * is gathered at either end — a corner tucked against a node lands on the
+ * fitting there, and against a connector it lands on the body.
+ *
+ * Which axis is the long one, so the crossover is the short leg and the branch
+ * still reads as a run rather than as a staircase. `flip` takes the other.
  *
  * Ends that do line up need no corner at all, and get none, so a squared
  * drawing is mostly plain straight branches.
@@ -250,18 +266,57 @@ function autoCorner(a: Point, b: Point, flip: boolean): Point[] {
   const dx = Math.abs(b.x - a.x);
   const dy = Math.abs(b.y - a.y);
   if (dx < 0.5 || dy < 0.5) return [];
-  return [dx >= dy !== flip ? { x: b.x, y: a.y } : { x: a.x, y: b.y }];
+  if (dx >= dy !== flip) {
+    const x = (a.x + b.x) / 2;
+    return [
+      { x, y: a.y },
+      { x, y: b.y },
+    ];
+  }
+  const y = (a.y + b.y) / 2;
+  return [
+    { x: a.x, y },
+    { x: b.x, y },
+  ];
 }
 
 /**
- * Aims the automatic corner of every branch at a node, so the cable leaves that
- * node along the axis asked for.
+ * Which way round the automatic crossover goes.
+ *
+ * A connector that has been told where to point decides it: the cable has to
+ * leave along the axis the connector faces, or the symbol and the run it
+ * carries disagree in plain sight. Told nothing, the branch keeps its own
+ * answer, which is the long axis unless it has been flipped.
+ *
+ * Two connectors that disagree are settled by the one the branch starts at,
+ * because something has to settle it and picking by position would change the
+ * drawing when the file is written the other way round.
+ */
+function flipFor(doc: HarnessDoc, seg: Segment): boolean {
+  const ends = segmentEnds(doc, seg);
+  if (!ends) return seg.flip === true;
+  const said = ends[0].facing ?? ends[1].facing;
+  if (!said) return seg.flip === true;
+  const dx = Math.abs(ends[1].x - ends[0].x);
+  const dy = Math.abs(ends[1].y - ends[0].y);
+  const horizontal = said === "right" || said === "left";
+  return dx >= dy !== horizontal;
+}
+
+/**
+ * Aims the automatic corners of every branch at a node, so the cable leaves
+ * that node along the axis asked for.
  *
  * This is what makes dragging a node in a square drawing behave: the corner
  * follows the hand. Drag a connector sideways and its cable comes out of it
- * sideways; drag it up and the cable comes out of the top. Without it the
- * corner is decided by which way round the branch happens to be stored, and the
+ * sideways; drag it up and the cable comes out of the top. Without it the shape
+ * is decided by which way round the branch happens to be stored, and the
  * connector spins to face a direction the person dragging it never asked for.
+ *
+ * With the crossover in the middle both ends leave along the same axis, so this
+ * aims the far end too. On a branch between two connectors that means dragging
+ * one turns both, which is right: they are the two ends of one run and it has
+ * one shape.
  *
  * Branches bent by hand are left alone: they have been given a shape, and this
  * is only about the shape a branch takes when it has not.
@@ -274,8 +329,7 @@ export function faceNode(doc: HarnessDoc, nodeId: string, horizontal: boolean): 
     const dx = Math.abs(ends[1].x - ends[0].x);
     const dy = Math.abs(ends[1].y - ends[0].y);
     if (dx < 0.5 || dy < 0.5) continue; // the ends line up: there is no corner to aim
-    const wantFirstHorizontal = seg.a === nodeId ? horizontal : !horizontal;
-    if (dx >= dy !== wantFirstHorizontal) seg.flip = true;
+    if (dx >= dy !== horizontal) seg.flip = true;
     else delete seg.flip;
   }
 }
@@ -298,7 +352,7 @@ export function segmentPath(doc: HarnessDoc, seg: Segment): Point[] | null {
   const bends = seg.points?.length
     ? seg.points.map((p) => ({ ...p }))
     : doc.square
-      ? autoCorner(a, b, seg.flip === true)
+      ? autoCorner(a, b, flipFor(doc, seg))
       : [];
   return [a, ...bends, b];
 }

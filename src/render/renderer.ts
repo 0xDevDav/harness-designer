@@ -1,7 +1,9 @@
 import type { RendererApi } from "@/app/context";
 import { colorOf, isLightColor } from "@/core/colors";
 import {
+  FACINGS,
   branchDirection,
+  facingVector,
   findInline,
   findNode,
   findSegment,
@@ -44,6 +46,9 @@ const JOINT_ARROW = 7;
 const JOINT_GAP = 4;
 /** How far above its connector the name of a mated one sits. */
 const LABEL_LIFT = 20;
+/** The buttons that point a connector: how far past its nose, and how big. */
+const FACE_PICK_OUT = 26;
+const FACE_PICK_R = 11;
 /** Size of the handle a bend is dragged by, shown only on a selected branch. */
 const BEND_HANDLE_R = 5;
 const MIN_ZOOM = 0.15;
@@ -177,6 +182,14 @@ export class Renderer implements RendererApi {
     this.drawJoints(doc, gConnectors);
     for (const node of doc.nodes) {
       if (node.kind === "connector") this.drawConnector(doc, node, gConnectors);
+    }
+
+    // the four ways to point a connector, offered only on the one selected and
+    // never in an export: it is a control, not part of the drawing
+    const picked = this.store.selection;
+    if (!exporting && picked?.type === "node") {
+      const node = findNode(doc, picked.id);
+      if (node?.kind === "connector") this.drawFacingPicker(node, gConnectors);
     }
 
     if (!exporting) this.drawOverlays(doc, gOverlay);
@@ -411,11 +424,83 @@ export class Renderer implements RendererApi {
     );
   }
 
-  /** Angle of the attached branch, from the node towards the bundle. */
+  /**
+   * Angle of the attached branch, from the node towards the bundle.
+   *
+   * A connector told where to point uses that instead: it faces the way it was
+   * told, and the cable is behind it. Otherwise it faces along whatever branch
+   * it has, which is right almost always and is what a drawing that has never
+   * been asked the question gets.
+   */
   private attachAngle(doc: HarnessDoc, node: HNode): number {
+    if (node.facing) {
+      const away = facingVector(node.facing);
+      return Math.atan2(-away.y, -away.x);
+    }
     const seg = segmentsOf(doc, node.id)[0];
     const dir = seg ? branchDirection(doc, seg, node.id) : null;
     return dir ? Math.atan2(dir.y, dir.x) : 0;
+  }
+
+  /**
+   * The four ways a selected connector can be pointed, offered on the sheet.
+   *
+   * On the sheet and not in a menu, because it is a thing you look at while you
+   * decide: the answer is which way the drawing reads better, and that is only
+   * visible with the drawing in front of you. Only on a connector, and only
+   * while it is the one selected, so nothing is added to what is on show the
+   * rest of the time.
+   */
+  private drawFacingPicker(node: HNode, parent: SVGGElement): void {
+    const reach = (connectorSymbol(node.style)?.tip ?? 40) + FACE_PICK_OUT;
+    for (const facing of FACINGS) {
+      const away = facingVector(facing);
+      const cx = node.x + away.x * reach;
+      const cy = node.y + away.y * reach;
+      const on = node.facing === facing;
+      const g = el(
+        "g",
+        {
+          "data-ent": "facing",
+          "data-id": node.id,
+          "data-facing": facing,
+          style: "cursor:pointer",
+        },
+        parent,
+      );
+      el(
+        "circle",
+        {
+          cx,
+          cy,
+          r: FACE_PICK_R,
+          fill: on ? palette().selection : palette().bundleInner,
+          stroke: palette().selection,
+          "stroke-width": 1.6,
+          opacity: on ? 1 : 0.9,
+        },
+        g,
+      );
+      // an arrow pointing the way this choice would turn the connector
+      const tip = { x: cx + away.x * FACE_PICK_R * 0.55, y: cy + away.y * FACE_PICK_R * 0.55 };
+      const back = { x: cx - away.x * FACE_PICK_R * 0.3, y: cy - away.y * FACE_PICK_R * 0.3 };
+      const wing = FACE_PICK_R * 0.42;
+      el(
+        "path",
+        {
+          d:
+            `M${back.x - away.y * wing},${back.y + away.x * wing} L${tip.x},${tip.y} ` +
+            `L${back.x + away.y * wing},${back.y - away.x * wing}`,
+          fill: "none",
+          stroke: on ? palette().bundleInner : palette().selection,
+          "stroke-width": 2,
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+          "pointer-events": "none",
+        },
+        g,
+      );
+    }
   }
 
   /**
@@ -517,12 +602,14 @@ export class Renderer implements RendererApi {
     if (!label) return;
 
     // The label follows the connector axis past the nose, where it overlaps no
-    // corner — except on a mated connector, where that is exactly where the
-    // arrow of the joint leaves from. There it goes over the body instead, and
-    // always upwards whichever way the connector faces, so a pair reads as a
-    // pair rather than as two names with a line drawn through them.
+    // corner — except when something else needs that axis: the arrow of a joint
+    // leaves along it, and so do the four buttons that point a connector. Then
+    // it goes over the body instead, and always upwards whichever way the
+    // connector faces, so a pair reads as a pair rather than as two names with
+    // a line drawn through them.
     const tip = symbol?.tip ?? 40;
-    const at = mateOf(doc, node.id)
+    const busy = mateOf(doc, node.id) || this.store.isSelected({ type: "node", id: node.id });
+    const at = busy
       ? { x: node.x - Math.cos(angle) * tip * 0.4, y: node.y - Math.sin(angle) * tip * 0.4 - LABEL_LIFT }
       : (() => {
           const d = tip + 6 + textWidth(label, 12.5, true) / 2;
