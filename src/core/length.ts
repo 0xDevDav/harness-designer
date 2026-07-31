@@ -70,5 +70,4 @@ export function formatLengthMm(mm: number): string {
   return `${round(mm / 1000, 3)} m`;
 }
 
-const round = (v: number, decimals: number): string =>
-  String(Number(v.toFixed(decimals)));
+const round = (v: number, decimals: number): string => String(Number(v.toFixed(decimals)));

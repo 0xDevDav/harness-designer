@@ -71,7 +71,7 @@ export function findPath(doc: HarnessDoc, from: string, to: string): string[] | 
       cameFrom.set(link.to, { node, seg: link.seg });
       if (link.to === to) {
         const path: string[] = [];
-        for (let at = to; at !== from; ) {
+        for (let at = to; at !== from;) {
           const step = cameFrom.get(at)!;
           path.push(step.seg);
           at = step.node;
@@ -171,9 +171,7 @@ export function segmentLoad(routes: readonly RoutedWire[]): Map<string, number> 
 
 /** Wire list rows carrying their computed cut length. */
 export function wireRowsWithLength(doc: HarnessDoc): WireRow[] {
-  return routeWires(doc).map(({ wire, lengthMm }) =>
-    lengthMm === null ? wire : { ...wire, lengthMm },
-  );
+  return routeWires(doc).map(({ wire, lengthMm }) => (lengthMm === null ? wire : { ...wire, lengthMm }));
 }
 
 /** Nodes a wire passes through, ends included. Used by the drawing. */

@@ -66,8 +66,7 @@ function wiresFor(doc: HarnessDoc, sel: Selection | null, routes: RoutedWire[]):
   }
 
   if (sel.type === "node" || sel.type === "table") {
-    const nodeId =
-      sel.type === "node" ? sel.id : (doc.tables.find((t) => t.id === sel.id)?.node ?? "");
+    const nodeId = sel.type === "node" ? sel.id : (doc.tables.find((t) => t.id === sel.id)?.node ?? "");
     if (!nodeId || !findNode(doc, nodeId)) return [];
     const byName = namedNodes(doc);
     const own = new Set(segmentsOf(doc, nodeId).map((s) => s.id));

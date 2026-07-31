@@ -29,13 +29,6 @@ import { BEND_R, drawWirePreview } from "./wires";
 const W_OUTER = 9;
 const W_INNER = 5.5;
 const W_HIT = 16;
-/**
- * The fillet at a change of direction is only drawn where exactly two branches
- * meet, which is a bend in one run rather than a junction. Where three or more
- * meet the boot is the fitting, and a fillet under it would be invisible
- * anyway. Its radius comes from `wires.ts`, because the strands are drawn on
- * the same one and the two have to agree.
- */
 /** Radius of the invisible circle that makes a junction grabbable. */
 const NODE_HIT_R = 11;
 const MIN_ZOOM = 0.15;
@@ -187,7 +180,15 @@ export class Renderer implements RendererApi {
     return Math.min(BEND_R, ownLength / 2, ...halves);
   }
 
-  /** Fillets at the nodes where one run simply changes direction. */
+  /**
+   * Fillets at the nodes where one run simply changes direction.
+   *
+   * Only where exactly two branches meet. Where three or more do, the boot is
+   * the fitting and a fillet under it would be invisible anyway. The radius is
+   * `BEND_R` from `wires.ts`, because the strands inside the bundle turn on it
+   * too and a cable that bends on one radius with its own wires on another
+   * reads as a mistake before you can say why.
+   */
   private drawBends(doc: HarnessDoc, outer: SVGGElement, inner: SVGGElement): void {
     for (const node of doc.nodes) {
       const attached = segmentsOf(doc, node.id);
@@ -510,16 +511,8 @@ export class Renderer implements RendererApi {
     const [a, b] = ends;
     const line = { x1: a.x, y1: a.y, x2: b.x, y2: b.y, "stroke-linecap": "round" };
 
-    el(
-      "line",
-      { ...line, stroke: palette().selection, "stroke-width": W_OUTER + 11, opacity: 0.22 },
-      parent,
-    );
-    el(
-      "line",
-      { ...line, stroke: palette().selection, "stroke-width": W_OUTER + 2, opacity: 0.55 },
-      parent,
-    );
+    el("line", { ...line, stroke: palette().selection, "stroke-width": W_OUTER + 11, opacity: 0.22 }, parent);
+    el("line", { ...line, stroke: palette().selection, "stroke-width": W_OUTER + 2, opacity: 0.55 }, parent);
 
     // the ends are marked so a branch stays distinguishable from the one next
     // to it when several meet at a junction
