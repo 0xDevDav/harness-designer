@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "Harness Designer",
+  "short_name": "Harness",
+  "description": "Visual editor for automotive wiring harness (formboard) drawings",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1e2430",
+  "theme_color": "#1e2430",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1 8h6l4-5h4M7 8l4 5h4' stroke='%233d8bfd' stroke-width='2' fill='none'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

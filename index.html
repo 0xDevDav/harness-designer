@@ -1,0 +1,56 @@
+<!doctype html>
+<!-- lang is set from the chosen locale at startup, see src/main.ts -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="Visual editor for automotive wiring harness (formboard) drawings: bundle, connectors, cavity tables, consistency check and wire list."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b0b0f" />
+    <meta name="author" content="Harness Designer" />
+    <meta property="og:title" content="Harness Designer" />
+    <meta
+      property="og:description"
+      content="Automotive wiring diagram editor: drawing, cavity tables, consistency check and wire list."
+    />
+    <meta property="og:type" content="website" />
+    <title>Harness Designer</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%236d5cff'/%3E%3Cpath d='M4 12h3.5a3 3 0 0 0 3-3V8a2 2 0 0 1 4 0v8a2 2 0 0 0 4 0v-1H20' stroke='%23fff' stroke-width='1.9' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <link rel="manifest" href="./manifest.webmanifest" />
+  </head>
+  <body class="app">
+    <noscript>Harness Designer requires JavaScript. / Harness Designer richiede JavaScript.</noscript>
+    <div id="app" class="shell">
+      <header id="topbar" class="topbar"></header>
+      <div class="main">
+        <div class="canvas">
+          <svg id="svg" class="canvas__svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="gridP" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M20 0H0V20" fill="none" stroke="#dfe5ee" stroke-width="1" />
+              </pattern>
+            </defs>
+            <g id="world"></g>
+          </svg>
+          <!-- in-place editor layer: it lives outside the SVG because every
+               redraw empties #world -->
+          <div id="overlay" class="overlay"></div>
+          <div id="hint" class="canvas__hint"></div>
+          <div id="zoomLabel" class="canvas__zoom">100%</div>
+        </div>
+      </div>
+      <!-- floating panels: check, plugins, guide -->
+      <div id="panels" class="panels"></div>
+    </div>
+    <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+    <input type="file" id="fileInput" accept=".json,application/json" hidden />
+    <input type="file" id="csvInput" accept=".csv,text/csv" hidden />
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

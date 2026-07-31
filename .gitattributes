@@ -1,0 +1,10 @@
+# Normalizzazione a LF nel repository, coerente con .editorconfig.
+# Senza questa regola Git su Windows registrerebbe CRLF e ogni contributo da
+# un altro sistema operativo produrrebbe diff che toccano l'intero file.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

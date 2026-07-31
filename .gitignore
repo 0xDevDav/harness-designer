@@ -1,0 +1,15 @@
+node_modules/
+dist/
+dist-standalone/
+.vite/
+coverage/
+*.local
+*.log
+*.tsbuildinfo
+.env
+.env.*
+.DS_Store
+Thumbs.db
+.playwright-mcp/
+.vscode/
+.idea/
