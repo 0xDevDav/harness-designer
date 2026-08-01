@@ -173,6 +173,10 @@ export function normalizeDoc(input: unknown): HarnessDoc {
     doc.tables.push(table);
   }
 
+  // --- schematic layout: positions keyed by a connector the drawing still has
+  const layout = normalizeLayout(doc, raw.schematic);
+  if (layout) doc.schematic = layout;
+
   doc.version = DOC_VERSION;
   normalizeConnectors(doc);
   seedIds(doc.nodes.length + doc.segments.length + doc.inlines.length + doc.tables.length);
@@ -181,6 +185,35 @@ export function normalizeDoc(input: unknown): HarnessDoc {
 
 function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
+}
+
+/**
+ * Hand-placed schematic boxes, cleaned up.
+ *
+ * A position is kept only for a name the drawing still knows, so deleting a
+ * connector takes its box position with it instead of leaving a key that
+ * nothing will ever look at again. Anything whose coordinates are not two
+ * finite numbers is not a position.
+ */
+function normalizeLayout(doc: HarnessDoc, raw: unknown): Record<string, Point> | undefined {
+  if (typeof raw !== "object" || raw === null) return undefined;
+  const known = new Set<string>();
+  for (const n of doc.nodes) if (n.name.trim()) known.add(n.name.trim());
+  for (const t of doc.tables) {
+    const owner = ownerName(doc, t);
+    if (owner) known.add(owner);
+  }
+
+  const out: Record<string, Point> = {};
+  let any = false;
+  for (const [name, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!known.has(name) || typeof value !== "object" || value === null) continue;
+    const p = value as Partial<Point>;
+    if (!Number.isFinite(num(p.x, NaN)) || !Number.isFinite(num(p.y, NaN))) continue;
+    out[name] = { x: num(p.x), y: num(p.y) };
+    any = true;
+  }
+  return any ? out : undefined;
 }
 
 /**
@@ -582,6 +615,14 @@ export function renameNode(doc: HarnessDoc, node: HNode, newName: string): numbe
   const name = newName.trim();
   node.name = name;
   if (!old || old === name) return 0;
+
+  // the box in the schematic is keyed by the name, so it follows the rename
+  // rather than springing back to wherever the automatic layout would put it
+  const placed = doc.schematic?.[old];
+  if (placed && doc.schematic) {
+    delete doc.schematic[old];
+    if (name) doc.schematic[name] = placed;
+  }
 
   const linked =
     doc.tables.find((t) => t.node === node.id) ??

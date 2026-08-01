@@ -12,6 +12,7 @@ const LINES = [
   "guide.drag",
   "guide.copy",
   "guide.keys",
+  "guide.views",
 ] as const;
 
 export function renderGuide(app: AppContext, host: HTMLElement): void {

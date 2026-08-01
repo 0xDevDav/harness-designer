@@ -4,6 +4,74 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [1.2.0]
+
+### Added
+
+- A second way of reading the same harness: the **schematic**. Every connector
+  becomes a box of its cavities, carrying the full title its cavity table has on
+  the sheet, and every wire in the list becomes a line from one cavity to
+  another in the colour it is really made of. Nothing is stored twice — it is
+  the cavity tables read a second way, so it cannot drift out of step with them.
+- A view selector in the bar, and `V` to go round the three: the sheet on its
+  own, the schematic on its own, or the two side by side. What is picked in one
+  lights up in the other — a connector shows its box and its wires, a branch
+  shows every wire that runs through it, and a wire picked in the schematic
+  lights the whole road it takes across the harness, branch by branch. That last
+  one is the question nobody could answer before without two sheets of paper and
+  a finger on each.
+- The schematic arranges itself: connectors are put in columns by how far along
+  the wiring they are from the busiest one, and each column is ordered so the
+  wires cross as little as possible and arrive level. Wires run square, take the
+  clear lane between the boxes rather than straight through whatever stands in
+  the way, and are never drawn on top of each other — two grounds onto the same
+  ring terminal are two lines with daylight between them, not one line that
+  happens to be two. A box can be dragged where it suits, and **moving one box
+  moves only that box**: the arrangement is worked out with it still in the
+  reckoning, so nothing else shifts to fill the space it left. Where it was put
+  is saved with the drawing, undone like any other edit, and found again on
+  opening. «Put the schematic boxes back» drops the lot and returns to the
+  automatic arrangement.
+
+- A splice and a ring terminal are drawn in the schematic as what they are: the
+  wires reach the middle of the box and join on a bar that carries straight
+  through to the other side, so nine grounds spliced together read as one point
+  rather than as nine lines stopping at an edge. Each side fans on its own and
+  each fan is centred, so a splice fed by eight wires and leaving by one has the
+  eight arriving on the middle of one face and the one leaving the middle of the
+  other. The box is as tall as its fan needs to be.
+- A mated pair carries the same double arrow the sheet uses, with the two halves
+  set side by side and level so the pairing is plain — and the colour changing
+  across it is plain with it.
+- Wires in the schematic turn on a wide radius instead of a square corner, and
+  leave a connector far enough out to have the room to do it.
+
+### Changed
+
+- **A new sample drawing**, in place of the towbar kit: the engine harness of a
+  four-cylinder petrol car, in English. Battery, main fuse and body ground, fuse
+  and relay box, alternator, an ECU on two connectors, four injectors, four
+  coil-on-plug coils, crank, cam, manifold, coolant, oxygen and knock sensors,
+  three splices, two mated pairs — the bulkhead and a flying pair for the sensor
+  sub-harness — and the run through to the cluster and the diagnostic socket.
+  Twenty-four pin-outs and seventy-odd wires, each cavity table beside the
+  connector it belongs to, and not one problem in its own check: every wire is
+  declared once and both ends are written from that, so the two can never
+  disagree. Both the sheet and the schematic are laid out by hand rather than
+  left to the automatic arrangement — an example is worth the trouble of being
+  arranged.
+- Making the window narrower, or switching between one view and two, keeps what
+  was in the middle of a view in the middle of it. A view still exactly as the
+  last fit left it is fitted again instead, so a drawing nobody has panned
+  arrives whole rather than half off the edge.
+
+### Fixed
+
+- A cavity wired to a ring terminal or a splice counts as wired when the two
+  halves of a mated pair are compared. It names no cavity at the far end,
+  because a ring has none to name, and it was being read as a dead cavity: half
+  the grounds of a harness made the joint look as if it had holes in it.
+
 ## [1.1.6]
 
 ### Added

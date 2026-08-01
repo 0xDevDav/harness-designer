@@ -17,6 +17,14 @@ export interface RendererApi {
   hoverNodeId: string | null;
   /** point the preview reaches towards while a branch is being drawn */
   branchPreviewTo: Point | null;
+  /**
+   * What the other view is pointing at: the branches a wire picked in the
+   * schematic runs through, and the connectors at its two ends.
+   *
+   * It is not a selection — nothing here can be moved, renamed or deleted by
+   * it — it is the sheet answering a question asked next door.
+   */
+  highlight: { nodes: ReadonlySet<string>; segments: ReadonlySet<string> } | null;
   /** redraw deferred to the next frame: safe to call on every event */
   requestRedraw(): void;
   /** immediate redraw: only when the result has to be read straight away */
@@ -37,6 +45,27 @@ export interface RendererApi {
   nodeNear(point: Point, radius: number): string | null;
   /** self-contained SVG of the whole drawing, for export and print */
   renderToString(): string;
+}
+
+/**
+ * The schematic view, seen from outside.
+ *
+ * It draws itself from the document like the sheet does, and it has a viewport
+ * of its own because side by side the two views are panned and zoomed
+ * separately. Only what somebody else has a reason to ask of it is here.
+ */
+export interface SchematicApi {
+  /** wire picked in the schematic, which is not an element of the document */
+  focusedWire: string | null;
+  requestRedraw(): void;
+  /** the document changed: the model has to be built again */
+  invalidate(): void;
+  fitView(): void;
+  zoomBy(factor: number, pivotScreen?: Point): void;
+  /** brings the box of a connector into the middle of the view */
+  centerOnBox(name: string): boolean;
+  /** branches and connectors the picked wire touches on the sheet */
+  boardHighlight(): { nodes: Set<string>; segments: Set<string> };
 }
 
 /* ---------------- messages and dialogs ---------------- */
@@ -161,6 +190,7 @@ export type SidebarSection = (container: HTMLElement, selection: Selection | nul
 export interface AppContext {
   store: Store;
   renderer: RendererApi;
+  schematic: SchematicApi;
   t: Translate;
   locale: Locale;
   dialogs: DialogsApi;

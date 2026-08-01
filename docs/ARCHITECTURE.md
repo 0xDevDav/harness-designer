@@ -49,6 +49,7 @@ Cinque livelli, con le dipendenze sempre rivolte verso il basso:
 | `wirelist.ts`  | Distinta fili ricavata dalle tabelle cavità (le coppie speculari contano una volta sola), esportazione e lettura CSV                                                                                                                       |
 | `factories.ts` | Tabelle predefinite già intestate nella lingua attiva: cavità, note, revisioni, cartiglio                                                                                                                                                  |
 | `sample.ts`    | Il documento di esempio caricato al primo avvio                                                                                                                                                                                            |
+| `schematic.ts` | La vista schema ricavata dal documento: un riquadro per connettore con le sue cavità, un filo per riga di distinta, disposizione a colonne che riduce gli incroci, percorso squadrato di ogni filo e corrispondenze fra le due viste       |
 
 ### `src/render/` — dal documento all'SVG
 
@@ -59,18 +60,21 @@ Cinque livelli, con le dipendenze sempre rivolte verso il basso:
 | `tables.ts`     | Disegno delle tabelle e del cartiglio, con il calcolo delle larghezze di colonna                                                                       |
 | `boot.ts`       | Il simbolo della giunzione (il «boot» del fascio)                                                                                                      |
 | `renderer.ts`   | Il `Renderer`: svuota `#world` e ridisegna tutto, gestisce vista, riquadri, ricerca del nodo vicino e produce l'SVG autonomo per esportazione e stampa |
+| `schematic.ts`  | Il disegno della vista schema: riquadri, fili colorati, evidenziazione, e una vista propria perché affiancate le due si muovono separatamente          |
 
 ### `src/ui/` — interfaccia
 
 | File              | Contenuto                                                                                                                                          |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `interaction.ts`  | Puntatore sul foglio: selezione, trascinamenti, panoramica, zoom, disegno del ramo. Usa i **Pointer Events**, quindi vale anche per dita e pennino |
+| `schematic.ts`    | Puntatore sullo schema: scelta di riquadri e fili, trascinamento dei riquadri, panoramica e zoom                                                   |
 | `menu.ts`         | Il menù a comparsa generico (voci, separatori, intestazioni) con navigazione da tastiera                                                           |
 | `contextmenu.ts`  | Quali voci mostrare per il bersaglio del clic destro, comprese quelle dei plugin                                                                   |
 | `commands.ts`     | Registro dei comandi e comandi di serie: sono l'unica definizione di ogni azione, e da lì li pescano barra, palette e tastiera                     |
 | `keyboard.ts`     | Scorciatoie globali: confronta l'evento con le scorciatoie dichiarate dai comandi                                                                  |
 | `palette.ts`      | La palette `Ctrl+K`: ricerca fra i comandi disponibili                                                                                             |
 | `topbar.ts`       | Barra superiore: pulsanti, menù _Inserisci_ ed _Esporta_, lingua, plugin, stato annulla/ripristina                                                 |
+| `viewmode.ts`     | Quale vista è a schermo — foglio, schema o entrambe — ricordata come il tema e la lingua                                                           |
 | `props.ts`        | Pannello proprietà: ricostruito da zero a ogni cambio di selezione                                                                                 |
 | `report.ts`       | Rapporto della verifica nel pannello flottante; ogni voce porta al colpevole                                                                       |
 | `dialogs.ts`      | Conferme, richieste di testo e avvisi dell'applicazione (mai `alert`/`confirm`/`prompt` nativi)                                                    |

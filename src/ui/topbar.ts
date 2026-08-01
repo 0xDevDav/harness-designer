@@ -21,6 +21,8 @@ import type { MenuItem } from "@/ui/menu";
 import { icon } from "@/ui/icons";
 import { THEMES, getTheme, setTheme } from "@/ui/theme";
 import type { Theme } from "@/ui/theme";
+import { VIEW_MODES, getViewMode, setViewMode } from "@/ui/viewmode";
+import type { ViewMode } from "@/ui/viewmode";
 import { labelWithoutShortcut, setTip } from "@/ui/tooltip";
 
 /** Store-event unsubscribes belonging to the bar currently on screen. */
@@ -452,9 +454,33 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
   square.append(squareTrack, squareLabel);
   square.addEventListener("click", run(app, "doc.square"));
 
+  /**
+   * The three ways to look at the harness. It sits at the head of the view
+   * group because it decides what the rest of that group acts on, and it says
+   * which one is on now: a control that switches between three things and
+   * shows none of them makes you press it to find out.
+   */
+  const viewMenu = (ev: MouseEvent): void =>
+    dropdown(
+      ev.currentTarget as HTMLElement,
+      VIEW_MODES.map((mode) => ({
+        label: (getViewMode() === mode ? "● " : "○ ") + t(`view.mode.${mode}`),
+        run: () => setViewMode(mode),
+      })),
+    );
+  const modeIcon: Record<ViewMode, string> = { board: "wire", schematic: "schematic", split: "split" };
+
   nav.append(
     group(
       t("topbar.section.view"),
+      button({
+        label: t(`view.mode.${getViewMode()}`),
+        iconName: modeIcon[getViewMode()],
+        tip: t("view.mode.tip"),
+        onClick: viewMenu,
+        menu: true,
+        collapsible: true,
+      }),
       button({ iconName: "zoomOut", tip: `${t("cmd.zoomOut")} (-)`, onClick: run(app, "view.zoomOut") }),
       button({ iconName: "fit", tip: `${t("topbar.fit")} (F)`, onClick: run(app, "view.fit") }),
       button({ iconName: "zoomIn", tip: `${t("cmd.zoomIn")} (+)`, onClick: run(app, "view.zoomIn") }),

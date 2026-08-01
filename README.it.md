@@ -11,31 +11,36 @@ verifica di coerenza e distinta fili.
 È un sito statico: nessun backend, nessun account, nessuna registrazione, nessun dato che esce dal browser.
 Il disegno vive nel tuo computer e si archivia in un file `.json` che resta tuo.
 
-![Lo schema di esempio: kit gancio traino 13 poli con le tabelle cavità](docs/images/overview.png)
+![Il foglio e lo schema affiancati, con un cablaggio motore a quattro cilindri](docs/images/overview.png)
 
-_Lo schema di esempio incluso: kit per gancio di traino a 13 poli ISO 11446, con tabelle cavità, note,
-revisioni e cartiglio._
+_Lo schema di esempio incluso, nelle due viste: il foglio a sinistra, lo schema a destra. È il cablaggio
+motore di un 1.4 benzina a quattro cilindri — batteria e fusibile principale, scatola fusibili,
+alternatore, centralina su due connettori, quattro iniettori e quattro bobine, i sensori, due coppie
+accoppiate e il passaparete fino al quadro. Ventiquattro pin-out, oltre settanta fili, e nessun problema
+nella verifica. Un filo scelto in una vista si accende anche nell'altra: qui l'alimentazione dell'abitacolo,
+dalla scatola fusibili al passaparete, con tutti i rami che percorre accesi lungo il fascio._
 
 ## Che cosa fa
 
-| Funzione                    | Descrizione                                                                                                                                                |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Disegno formboard**       | Fascio a doppia linea, calze di giunzione, simboli di terminale, etichette inline per fusibili, corrugato e nastro                                         |
-| **Squadrato o libero**      | Rami tenuti in orizzontale e verticale con l'angolo che si forma da sé, oppure liberi, con punti di piega dove serve                                       |
-| **I fili dentro il fascio** | Selezioni un ramo o un connettore e i fili che ci passano vengono disegnati dalle tabelle cavità, ognuno sulla sua corsia e col suo colore                 |
-| **Colori dei fili**         | I fili multicolore sono resi come sono davvero: il primo colore è il fondo, gli altri sono bande che lo attraversano, inclinate come se ci fossero avvolte |
-| **Tabelle cavità**          | Pin-out compilati direttamente sul foglio, legati al loro connettore                                                                                       |
-| **Collegamento automatico** | Scrivi una destinazione e la cavità corrispondente all'altro capo si compila da sé, colore e sezione compresi                                              |
-| **Giunti**                  | Due connettori accoppiati: lì il filo finisce e ne comincia un altro, quindi il colore può cambiare e la verifica lo sa                                    |
-| **Verifica di coerenza**    | Incroci che non tornano, cavità mancanti, riferimenti a senso unico e caratteristiche discordanti, ognuno cliccabile                                       |
-| **Regola dei due capi**     | Lo stesso colore in tre o più connettori è segnalato per l'errore di cablaggio che è, con il nero esente perché è la massa                                 |
-| **Distinta fili**           | Generata dalle tabelle, coppie speculari deduplicate, metraggi sommati, esportabile in CSV                                                                 |
-| **Bilingue**                | Italiano e inglese, si cambia al volo, nomi dei colori compresi                                                                                            |
-| **Plugin**                  | Comandi, regole di verifica, esportazioni, simboli connettore e nomi colore, senza ricompilare                                                             |
-| **Palette dei comandi**     | `Ctrl+K` per ogni azione con la sua scorciatoia                                                                                                            |
-| **Chiaro e scuro**          | Il foglio resta chiaro in entrambi, perché è quello che si stampa                                                                                          |
-| **Pronto al tocco**         | Pizzico, trascinamento e menù offcanvas su tablet e telefono                                                                                               |
-| **File unico**              | Un solo file HTML che si apre con doppio clic, senza alcun server                                                                                          |
+| Funzione                    | Descrizione                                                                                                                                                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Disegno formboard**       | Fascio a doppia linea, calze di giunzione, simboli di terminale, etichette inline per fusibili, corrugato e nastro                                                                           |
+| **Squadrato o libero**      | Rami tenuti in orizzontale e verticale con l'angolo che si forma da sé, oppure liberi, con punti di piega dove serve                                                                         |
+| **I fili dentro il fascio** | Selezioni un ramo o un connettore e i fili che ci passano vengono disegnati dalle tabelle cavità, ognuno sulla sua corsia e col suo colore                                                   |
+| **Colori dei fili**         | I fili multicolore sono resi come sono davvero: il primo colore è il fondo, gli altri sono bande che lo attraversano, inclinate come se ci fossero avvolte                                   |
+| **Vista schema**            | Lo stesso cablaggio letto come circuiti: un riquadro per connettore, un filo per collegamento. Da sola, o accanto al foglio, dove quello che scegli in una vista si accende anche nell'altra |
+| **Tabelle cavità**          | Pin-out compilati direttamente sul foglio, legati al loro connettore                                                                                                                         |
+| **Collegamento automatico** | Scrivi una destinazione e la cavità corrispondente all'altro capo si compila da sé, colore e sezione compresi                                                                                |
+| **Giunti**                  | Due connettori accoppiati: lì il filo finisce e ne comincia un altro, quindi il colore può cambiare e la verifica lo sa                                                                      |
+| **Verifica di coerenza**    | Incroci che non tornano, cavità mancanti, riferimenti a senso unico e caratteristiche discordanti, ognuno cliccabile                                                                         |
+| **Regola dei due capi**     | Lo stesso colore in tre o più connettori è segnalato per l'errore di cablaggio che è, con il nero esente perché è la massa                                                                   |
+| **Distinta fili**           | Generata dalle tabelle, coppie speculari deduplicate, metraggi sommati, esportabile in CSV                                                                                                   |
+| **Bilingue**                | Italiano e inglese, si cambia al volo, nomi dei colori compresi                                                                                                                              |
+| **Plugin**                  | Comandi, regole di verifica, esportazioni, simboli connettore e nomi colore, senza ricompilare                                                                                               |
+| **Palette dei comandi**     | `Ctrl+K` per ogni azione con la sua scorciatoia                                                                                                                                              |
+| **Chiaro e scuro**          | Il foglio resta chiaro in entrambi, perché è quello che si stampa                                                                                                                            |
+| **Pronto al tocco**         | Pizzico, trascinamento e menù offcanvas su tablet e telefono                                                                                                                                 |
+| **File unico**              | Un solo file HTML che si apre con doppio clic, senza alcun server                                                                                                                            |
 
 ## Avvio rapido
 

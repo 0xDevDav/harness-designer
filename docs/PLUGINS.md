@@ -190,9 +190,12 @@ interface ConnectorSymbol {
 ```
 
 `AppContext` (in `src/app/context.ts`) è il contesto completo dell'applicazione, ricevuto dai comandi e
-dalle voci di menù: `store`, `renderer`, `t`, `dialogs`, `toast`, `commands`, `plugins`, `exporters`,
-`doc`, `version`, oltre a `refreshUi()`, `refreshProps()`, `showReport()`, `openFilePicker()`, `pickCsv()`.
+dalle voci di menù: `store`, `renderer`, `schematic`, `t`, `dialogs`, `toast`, `commands`, `plugins`,
+`exporters`, `doc`, `version`, oltre a `refreshUi()`, `refreshProps()`, `showReport()`,
+`openFilePicker()`, `pickCsv()`.
 Da lì passa, per esempio, `app.renderer.contentBBox()` per sapere dove finisce il disegno.
+`app.schematic` è la vista schema: `fitView()`, `zoomBy()`, `centerOnBox(nome)` e `invalidate()` quando
+hai cambiato il documento senza passare da `store` (cosa che comunque non dovresti fare).
 
 ### Regole di buon vicinato
 
@@ -488,9 +491,12 @@ interface ConnectorSymbol {
 ```
 
 `AppContext` (see `src/app/context.ts`) is the full application context handed to commands and menu
-entries: `store`, `renderer`, `t`, `dialogs`, `toast`, `commands`, `plugins`, `exporters`, `doc`,
-`version`, plus `refreshUi()`, `refreshProps()`, `showReport()`, `openFilePicker()`, `pickCsv()`. That is
-where `app.renderer.contentBBox()` comes from, for instance, when you need to know where the drawing ends.
+entries: `store`, `renderer`, `schematic`, `t`, `dialogs`, `toast`, `commands`, `plugins`, `exporters`,
+`doc`, `version`, plus `refreshUi()`, `refreshProps()`, `showReport()`, `openFilePicker()`, `pickCsv()`.
+That is where `app.renderer.contentBBox()` comes from, for instance, when you need to know where the
+drawing ends. `app.schematic` is the schematic view: `fitView()`, `zoomBy()`, `centerOnBox(name)` and
+`invalidate()` for when you have changed the document without going through `store` (which you should
+not be doing anyway).
 
 ### House rules
 

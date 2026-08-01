@@ -18,7 +18,7 @@ import {
 } from "@/core/doc";
 import { alongPolyline, clamp, dist, readableAngle } from "@/core/geometry";
 import type { Store } from "@/core/store";
-import type { HarnessDoc, HNode, Inline, Point, Rect, Segment, Selection } from "@/core/types";
+import type { HarnessDoc, HNode, Inline, Point, Rect, Segment, Selection, Viewport } from "@/core/types";
 import type { Translate } from "@/i18n";
 import { drawJunctionBoot } from "./boot";
 import { connectorSymbol } from "./connectors";
@@ -91,6 +91,7 @@ export interface RendererOptions {
 export class Renderer implements RendererApi {
   hoverNodeId: string | null = null;
   branchPreviewTo: Point | null = null;
+  highlight: { nodes: ReadonlySet<string>; segments: ReadonlySet<string> } | null = null;
 
   private readonly store: Store;
   private readonly t: Translate;
@@ -101,6 +102,10 @@ export class Renderer implements RendererApi {
   private frame: number | null = null;
   /** Grid box during export; outside export the grid is unbounded. */
   private exportRect: Rect | null = null;
+  /** Size of the sheet at the last draw, to keep the middle where it was. */
+  private size = { w: 0, h: 0 };
+  /** What the last fit produced, to tell a chosen view from an offered one. */
+  private fittedView: Viewport | null = null;
 
   constructor(opts: RendererOptions) {
     this.store = opts.store;
@@ -128,7 +133,40 @@ export class Renderer implements RendererApi {
     this.draw();
   }
 
+  /**
+   * Holds the middle of the sheet still when the sheet changes size.
+   *
+   * The window being resized used to leave the drawing wherever the top left
+   * corner happened to put it; with the schematic alongside, the sheet also
+   * changes width every time the views are switched, and a drawing that slides
+   * off the edge each time is not something anybody would put up with.
+   */
+  private keepCentre(): void {
+    const rect = this.svg.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const dx = (rect.width - this.size.w) / 2;
+    const dy = (rect.height - this.size.h) / 2;
+    const known = this.size.w > 0;
+    const view = this.store.view;
+    // put the new size away before moving the view: setView asks for a redraw,
+    // and the one it asks for has to find nothing left to correct
+    this.size = { w: rect.width, h: rect.height };
+    if (!known || (!dx && !dy)) return;
+    // A view still exactly as the last fit left it was never chosen by anybody,
+    // so it is fitted again to the size it now has. One somebody panned or
+    // zoomed themselves is theirs: it keeps what was in the middle, and the
+    // scale they picked.
+    if (this.fittedView && sameView(view, this.fittedView)) {
+      this.fitView();
+      return;
+    }
+    this.store.setView({ k: view.k, x: view.x + dx, y: view.y + dy });
+  }
+
   private draw(): void {
+    // not while exporting: that draw runs at a fixed box of its own, and moving
+    // the working view from inside it would be a side effect of saving a file
+    if (this.exportRect === null) this.keepCentre();
     const doc = this.store.doc;
     const view = this.store.view;
     const exporting = this.exportRect !== null;
@@ -701,7 +739,37 @@ export class Renderer implements RendererApi {
 
   /* ---------------- sovrapposizioni ---------------- */
 
+  /**
+   * The answer to a wire picked in the schematic: its road across the harness.
+   *
+   * Drawn like a selected branch and no louder, because it is the same kind of
+   * statement — this is the thing you asked about — and a second, brighter way
+   * of saying it would only compete with the selection itself.
+   */
+  private drawHighlight(doc: HarnessDoc, parent: SVGGElement): void {
+    if (!this.highlight) return;
+    for (const id of this.highlight.segments) this.drawSegmentSelection(doc, id, parent);
+    for (const id of this.highlight.nodes) {
+      const node = findNode(doc, id);
+      if (!node) continue;
+      el(
+        "circle",
+        {
+          cx: node.x,
+          cy: node.y,
+          r: 15,
+          fill: "none",
+          stroke: palette().selection,
+          "stroke-width": 2,
+          "pointer-events": "none",
+        },
+        parent,
+      );
+    }
+  }
+
   private drawOverlays(doc: HarnessDoc, parent: SVGGElement): void {
+    this.drawHighlight(doc, parent);
     const hover = this.hoverNodeId ? findNode(doc, this.hoverNodeId) : undefined;
     if (hover) {
       el(
@@ -926,14 +994,22 @@ export class Renderer implements RendererApi {
   fitView(): void {
     const box = this.contentBBox();
     const rect = this.svg.getBoundingClientRect();
+    // A sheet that is not on screen has no size, so there is no ratio to fit to
+    // and nothing to look at either: fitting it would only work out a view from
+    // a zero and leave the drawing somewhere off the edge for when it comes
+    // back. It is fitted when it is shown.
+    if (!rect.width || !rect.height) return;
     const raw = Math.min(rect.width / box.w, rect.height / box.h);
-    // while the window has no size yet the ratio is unusable
     const k = Number.isFinite(raw) && raw > 0 ? clamp(raw, MIN_ZOOM, FIT_ZOOM) : 1;
-    this.store.setView({
+    // fitted to this size: the next draw has nothing left to make up for
+    this.size = { w: rect.width, h: rect.height };
+    const view: Viewport = {
       k,
       x: (rect.width - box.w * k) / 2 - box.x * k,
       y: (rect.height - box.h * k) / 2 - box.y * k,
-    });
+    };
+    this.fittedView = { ...view };
+    this.store.setView(view);
   }
 
   centerOn(rect: Rect): void {
@@ -1033,6 +1109,10 @@ export class Renderer implements RendererApi {
     );
   }
 }
+
+/** Two views that are the same to the pixel, which is what "untouched" means. */
+export const sameView = (a: Viewport, b: Viewport): boolean =>
+  Math.abs(a.k - b.k) < 1e-6 && Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5;
 
 /** Selection box of a node, taking in both symbol and label. */
 function nodeBox(node: HNode): Rect {

@@ -28,8 +28,10 @@
     <noscript>Harness Designer requires JavaScript. / Harness Designer richiede JavaScript.</noscript>
     <div id="app" class="shell">
       <header id="topbar" class="topbar"></header>
-      <div class="main">
-        <div class="canvas">
+      <!-- the two readings of the harness: the sheet, the schematic, or both.
+           Which of them is on screen is decided by data-view, see ui/viewmode -->
+      <div class="main" id="views">
+        <div class="canvas canvas--board">
           <svg id="svg" class="canvas__svg" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="gridP" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -41,8 +43,16 @@
           <!-- in-place editor layer: it lives outside the SVG because every
                redraw empties #world -->
           <div id="overlay" class="overlay"></div>
+          <div id="boardTag" class="canvas__tag"></div>
           <div id="hint" class="canvas__hint"></div>
           <div id="zoomLabel" class="canvas__zoom">100%</div>
+        </div>
+        <div class="canvas canvas--schematic">
+          <svg id="schematicSvg" class="canvas__svg" xmlns="http://www.w3.org/2000/svg">
+            <g id="schematicWorld"></g>
+          </svg>
+          <div id="schematicTag" class="canvas__tag"></div>
+          <div id="schematicZoom" class="canvas__zoom">100%</div>
         </div>
       </div>
       <!-- floating panels: check, plugins, guide -->

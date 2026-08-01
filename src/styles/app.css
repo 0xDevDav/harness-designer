@@ -262,6 +262,17 @@ body {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
+  gap: 10px;
+}
+
+/* Which of the two views is on screen. Only ever one attribute to look at, so
+   the two canvases never have to be told about each other. */
+.main[data-view="board"] .canvas--schematic,
+.main[data-view="schematic"] .canvas--board {
+  display: none;
+}
+.main[data-view="split"] .canvas {
+  flex: 1 1 50%;
 }
 
 .canvas {
@@ -316,6 +327,24 @@ body {
   padding: 5px 10px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+}
+
+/* Name of the view, so the two halves are told apart without reading them. */
+.canvas__tag {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  pointer-events: none;
+  background: var(--canvas-pill);
+  color: var(--canvas-pill-txt);
+  border: 1px solid var(--canvas-pill-bd);
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(6px);
 }
 
 .overlay {
@@ -1181,6 +1210,11 @@ body {
   .canvas__hint {
     display: none;
   }
+  /* side by side on a phone would give two views too narrow to read either:
+     one above the other keeps both usable */
+  .main[data-view="split"] {
+    flex-direction: column;
+  }
   .panel {
     max-height: 58vh;
   }
@@ -1415,6 +1449,10 @@ body {
   .overlay,
   .canvas__hint,
   .canvas__zoom,
+  .canvas__tag,
+  /* what gets printed is the drawing: the schematic is a way of reading it,
+     and it is not what goes on the workshop sheet */
+  .canvas--schematic,
   .toasts {
     display: none !important;
   }
@@ -1425,6 +1463,10 @@ body {
   }
   .shell {
     padding: 0;
+  }
+  /* whatever view was on screen, the sheet is what a printer is being asked for */
+  .canvas--board {
+    display: block !important;
   }
   .main,
   .canvas {

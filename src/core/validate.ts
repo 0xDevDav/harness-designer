@@ -1,4 +1,4 @@
-import { cavityTables, cell, findNode, nodeForTable, resolveDest } from "./doc";
+import { cavityTables, cell, findNode, nodeForTable, resolveDest, NOT_CONNECTED_RE } from "./doc";
 import type { CavityTable } from "./doc";
 import { routeWires } from "./routing";
 import { checkWireEnds } from "./wireends";
@@ -341,14 +341,23 @@ const jointCavities: ValidationRule = {
     const issues: Issue[] = [];
     const done = new Set<string>();
 
-    /** Cavities of a connector that actually go somewhere. */
+    /**
+     * Cavities of a connector that actually go somewhere.
+     *
+     * Anything written in the destination counts, not only a `NAME.cavity`
+     * cross-reference: a ring terminal and a splice have nothing to number, so
+     * a cavity wired to one names no cavity and is wired all the same. Read the
+     * other way, half the grounds of a harness would look dead and the joint
+     * would be reported as having a hole in it.
+     */
     const live = (owner: string): Set<string> => {
       const ct = byOwner.get(owner);
       const out = new Set<string>();
       if (!ct) return out;
       for (const row of ct.table.rows) {
         const cavity = cell(row, ct.cols.cavity);
-        if (cavity && resolveDest(row, ct.cols)) out.add(cavity);
+        const dest = cell(row, ct.cols.dest);
+        if (cavity && dest && !NOT_CONNECTED_RE.test(dest)) out.add(cavity);
       }
       return out;
     };

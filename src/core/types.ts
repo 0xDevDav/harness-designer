@@ -124,6 +124,17 @@ export interface HarnessDoc {
   inlines: Inline[];
   tables: Table[];
   /**
+   * Where the boxes sit in the schematic view, keyed by connector name.
+   *
+   * The schematic is worked out from the drawing and lays itself out on its
+   * own, so this holds only the boxes somebody has moved by hand: a name that
+   * is not here is placed automatically. It is part of the document because it
+   * is a decision about how this harness reads, not a setting of the program —
+   * so it is saved with the file, it is undoable, and reopening the drawing
+   * somewhere else finds the schematic laid out the way it was left.
+   */
+  schematic?: Record<string, Point>;
+  /**
    * Every branch runs horizontally or vertically, cornering by itself wherever
    * its two ends do not line up.
    *

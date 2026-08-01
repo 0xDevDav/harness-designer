@@ -26,6 +26,7 @@ import { exportPngFile, exportSvgFile, exportWireCsv, printDrawing } from "@/io/
 import { saveDocToFile } from "@/io/file";
 import { tableSize } from "@/render/tables";
 import { openCommandPalette } from "@/ui/palette";
+import { cycleViewMode, setViewMode, showsBoard, showsSchematic } from "@/ui/viewmode";
 
 /* ============================ shortcuts ============================ */
 
@@ -389,23 +390,69 @@ export function registerBuiltinCommands(app: AppContext): void {
       shortcut: "B",
       run: (a) => a.store.setTool("branch"),
     },
+    // The view commands act on what is on screen. Side by side they act on
+    // both: pressing "fit" with two views open and having one of them ignore it
+    // would look like a bug in whichever half stayed where it was.
     {
       id: "view.fit",
       titleKey: "cmd.fit",
       shortcut: "F",
-      run: (a) => a.renderer.fitView(),
+      run: (a) => {
+        if (showsBoard()) a.renderer.fitView();
+        if (showsSchematic()) a.schematic.fitView();
+      },
     },
     {
       id: "view.zoomIn",
       titleKey: "cmd.zoomIn",
       shortcut: "+",
-      run: (a) => a.renderer.zoomBy(1.2),
+      run: (a) => {
+        if (showsBoard()) a.renderer.zoomBy(1.2);
+        if (showsSchematic()) a.schematic.zoomBy(1.2);
+      },
     },
     {
       id: "view.zoomOut",
       titleKey: "cmd.zoomOut",
       shortcut: "-",
-      run: (a) => a.renderer.zoomBy(1 / 1.2),
+      run: (a) => {
+        if (showsBoard()) a.renderer.zoomBy(1 / 1.2);
+        if (showsSchematic()) a.schematic.zoomBy(1 / 1.2);
+      },
+    },
+    {
+      id: "view.board",
+      titleKey: "cmd.viewBoard",
+      run: () => setViewMode("board"),
+    },
+    {
+      id: "view.schematic",
+      titleKey: "cmd.viewSchematic",
+      run: () => setViewMode("schematic"),
+    },
+    {
+      id: "view.split",
+      titleKey: "cmd.viewSplit",
+      run: () => setViewMode("split"),
+    },
+    {
+      id: "view.cycle",
+      titleKey: "cmd.viewCycle",
+      shortcut: "V",
+      run: () => cycleViewMode(),
+    },
+    {
+      id: "schematic.reset",
+      titleKey: "cmd.schematicReset",
+      // the automatic arrangement is always there underneath: this only drops
+      // the positions somebody set by hand, and it is one undo step like any
+      // other edit to the drawing
+      run: (a) => {
+        const moved = a.store.edit((doc) => {
+          delete doc.schematic;
+        }, "schematic-reset");
+        a.toast.show(a.t(moved ? "toast.schematicReset" : "toast.schematicPlaced"));
+      },
     },
     {
       id: "app.guide",

@@ -250,6 +250,19 @@ const PATHS: Record<string, IconPath[]> = {
       rule: "evenodd",
     },
   ], // filetype-svg
+  // Two connectors and the wires between them. Drawn here rather than taken
+  // from the icon set: nothing in it says "schematic" without also saying
+  // "organisation chart", and this view is worth being told apart at a glance.
+  schematic: [
+    { d: "M0 1.5h6v4H0zm1 1v2h4v-2z", rule: "evenodd" },
+    { d: "M0 10.5h6v4H0zm1 1v2h4v-2z", rule: "evenodd" },
+    { d: "M10 6h6v4h-6zm1 1v2h4V7z", rule: "evenodd" },
+    { d: "M6 3h1.5v10H6v-1h.5V4H6zM7 3h1v10H7zM8 7.5h2v1H8z" },
+  ],
+  split: [
+    { d: "M0 2h7v12H0zm1 1v10h5V3z", rule: "evenodd" },
+    { d: "M9 2h7v12H9zm1 1v10h5V3z", rule: "evenodd" },
+  ],
 };
 
 export type IconName = keyof typeof PATHS | (string & {});

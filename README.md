@@ -11,31 +11,36 @@ consistency checks and wire lists.
 A static site: no backend, no account, no sign-up, nothing leaving the browser. Your drawing lives on your
 own computer and is archived as a `.json` file you own.
 
-![The sample drawing: a 13-pin towbar kit with its cavity tables](docs/images/overview.png)
+![The sheet and the schematic side by side, showing a four-cylinder engine harness](docs/images/overview.png)
 
-_The sample drawing that ships with it: a 13-pin ISO 11446 towbar kit, with cavity tables, notes, revisions
-and title block._
+_The sample drawing that ships with it, in both views: the sheet on the left, the schematic on the right.
+It is the engine harness of a 1.4 petrol four-cylinder — battery and main fuse, fuse box, alternator, an ECU
+on two connectors, four injectors and four coils, the sensors, two mated pairs and the run through the
+bulkhead to the cluster. Twenty-four pin-outs, seventy-odd wires, and not one problem in the check. A wire
+picked in one view lights up in the other: here the cabin feed, from the fuse box to the bulkhead, with
+every branch it runs through lit along the harness._
 
 ## What it does
 
-| Feature                     | Description                                                                                                                                   |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Formboard drawing**       | Double-line bundles, junction boots, termination symbols, inline labels for fuses, conduit and tape                                           |
-| **Square or free layout**   | Branches held horizontal and vertical with the corner forming itself, or drawn freehand, with bend points wherever the harness turns          |
-| **Wires inside the bundle** | Select a branch or a connector and the wires running through it are drawn from the cavity tables, each on its own lane, in its own colour     |
-| **Wire colours**            | Multi-colour wires marked the way they really are: the first colour is the ground, the rest are bands across it, leaning as if wound round it |
-| **Cavity tables**           | Pin-outs edited straight on the sheet, tied to their connector                                                                                |
-| **Automatic linking**       | Fill in a destination and the matching cavity at the far end fills itself, colour and section included                                        |
-| **Joints**                  | Two connectors mated: the wire ends there and another begins, so the colour may change and the checks allow it                                |
-| **Consistency check**       | Mismatched cross-references, missing cavities, one-way links and disagreeing wire properties, each clickable                                  |
-| **Two-ends rule**           | The same colour across three or more connectors is flagged as the wiring mistake it is, with black exempt as ground                           |
-| **Wire list**               | Generated from the tables, mirrored pairs collapsed, cut lengths summed, exportable as CSV                                                    |
-| **Bilingual**               | Italian and English, switchable at runtime, colour names included                                                                             |
-| **Plugins**                 | Commands, validation rules, exporters, connector symbols and colour names, without recompiling                                                |
-| **Command palette**         | `Ctrl+K` for every action and its shortcut                                                                                                    |
-| **Light and dark**          | The sheet stays light in both, because that is what gets printed                                                                              |
-| **Touch ready**             | Pinch, drag and an offcanvas menu on tablets and phones                                                                                       |
-| **Single file**             | One HTML file that opens on a double click, with no server at all                                                                             |
+| Feature                     | Description                                                                                                                                                                |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Formboard drawing**       | Double-line bundles, junction boots, termination symbols, inline labels for fuses, conduit and tape                                                                        |
+| **Square or free layout**   | Branches held horizontal and vertical with the corner forming itself, or drawn freehand, with bend points wherever the harness turns                                       |
+| **Wires inside the bundle** | Select a branch or a connector and the wires running through it are drawn from the cavity tables, each on its own lane, in its own colour                                  |
+| **Wire colours**            | Multi-colour wires marked the way they really are: the first colour is the ground, the rest are bands across it, leaning as if wound round it                              |
+| **Schematic view**          | The same harness read as circuits: one box per connector, one line per connection. On its own, or beside the sheet, where what you pick in one view lights up in the other |
+| **Cavity tables**           | Pin-outs edited straight on the sheet, tied to their connector                                                                                                             |
+| **Automatic linking**       | Fill in a destination and the matching cavity at the far end fills itself, colour and section included                                                                     |
+| **Joints**                  | Two connectors mated: the wire ends there and another begins, so the colour may change and the checks allow it                                                             |
+| **Consistency check**       | Mismatched cross-references, missing cavities, one-way links and disagreeing wire properties, each clickable                                                               |
+| **Two-ends rule**           | The same colour across three or more connectors is flagged as the wiring mistake it is, with black exempt as ground                                                        |
+| **Wire list**               | Generated from the tables, mirrored pairs collapsed, cut lengths summed, exportable as CSV                                                                                 |
+| **Bilingual**               | Italian and English, switchable at runtime, colour names included                                                                                                          |
+| **Plugins**                 | Commands, validation rules, exporters, connector symbols and colour names, without recompiling                                                                             |
+| **Command palette**         | `Ctrl+K` for every action and its shortcut                                                                                                                                 |
+| **Light and dark**          | The sheet stays light in both, because that is what gets printed                                                                                                           |
+| **Touch ready**             | Pinch, drag and an offcanvas menu on tablets and phones                                                                                                                    |
+| **Single file**             | One HTML file that opens on a double click, with no server at all                                                                                                          |
 
 ## Quick start
 
