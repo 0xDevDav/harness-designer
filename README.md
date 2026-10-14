@@ -44,7 +44,7 @@ every branch it runs through lit along the harness._
 
 ## Quick start
 
-Node 20 or newer, and only to build: what comes out is static.
+Node 22.12 or newer, and only to build: what comes out is static.
 
 ```bash
 git clone https://github.com/0xDevDav/harness-designer.git

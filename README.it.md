@@ -44,7 +44,7 @@ dalla scatola fusibili al passaparete, con tutti i rami che percorre accesi lung
 
 ## Avvio rapido
 
-Serve Node 20 o superiore, e solo per compilare: quello che esce è statico.
+Serve Node 22.12 o superiore, e solo per compilare: quello che esce è statico.
 
 ```bash
 git clone https://github.com/0xDevDav/harness-designer.git

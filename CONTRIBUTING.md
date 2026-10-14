@@ -5,7 +5,7 @@ handful of conventions that keep it coherent.
 
 ## Getting started
 
-Node 20 or newer. There are no runtime dependencies: everything below is
+Node 22.12 or newer. There are no runtime dependencies: everything below is
 development tooling.
 
 ```bash
