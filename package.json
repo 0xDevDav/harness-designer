@@ -38,7 +38,7 @@
   },
   "author": "0xDevDav",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12"
   },
   "keywords": [
     "wiring-harness",
