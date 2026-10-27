@@ -213,6 +213,13 @@ export function setWireUnit(doc: HarnessDoc, unit: WireUnit, read?: WireUnit): U
       change.converted++;
     }
   }
+  // the default size is a size like any other
+  const kept = doc.defaults?.size;
+  if (doc.defaults && kept) {
+    const size = parseSize(kept, from);
+    if (size && (size.unit ?? from) !== unit) doc.defaults.size = nearestSize(size.area, unit).label;
+    else if (size?.unit) doc.defaults.size = size.figure;
+  }
   doc.wireUnit = unit;
   return change;
 }

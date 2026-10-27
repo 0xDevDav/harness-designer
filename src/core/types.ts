@@ -150,6 +150,17 @@ export interface HarnessDoc {
    * one, whose sizes are then read from how its column is headed.
    */
   wireUnit?: WireUnit;
+  /** Starting point for new wires. Absent when none has been set. */
+  defaults?: WireDefaults;
+}
+
+/** What a new wire starts with; filled into what is empty, never over what is written. */
+export interface WireDefaults {
+  /** colour as a cell writes it */
+  color: string;
+  /** wire size, a bare number in the drawing's unit */
+  size: string;
+  type: string;
 }
 
 /** Metric cross-section, or American Wire Gauge. */

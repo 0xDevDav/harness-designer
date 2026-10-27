@@ -1,4 +1,5 @@
 import { autoLinkRow, insertCavityRow } from "./autolink";
+import { applyWireDefaults } from "./defaults";
 import { DEST_RE, NOT_CONNECTED_RE, cavityTables, cell, resolveDest, writeDest } from "./doc";
 import type { CavityTable } from "./doc";
 import type { HarnessDoc } from "./types";
@@ -154,6 +155,9 @@ export function connectEnds(doc: HarnessDoc, from: string, to: string): RewireOu
   const row = rowOrNew(tables, near);
   if (!row) return { ok: false, reason: "no-table" };
   writeEnd(row, far);
+  // a new wire starts from the defaults, even when the far end is a splice
+  // with no table to take them from this row
+  applyWireDefaults(row.row, row.ct.cols, doc.defaults);
   autoLinkRow(doc, row.ct.table.id, row.index);
   return { ok: true };
 }

@@ -1,4 +1,13 @@
-import { cavityTables, cell, isAutoLinkEnabled, resolveDest, tableColumns, writeDest } from "./doc";
+import { applyWireDefaults } from "./defaults";
+import {
+  NOT_CONNECTED_RE,
+  cavityTables,
+  cell,
+  isAutoLinkEnabled,
+  resolveDest,
+  tableColumns,
+  writeDest,
+} from "./doc";
 import type { CavityTable } from "./doc";
 import type { HarnessDoc, Table } from "./types";
 
@@ -109,7 +118,8 @@ function alignField(
   if (!value) return false;
   const current = cell(to, targetCol);
   if (current === value) return false;
-  if (current && !overwrite) return false;
+  // a dash is a cell with nothing in it: it does not hold the other end's value back
+  if (current && !overwrite && !NOT_CONNECTED_RE.test(current)) return false;
   padRow(to, targetCol + 1);
   to[targetCol] = value;
   return true;
@@ -136,7 +146,11 @@ export function autoLinkRow(doc: HarnessDoc, tableId: string, rowIndex: number):
   const to = label(dest.connector, dest.cavity);
 
   const target = tables.find((c) => c.owner === dest.connector);
-  if (!target) return { status: "no-target-table", from, to };
+  if (!target) {
+    // the wire goes to a connector with no table: it is still a new wire
+    applyWireDefaults(row, source.cols, doc.defaults);
+    return { status: "no-target-table", from, to };
+  }
   if (target.table.id === source.table.id) return { status: "no-destination", from, to };
   if (!isAutoLinkEnabled(target.table)) return { status: "target-disabled", from, to };
 
@@ -160,7 +174,12 @@ export function autoLinkRow(doc: HarnessDoc, tableId: string, rowIndex: number):
 
   // link confirmed by both ends: from here on they describe the same wire
   const already = !!existing;
-  if (!already) writeDest(targetRow, target.cols, { connector: source.owner, cavity });
+  if (!already) {
+    writeDest(targetRow, target.cols, { connector: source.owner, cavity });
+    // a wire that is new at both ends starts from the defaults, and the far end
+    // takes them from this one just below
+    applyWireDefaults(row, source.cols, doc.defaults);
+  }
 
   const updatedFields: ("color" | "section" | "type")[] = [];
   if (alignField(row, targetRow, source.cols.color, target.cols.color, already)) updatedFields.push("color");

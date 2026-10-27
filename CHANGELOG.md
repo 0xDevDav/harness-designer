@@ -58,6 +58,10 @@ All notable changes to this project are documented here. The format follows
 - **Right click a wire in the schematic** to change its colour, with the same
   standard colour picker the sheet uses. The colour is written into the cavity
   tables at both ends of the wire.
+- **Defaults** in the bar: wire size, wire type and wire colour. A wire starts
+  from them when it is connected, in the schematic or by typing a destination
+  in a table. They only fill empty cells, are saved with the drawing, and the
+  size follows a change of unit.
 
 ## [1.2.0]
 

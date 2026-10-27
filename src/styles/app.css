@@ -658,6 +658,26 @@ body {
   }
 }
 
+/* the defaults panel: what a colour is, written next to the button that changes it */
+.defaults__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.defaults__swatch {
+  width: 22px;
+  height: 11px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  flex: none;
+}
+
 /* the cavities of a schematic box that have no wire: where one can be started */
 .sch-port {
   opacity: 0;
