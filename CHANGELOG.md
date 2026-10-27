@@ -11,6 +11,17 @@ All notable changes to this project are documented here. The format follows
 - **Black wires show in the dark theme.** A wire that is black or nearly so gets
   a light edge, in the schematic and on the sheet, and no other colour is
   touched. Export and print are unchanged.
+- **Wire size unit**, **mm²** or **AWG**, as a button in the bar. Choosing the
+  other one converts every size in the drawing, as one undo step, to the nearest
+  standard size of the new scale, and heads the Section column of every table
+  (and the wire list) with the unit. Text that is not a size is left as typed.
+  The unit is saved with the drawing. Editing a Section cell opens the list of
+  standard sizes for the unit, each with its equivalent in the other, and
+  _Other size…_ for anything not on it. The scales do not line up, so a
+  conversion rounds to the nearest standard size and going to AWG and back can
+  land on a neighbouring size; when any size would change, a window lists each
+  one, with how much thinner or thicker the wire becomes and in how many places,
+  and asks before anything is written.
 
 ## [1.2.0]
 
