@@ -121,13 +121,32 @@ function separateSheet(doc: HarnessDoc, renderer: RendererApi, snap: boolean): n
     if (connectors.slice(0, n).some((earlier) => overlaps(c.rect, earlier.rect))) movable.add(c.id);
   });
   for (const item of items) if (item.kind === "table") movable.add(item.id);
+  return moveApart(doc, items, movable);
+}
 
+/** Moves the movable items off whatever they lie on, in the document. Returns how many moved. */
+function moveApart(doc: HarnessDoc, items: readonly SheetItem[], movable: ReadonlySet<string>): number {
   const moved = separate(items, movable);
   for (const [id, spot] of moved) {
     const item = items.find((i) => i.id === id);
     if (item) moveSheetObject(doc, item, spot);
   }
   return moved.size;
+}
+
+/**
+ * Moves aside the given tables if they lie on something. For a table that has
+ * just got wider or taller: the one that changed is the one that gives way, and
+ * everything else stays where it was put. Returns how many moved.
+ */
+export function separateTables(
+  doc: HarnessDoc,
+  renderer: RendererApi,
+  snap: boolean,
+  tableIds: readonly string[],
+): number {
+  const items = sheetItems(doc, renderer, snap);
+  return moveApart(doc, items, new Set(tableIds.map((id) => keyOf("table", id))));
 }
 
 /**

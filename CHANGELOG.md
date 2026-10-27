@@ -36,6 +36,14 @@ All notable changes to this project are documented here. The format follows
   hand moves in the schematic. It works on the views on screen only, and a drop
   whose nearest free place is more than 240 units away stays where it was
   dropped, with a message, rather than jumping across a long table.
+  hand moves in the schematic.
+- **Wire type** (GPT, GXL, HDT, SXL, TWP, TXL) is picked from a list under the
+  cell, with _Other type…_ and _Clear type_, and, like colour and size, is
+  brought into step at the far end of the wire. Cavity tables have a _Wire type_
+  column, and _Insert → Wire type column in every cavity table_ adds it to
+  existing drawings, moving apart any table the new column makes lie on another.
+  Only a column headed _Wire type_ (or _Tipo filo_) counts: a column called just
+  _Type_ is left alone, since older sheets use it for something else.
 
 ## [1.2.0]
 

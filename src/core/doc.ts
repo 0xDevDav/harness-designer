@@ -460,6 +460,8 @@ export interface TableColumns {
   color?: number;
   section?: number;
   func?: number;
+  /** what kind of cavity or terminal it is, e.g. "6.3 mm blade" or "Metri-Pack 150" */
+  type?: number;
 }
 
 /**
@@ -482,6 +484,7 @@ export function tableColumns(t: Table): TableColumns {
     if (idx.color === undefined && /^(colore|color|colour)$/.test(s)) idx.color = i;
     if (idx.section === undefined && /(sezione|section|gauge|awg|mm²|mm2)/.test(s)) idx.section = i;
     if (idx.func === undefined && /(funzione|function|circuito|circuit|signal)/.test(s)) idx.func = i;
+    if (idx.type === undefined && /^(wire[ -]?type|tipo( di)? filo)$/.test(s)) idx.type = i;
   });
 
   if (idx.cavity === undefined) {
