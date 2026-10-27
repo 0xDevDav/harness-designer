@@ -359,6 +359,7 @@ attachSchematicInteraction({
   schematic,
   svg: schematicSvg,
   onFocusChange: syncHighlight,
+  notify: (message, kind) => (kind === "error" ? toast.error(message) : toast.show(message)),
   onReveal: (selection) => {
     // asking where a connector is on the sheet, from a view the sheet may not
     // even be next to: it is brought out first, then centred once it has a size

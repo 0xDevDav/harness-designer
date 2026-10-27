@@ -21,6 +21,19 @@ All notable changes to this project are documented here. The format follows
   sheet as well as in Replace. The check reports both in drawings that already
   have them. Previous and Next are the arrows beside the Find field, and the
   panel is called Find until Replace is opened.
+- **Dragging wires in the schematic.** Drag the end of a wire onto another
+  cavity, or another connector, to move it there; drag from a free cavity onto
+  another to make a wire. The cavity under the pointer is outlined, in red when
+  it already has a wire. The cavity tables at both ends are rewritten as if
+  typed, the colour and size go with the wire, and it is one undo step.
+- **Delete wire**: right-click a wire in the schematic, or pick it and press
+  Delete. Both cavities let go of it (colour and size go with it; function
+  and notes stay), as one undo step.
+- **Wires can start from a splice** (or any connector with no cavities) in the
+  schematic: hover it and drag from the dot on either side onto a cavity.
+- **Right click a wire in the schematic** to change its colour, with the same
+  standard colour picker the sheet uses. The colour is written into the cavity
+  tables at both ends of the wire.
 
 ## [1.2.0]
 

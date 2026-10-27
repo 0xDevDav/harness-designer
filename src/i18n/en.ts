@@ -393,6 +393,8 @@ export const en = {
   "guide.keys": "<b>Del</b> removes the selection, <b>Ctrl+Z</b> undoes, <b>Ctrl+K</b> searches commands.",
   "guide.views":
     "<b>V</b> switches between the sheet, the schematic and both side by side: what you pick in one lights up in the other, and picking a wire in the schematic shows the branches it runs through on the sheet.",
+  "guide.rewire":
+    "<b>In the schematic</b>, drag the end of a wire onto another cavity or connector to move it there, or drag from a free cavity (its dot shows when the pointer is over the connector) onto another to make a new wire. A red outline means the cavity already has a wire. Pick a wire and press <b>Del</b>, or right-click it, to delete it.",
   "cmd.guide": "Quick guide",
   "dialog.deleteTable.body": "Delete table “{title}”?",
 
@@ -472,6 +474,18 @@ export const en = {
     "Not replaced: a connector cannot be left without a name or take the name of another one, and a table cannot take the name of another table or lose the name of its connector.",
   "cmd.find": "Find…",
   "cmd.replace": "Find and replace…",
+  "toast.rewire.moved": "Wire {from} moved to {to}",
+  "toast.rewire.made": "Connected {from} to {to}",
+  "toast.rewire.occupied": "{to} already has a wire, to {other}",
+  "toast.rewire.same-connector": "A wire cannot run from a connector to itself",
+  "toast.rewire.no-table": "{to} has no cavity table to keep the wire in",
+  "toast.rewire.no-end": "A wire cannot go there",
+  "menu.wireDelete": "Delete wire",
+  "toast.wireDeleted": "Wire {from} – {to} deleted",
+  "toast.wireDeleteNone": "That wire is no longer in the tables",
+  "menu.wireColor": "Wire colour…",
+  "menu.wireColorClear": "Clear colour",
+  "toast.wireColorNone": "This wire has no Colour column to write to: add one to the cavity table.",
   "toast.pluginLoaded": "Plugin “{name}” loaded",
   "toast.pluginFailed": "Plugin “{name}” failed to load: {error}",
   "toast.titleTaken": "Another table already has that name",

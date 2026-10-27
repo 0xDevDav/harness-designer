@@ -538,6 +538,37 @@ export function portPoint(box: SchemBox, pin: number, side: "left" | "right"): P
   return { x: side === "left" ? box.x : box.x + box.w, y: box.y + portOffset(box, pin) };
 }
 
+/** What a point on the schematic lands on: a cavity of a box, or a box that has none (a splice). */
+export interface SchemTarget {
+  box: SchemBox;
+  /** index of the cavity, or -1 for the box as a whole */
+  pin: number;
+}
+
+/**
+ * The cavity under a point, for dropping a wire on.
+ *
+ * A connector is a target by its cavity rows and not by its header or its
+ * margins: a wire has to say which cavity it goes to. A splice has no rows and
+ * is a target as a whole.
+ */
+export function targetAt(model: Schematic, at: Point): SchemTarget | null {
+  for (let i = model.boxes.length - 1; i >= 0; i--) {
+    const box = model.boxes[i];
+    if (!box || at.x < box.x || at.x > box.x + box.w || at.y < box.y || at.y > box.y + box.h) continue;
+    if (!box.pins.length) return { box, pin: -1 };
+    const pin = Math.floor((at.y - box.y - HEAD_H) / PIN_H);
+    return pin >= 0 && pin < box.pins.length ? { box, pin } : null;
+  }
+  return null;
+}
+
+/** A target as the cavity tables write it: `C3.2`, or the bare name of a splice. */
+export function targetLabel(target: SchemTarget): string {
+  const pin = target.box.pins[target.pin];
+  return pin ? `${target.box.id}.${pin.cavity}` : target.box.id;
+}
+
 interface Draft {
   wire: SchemWire;
   a: SchemBox;
