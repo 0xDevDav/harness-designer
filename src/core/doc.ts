@@ -68,6 +68,7 @@ export function normalizeDoc(input: unknown): HarnessDoc {
   // a file that does not mention it was drawn before this existed, and squaring
   // it off on open would rearrange a drawing nobody asked to rearrange
   doc.square = raw.square === true;
+  if (raw.wireUnit === "mm2" || raw.wireUnit === "awg") doc.wireUnit = raw.wireUnit;
 
   const meta = (typeof raw.meta === "object" && raw.meta !== null ? raw.meta : {}) as Partial<DocMeta>;
   doc.meta = {
