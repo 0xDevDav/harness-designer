@@ -30,6 +30,7 @@ import {
   tableForNode,
   isAutoLinkEnabled,
 } from "@/core/doc";
+import { connectionCount, deleteConnector } from "@/core/rewire";
 import { cavityTable, cavityTableFor } from "@/core/factories";
 import { projectT, snapTo } from "@/core/geometry";
 import { visibleConnectorSymbols } from "@/render/connectors";
@@ -40,6 +41,7 @@ import type { MenuItem } from "./menu";
 import { parseCsv } from "@/core/wirelist";
 import { TITLE_ROW } from "@/render/tables";
 import { editOnSheet } from "./sheet-edit";
+import type { SchematicMenuTarget } from "./schematic";
 import type { AppContext } from "@/app/context";
 import type { EntityType, HarnessDoc, Point, Selection } from "@/core/types";
 
@@ -104,6 +106,56 @@ function itemsForTarget(app: AppContext, target: Selection, world: Point, cell?:
     default:
       return backgroundItems(app, world);
   }
+}
+
+/* ============================ schematic ============================ */
+
+/**
+ * The right-click menu of the schematic for what is not a wire: the background
+ * offers the view, and a connector or a splice offers to be deleted.
+ */
+export function schematicMenuItems(app: AppContext, target: SchematicMenuTarget): MenuItem[] {
+  const t = app.t;
+  if (target.kind === "background") {
+    return [{ label: t("menu.zoomToFit"), shortcut: "F", run: () => app.schematic.fitView() }];
+  }
+  const node = target.nodeId ? findNode(app.doc, target.nodeId) : undefined;
+  const splice = node?.style === "splice";
+  return [
+    { header: target.name },
+    {
+      label: t(splice ? "menu.deleteSplice" : "menu.deleteConnector"),
+      danger: true,
+      run: () => void deleteConnectorFlow(app, target.name, target.nodeId, splice),
+    },
+  ];
+}
+
+/**
+ * Deleting a connector disconnects its wires, deletes its table and takes it
+ * off the sheet, so it is asked about first. One undo step brings it all back.
+ */
+async function deleteConnectorFlow(
+  app: AppContext,
+  name: string,
+  nodeId: string | undefined,
+  splice: boolean,
+): Promise<void> {
+  const wires = connectionCount(app.doc, name);
+  const ok = await app.dialogs.confirm({
+    title: app.t(splice ? "dialog.deleteSplice.title" : "dialog.deleteConnector.title", { name }),
+    body: app.t(wires ? "dialog.deleteConnector.bodyWires" : "dialog.deleteConnector.body", {
+      name,
+      n: wires,
+    }),
+    confirmLabel: app.t("props.delete"),
+    danger: true,
+  });
+  if (!ok) return;
+  editDoc(app, (doc) => void deleteConnector(doc, name, nodeId), "delete-connector");
+  app.store.select(null);
+  app.schematic.focusedWire = null;
+  app.schematic.requestRedraw();
 }
 
 /* ============================ node ============================ */
