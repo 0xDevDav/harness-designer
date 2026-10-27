@@ -396,6 +396,8 @@ export const it = {
   "guide.tab":
     "Mentre modifichi una cella: <b>Tab</b> passa alla successiva, <b>Invio</b> scende, <b>Esc</b> annulla.",
   "guide.branch": "<b>B</b> o tasto destro sul vuoto per disegnare un ramo; Esc per terminare.",
+  "guide.rewire":
+    "<b>Nello schema</b>, trascina l'estremità di un filo su un'altra cavità o su un altro connettore per spostarlo lì, oppure trascina da una cavità libera (il punto compare passandoci sopra con il puntatore) su un'altra per fare un filo nuovo. Il contorno rosso indica che la cavità ha già un filo. Seleziona un filo e premi <b>Canc</b>, o fai clic destro, per eliminarlo.",
   "guide.drag": "Trascina gli elementi per spostarli; trascina il vuoto per la vista, rotella per lo zoom.",
   "guide.copy": "<b>Ctrl+C</b> copia la selezione, <b>Ctrl+V</b> ne rimette una uguale dov'è il puntatore.",
   "guide.keys": "<b>Canc</b> elimina la selezione, <b>Ctrl+Z</b> annulla, <b>Ctrl+K</b> cerca un comando.",
@@ -490,6 +492,19 @@ export const it = {
   "menu.sizeHeader": "Sezione del filo",
   "menu.sizeOther": "Altra sezione…",
   "menu.sizeClear": "Cancella sezione",
+  "toast.rewire.moved": "Filo {from} spostato su {to}",
+  "toast.rewire.made": "{from} collegato a {to}",
+  "toast.rewire.occupied": "{to} ha già un filo, verso {other}",
+  "toast.rewire.same-connector": "Un filo non può andare da un connettore a se stesso",
+  "toast.rewire.no-table": "{to} non ha una tabella delle cavità dove tenere il filo",
+  "toast.rewire.no-end": "Un filo non può andare lì",
+  "menu.wireDelete": "Elimina filo",
+  "toast.wireDeleted": "Filo {from} – {to} eliminato",
+  "toast.wireDeleteNone": "Questo filo non è più nelle tabelle",
+  "menu.wireColor": "Colore del filo…",
+  "menu.wireColorClear": "Rimuovi colore",
+  "toast.wireColorNone":
+    "Questo filo non ha una colonna Colore su cui scrivere: aggiungila alla tabella delle cavità.",
   "toast.pluginLoaded": "Plugin «{name}» caricato",
   "toast.pluginFailed": "Plugin «{name}» non caricato: {error}",
   "toast.offlineReady": "Applicazione disponibile anche offline",

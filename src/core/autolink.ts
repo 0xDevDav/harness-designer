@@ -69,7 +69,7 @@ const tableWidth = (table: Table): number =>
  * Inserts a row for a missing cavity while keeping numeric order, so the table
  * does not fall out of sequence when pins are filled in at random.
  */
-function insertCavityRow(target: CavityTable, cavity: string): string[] {
+export function insertCavityRow(target: CavityTable, cavity: string): string[] {
   const row = padRow([], tableWidth(target.table));
   row[target.cols.cavity] = cavity;
 

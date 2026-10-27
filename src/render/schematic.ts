@@ -52,6 +52,8 @@ const FIT_ZOOM = 1.4;
 const CORNER_R = 22;
 const WIRE_W = 2;
 const WIRE_HIT = 12;
+/** Radius of the handle on the end of a wire: small, because it sits on the edge of a box that is also dragged. */
+const END_GRAB = 5;
 /** Colour of a wire whose cell names nothing that can be recognized. */
 const UNKNOWN_WIRE = "#9aa3ad";
 /** Size of the colour swatch at the end of a cavity row. */
@@ -78,9 +80,30 @@ export interface SchematicOptions {
   zoomLabel?: HTMLElement | null;
 }
 
+/**
+ * A wire being dragged by one end: the line from the end that stays to the
+ * pointer, and the cavity it would land on. It is drawn over the schematic and
+ * is not part of the document until it is dropped.
+ */
+export interface SchemGhost {
+  from: Point;
+  to: Point;
+  /** what is under the pointer; `ok` says whether the wire may land there */
+  hot: { box: string; pin: number; ok: boolean } | null;
+}
+
+/** Where a wire ends on a box, and which end of which wire it is. */
+interface EndDot {
+  at: Point;
+  wire: string;
+  end: 0 | 1;
+}
+
 export class SchematicRenderer {
   /** Wire picked in this view: it is not a document element, so it lives here. */
   focusedWire: string | null = null;
+  /** The wire being dragged, if one is. */
+  ghost: SchemGhost | null = null;
 
   private readonly store: Store;
   private readonly t: Translate;
@@ -191,21 +214,28 @@ export class SchematicRenderer {
 
     // where the wires really land, gathered once: a dot is drawn from the line
     // itself, so it can never sit at a port nothing arrives at
-    const ends = new Map<string, Point[]>();
-    const land = (name: string, at: Point | undefined): void => {
-      if (!at) return;
+    const ends = new Map<string, EndDot[]>();
+    /** the cavities with a wire on them: the others are where a new one can start */
+    const wired = new Set<string>();
+    const land = (name: string, pin: number, dot: EndDot | undefined): void => {
+      wired.add(`${name}:${pin}`);
+      if (!dot) return;
       const list = ends.get(name);
-      if (list) list.push(at);
-      else ends.set(name, [at]);
+      if (list) list.push(dot);
+      else ends.set(name, [dot]);
+    };
+    const endOf = (wire: SchemWire, end: 0 | 1): EndDot | undefined => {
+      const at = wire.points[end === 0 ? 0 : wire.points.length - 1];
+      return at ? { at, wire: wire.id, end } : undefined;
     };
 
     for (const wire of model.wires) {
       this.drawWire(wire, gWires, focused && !lit.wires.has(wire.id));
-      land(wire.from.box, wire.points[0]);
-      land(wire.to.box, wire.points[wire.points.length - 1]);
+      land(wire.from.box, wire.from.pin, endOf(wire, 0));
+      land(wire.to.box, wire.to.pin, endOf(wire, 1));
     }
     for (const box of model.boxes) {
-      this.drawBox(box, ends.get(box.id) ?? [], gBoxes, lit.boxes.has(box.id));
+      this.drawBox(box, ends.get(box.id) ?? [], gBoxes, lit.boxes.has(box.id), wired);
     }
     for (const joint of model.joints) {
       this.drawJoint(joint, gTop, lit.boxes.has(joint.a) || lit.boxes.has(joint.b));
@@ -215,11 +245,58 @@ export class SchematicRenderer {
     for (const wire of model.wires) {
       if (lit.wires.has(wire.id)) this.drawWire(wire, gTop, false, true);
     }
+    if (this.ghost) this.drawGhost(this.ghost, model, gTop);
+  }
+
+  /** The wire in hand, and the cavity it is over. */
+  private drawGhost(ghost: SchemGhost, model: Schematic, parent: SVGGElement): void {
+    const accent = palette().selection;
+    const box = ghost.hot ? model.byName.get(ghost.hot.box) : undefined;
+    if (ghost.hot && box) {
+      const whole = ghost.hot.pin < 0;
+      const colour = ghost.hot.ok ? accent : palette().errorStroke;
+      el(
+        "rect",
+        {
+          x: box.x,
+          y: whole ? box.y : box.y + HEAD_H + ghost.hot.pin * PIN_H,
+          width: box.w,
+          height: whole ? box.h : PIN_H,
+          rx: whole ? 7 : 3,
+          fill: colour,
+          "fill-opacity": 0.18,
+          stroke: colour,
+          "stroke-width": 1.6,
+        },
+        parent,
+      );
+    }
+    el(
+      "line",
+      {
+        x1: ghost.from.x,
+        y1: ghost.from.y,
+        x2: ghost.to.x,
+        y2: ghost.to.y,
+        stroke: ghost.hot && !ghost.hot.ok ? palette().errorStroke : accent,
+        "stroke-width": 2.2,
+        "stroke-dasharray": "6 4",
+        "stroke-linecap": "round",
+      },
+      parent,
+    );
+    el("circle", { cx: ghost.to.x, cy: ghost.to.y, r: 4.5, fill: accent }, parent);
   }
 
   /* ---------------- boxes ---------------- */
 
-  private drawBox(box: SchemBox, ends: readonly Point[], parent: SVGGElement, lit: boolean): void {
+  private drawBox(
+    box: SchemBox,
+    ends: readonly EndDot[],
+    parent: SVGGElement,
+    lit: boolean,
+    wired: ReadonlySet<string>,
+  ): void {
     const g = el(
       "g",
       {
@@ -296,18 +373,79 @@ export class SchematicRenderer {
         text(labelX, y + 3.6, ellipsize(pin.label, 11, room), { "font-size": 11, fill: palette().text }, row);
       }
       this.drawSwatch(pin.color, box.w - SWATCH_W - 6, y - SWATCH_H / 2, row);
+
+      // a cavity with no wire shows where one could be started when the pointer
+      // is over its box; the two sides, because the wire may leave by either
+      if (wired.has(`${box.id}:${index}`)) return;
+      for (const x of [0, box.w]) {
+        el(
+          "circle",
+          {
+            class: "sch-port",
+            cx: x,
+            cy: y,
+            r: 4.5,
+            fill: palette().tableBg,
+            stroke: palette().selection,
+            "stroke-width": 1.6,
+            "data-sch": "port",
+            "data-id": box.id,
+            "data-pin": index,
+            "data-x": x,
+            style: "cursor:crosshair",
+          },
+          g,
+        );
+      }
     });
 
-    this.drawSplice(box, ends, g);
+    this.drawSplice(
+      box,
+      ends.map((e) => e.at),
+      g,
+    );
+    // a box with no cavities is one electrical point, and a wire can start from
+    // it on either side; the handles of the wires already on it are drawn after
+    // these, so they win where the two meet
+    if (!box.pins.length) {
+      const y = portOffset(box, -1);
+      for (const x of [0, box.w]) {
+        el(
+          "circle",
+          {
+            class: "sch-port",
+            cx: x,
+            cy: y,
+            r: 4.5,
+            fill: palette().tableBg,
+            stroke: palette().selection,
+            "stroke-width": 1.6,
+            "data-sch": "port",
+            "data-id": box.id,
+            "data-pin": -1,
+            "data-x": x,
+            style: "cursor:crosshair",
+          },
+          g,
+        );
+      }
+    }
     for (const end of ends) {
+      const cx = end.at.x - box.x;
+      const cy = end.at.y - box.y;
+      el("circle", { cx, cy, r: 3, fill: palette().tableBorder, "pointer-events": "none" }, g);
+      // the end of a wire is a handle: picked up, it moves the wire to another cavity
       el(
         "circle",
         {
-          cx: end.x - box.x,
-          cy: end.y - box.y,
-          r: 2.4,
-          fill: palette().tableBorder,
-          "pointer-events": "none",
+          cx,
+          cy,
+          r: END_GRAB,
+          fill: "transparent",
+          "data-sch": "end",
+          "data-wire": end.wire,
+          "data-end": end.end,
+          style: "cursor:grab",
         },
         g,
       );

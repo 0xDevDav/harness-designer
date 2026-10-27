@@ -658,6 +658,15 @@ body {
   }
 }
 
+/* the cavities of a schematic box that have no wire: where one can be started */
+.sch-port {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+[data-sch="box"]:hover .sch-port {
+  opacity: 0.95;
+}
+
 /* ---------------- menus ---------------- */
 
 .menu {
