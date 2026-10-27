@@ -417,6 +417,14 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
     menu: true,
   });
 
+  const defaultsButton = button({
+    label: t("topbar.defaults"),
+    iconName: "sliders",
+    tip: t("topbar.defaults.tip"),
+    onClick: run(app, "doc.defaults"),
+    collapsible: true,
+  });
+
   nav.append(
     group(
       t("topbar.section.draw"),
@@ -436,6 +444,7 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
         collapsible: true,
       }),
       unitButton,
+      defaultsButton,
     ),
   );
 

@@ -1,4 +1,5 @@
 import { autoLinkRow, insertCavityRow } from "./autolink";
+import { applyWireDefaults } from "./defaults";
 import { wireColorKey } from "./colors";
 import {
   DEST_RE,
@@ -303,6 +304,9 @@ export function connectEnds(doc: HarnessDoc, from: string, to: string, prefer?: 
   const row = rowOrNew(tables, near);
   if (!row) return { ok: false, reason: "no-table" };
   writeEnd(row, far);
+  // a new wire starts from the defaults, even when the far end is a splice
+  // with no table to take them from this row
+  applyWireDefaults(row.row, row.ct.cols, doc.defaults);
   autoLinkRow(doc, row.ct.table.id, row.index);
   if (prefer) settle(doc, a, b, prefer);
   return { ok: true };

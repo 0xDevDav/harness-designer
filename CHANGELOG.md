@@ -134,6 +134,10 @@ All notable changes to this project are documented here. The format follows
   column called just _Type_ is left alone, since older sheets use it for something
   else. The check warns when the two ends of a wire declare different wire types,
   as it does for colour and section.
+- **Defaults** in the bar: wire size, wire type and wire colour. A wire starts
+  from them when it is connected, in the schematic or by typing a destination
+  in a table. They only fill empty cells, are saved with the drawing, and the
+  size follows a change of unit.
 
 ### Changed
 
