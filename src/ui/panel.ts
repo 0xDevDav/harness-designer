@@ -18,6 +18,7 @@ interface OpenPanel {
   root: HTMLElement;
   body: HTMLElement;
   title: HTMLElement;
+  onClose: (() => void) | undefined;
 }
 
 const panels = new Map<string, OpenPanel>();
@@ -36,6 +37,14 @@ export interface PanelOptions {
   render: (body: HTMLElement) => void;
   /** preferred width in pixels */
   width?: number;
+  /** called once when the panel is closed, by whatever means */
+  onClose?: () => void;
+  /**
+   * Where it first appears, unless it has been moved before: the middle of the
+   * screen by default, or the top right for a panel that is used while looking
+   * at the drawing and so must not sit on top of it.
+   */
+  dock?: "center" | "top-right";
 }
 
 export function isPanelOpen(id: string): boolean {
@@ -47,6 +56,7 @@ export function closePanel(id: string): void {
   if (!panel) return;
   panel.root.remove();
   panels.delete(id);
+  panel.onClose?.();
 }
 
 export function closeAllPanels(): void {
@@ -76,6 +86,7 @@ export function openPanel(options: PanelOptions): void {
 
   const existing = panels.get(options.id);
   if (existing) {
+    existing.onClose = options.onClose;
     existing.title.textContent = options.title;
     existing.body.replaceChildren();
     options.render(existing.body);
@@ -112,7 +123,7 @@ export function openPanel(options: PanelOptions): void {
 
   root.append(header, body);
   host.appendChild(root);
-  panels.set(options.id, { root, body, title });
+  panels.set(options.id, { root, body, title, onClose: options.onClose });
 
   // position: the one chosen before, otherwise the centre of the screen, with
   // a small offset if another panel is already sitting there
@@ -120,8 +131,11 @@ export function openPanel(options: PanelOptions): void {
   const box = root.getBoundingClientRect();
   const shift = panels.size > 1 ? (offsetSeed % 4) * 26 : 0;
   offsetSeed++;
-  const startX = saved?.x ?? (window.innerWidth - box.width) / 2 + shift;
-  const startY = saved?.y ?? (window.innerHeight - box.height) / 2 + shift;
+  const corner = options.dock === "top-right";
+  const barBottom = document.querySelector("#topbar")?.getBoundingClientRect().bottom ?? 0;
+  const startX =
+    saved?.x ?? (corner ? window.innerWidth - box.width - 16 : (window.innerWidth - box.width) / 2 + shift);
+  const startY = saved?.y ?? (corner ? barBottom + 12 : (window.innerHeight - box.height) / 2 + shift);
   place(root, startX, startY);
 
   makeDraggable(root, header, (x, y) => positions.set(options.id, { x, y }));

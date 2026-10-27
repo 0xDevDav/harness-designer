@@ -68,6 +68,18 @@ export function tableSize(table: Table, meta: DocMeta, t: Translate): { w: numbe
   return { w, h: ROW_H * rows };
 }
 
+/**
+ * What Find has turned up, for the sheet to mark.
+ *
+ * Keys are the ones `cellKey` gives (`t` for the title, `h:2` for a heading,
+ * `r:3:1` for a cell). `current` is the one match the person is looking at, in
+ * the form `tableId|key`, drawn stronger than the rest.
+ */
+export interface FoundMarks {
+  tables: ReadonlyMap<string, ReadonlySet<string>>;
+  current: string | null;
+}
+
 export function drawTable(
   table: Table,
   meta: DocMeta,
@@ -75,6 +87,9 @@ export function drawTable(
   parent: Element,
   /** rows to highlight in red: same colour across more than two connectors */
   errorRows?: ReadonlySet<number>,
+  /** cells Find matched in this table, and which of them is the current one */
+  found?: ReadonlySet<string>,
+  currentKey?: string,
 ): void {
   const g = el(
     "g",
@@ -96,6 +111,27 @@ export function drawTable(
   const { h: H } = tableSize(table, meta, t);
   const colorCol = colorColumn(table);
   let y = 0;
+
+  /** Marks one cell Find matched; behind the text, so the text stays readable. */
+  const mark = (key: string, x: number, top: number, w: number): void => {
+    if (!found?.has(key)) return;
+    const current = key === currentKey;
+    el(
+      "rect",
+      {
+        x,
+        y: top,
+        width: w,
+        height: ROW_H,
+        fill: palette().foundFill,
+        "fill-opacity": current ? 0.75 : 0.35,
+        stroke: current ? palette().foundEdge : "none",
+        "stroke-width": current ? 1.5 : 0,
+        "pointer-events": "none",
+      },
+      g,
+    );
+  };
 
   el(
     "rect",
@@ -125,6 +161,7 @@ export function drawTable(
       },
       g,
     );
+    mark("t", 0, 0, W);
     // an isolated table takes no part in automatic linking, and the sheet should say so
     const isolated = table.autoLink === false;
     text(
@@ -172,6 +209,7 @@ export function drawTable(
     let x = 0;
     table.head.forEach((heading, c) => {
       const w = widths[c] ?? MIN_COL;
+      mark(`h:${c}`, x, y, w);
       text(
         x + 5,
         y + ROW_H - 5,
@@ -202,6 +240,7 @@ export function drawTable(
       const w = widths[c] ?? MIN_COL;
       const value = row[c] ?? "";
       const bands = c === colorCol ? colorsOf(value) : null;
+      mark(`r:${rowIndex}:${c}`, x, y, w);
       if (bands) {
         const x0 = x + 4;
         const y0 = y + 3.5;

@@ -9,6 +9,7 @@
 import type { Store } from "@/core/store";
 import type { HarnessDoc, Issue, Point, Rect, Selection } from "@/core/types";
 import type { Locale, Translate } from "@/i18n";
+import type { FoundMarks } from "@/render/tables";
 
 /* ---------------- drawing ---------------- */
 
@@ -25,6 +26,8 @@ export interface RendererApi {
    * it — it is the sheet answering a question asked next door.
    */
   highlight: { nodes: ReadonlySet<string>; segments: ReadonlySet<string> } | null;
+  /** cells Find matched, marked on the tables; null when nothing is being searched for */
+  found: FoundMarks | null;
   /** redraw deferred to the next frame: safe to call on every event */
   requestRedraw(): void;
   /** immediate redraw: only when the result has to be read straight away */

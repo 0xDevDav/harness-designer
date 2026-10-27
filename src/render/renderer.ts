@@ -23,6 +23,7 @@ import type { Translate } from "@/i18n";
 import { drawJunctionBoot } from "./boot";
 import { connectorSymbol } from "./connectors";
 import { drawTable, tableSize } from "./tables";
+import type { FoundMarks } from "./tables";
 import { checkWireEnds } from "@/core/wireends";
 import { el, text, textWidth } from "./svg";
 import { palette, withPaper } from "./palette";
@@ -92,6 +93,8 @@ export class Renderer implements RendererApi {
   hoverNodeId: string | null = null;
   branchPreviewTo: Point | null = null;
   highlight: { nodes: ReadonlySet<string>; segments: ReadonlySet<string> } | null = null;
+  /** what Find has turned up in the tables, while the Find panel is open */
+  found: FoundMarks | null = null;
 
   private readonly store: Store;
   private readonly t: Translate;
@@ -208,7 +211,16 @@ export class Renderer implements RendererApi {
     // apply to every table involved
     const wireErrors = checkWireEnds(doc).rowsByTable;
     for (const table of doc.tables) {
-      drawTable(table, doc.meta, this.t, gTables, wireErrors.get(table.id));
+      const current = this.found?.current;
+      drawTable(
+        table,
+        doc.meta,
+        this.t,
+        gTables,
+        wireErrors.get(table.id),
+        exporting ? undefined : this.found?.tables.get(table.id),
+        current?.startsWith(table.id + "|") ? current.slice(table.id.length + 1) : undefined,
+      );
     }
     for (const seg of doc.segments) this.drawSegment(doc, seg, gSegOuter, gSegInner, gSegLabels);
     this.drawBends(doc, gSegOuter, gSegInner);

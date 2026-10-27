@@ -11,6 +11,11 @@ All notable changes to this project are documented here. The format follows
 - **Black wires show in the dark theme.** A wire that is black or nearly so gets
   a light edge, in the schematic and on the sheet, and no other colour is
   touched. Export and print are unchanged.
+- **Find and replace** (`Ctrl+F`, `Ctrl+H`) over the tables, connector names,
+  branch lengths, labels and title block. Matches are marked on the sheet,
+  match case and whole-cell options are offered, and Replace all is a single
+  undo step. Renaming a connector through it carries the new name into its table
+  and every reference to it.
 
 ## [1.2.0]
 
