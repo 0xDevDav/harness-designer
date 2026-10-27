@@ -388,6 +388,7 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
       { label: t("insert.cavity"), run: run(app, "insert.cavity") },
       { label: t("insert.housings"), run: run(app, "insert.housings") },
       { label: t("insert.terminations"), run: run(app, "insert.terminations") },
+      { label: t("insert.typeColumn"), run: run(app, "insert.typeColumn") },
       { label: t("insert.notes"), run: run(app, "insert.notes") },
       { label: t("insert.revisions"), run: run(app, "insert.revisions") },
       { label: t("insert.wirelist"), run: run(app, "insert.wirelist") },

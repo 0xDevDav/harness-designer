@@ -530,6 +530,8 @@ export interface TableColumns {
   func?: number;
   /** the contact this cavity takes, picked from the termination table */
   termination?: number;
+  /** what kind of cavity or terminal it is, e.g. "6.3 mm blade" or "Metri-Pack 150" */
+  type?: number;
 }
 
 /**
@@ -553,6 +555,7 @@ export function tableColumns(t: Table): TableColumns {
     if (idx.section === undefined && /(sezione|section|gauge|awg|mm²|mm2)/.test(s)) idx.section = i;
     if (idx.func === undefined && /(funzione|function|circuito|circuit|signal)/.test(s)) idx.func = i;
     if (idx.termination === undefined && /^(terminazione|termination)$/.test(s)) idx.termination = i;
+    if (idx.type === undefined && /^(wire[ -]?type|tipo( di)? filo)$/.test(s)) idx.type = i;
   });
 
   if (idx.cavity === undefined) {

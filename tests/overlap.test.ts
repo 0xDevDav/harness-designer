@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
+import type { RendererApi } from "@/app/context";
+import { normalizeDoc } from "@/core/doc";
 import { freeSpot, overlaps, overlapsAny, separate } from "@/core/overlap";
-import type { Rect } from "@/core/types";
+import type { Rect, Table } from "@/core/types";
+import { separateTables } from "@/ui/separate";
 
 const box = (x: number, y: number, w = 100, h = 50): Rect => ({ x, y, w, h });
 const at = (r: Rect, p: { x: number; y: number }): Rect => ({ ...r, x: p.x, y: p.y });
@@ -120,5 +123,46 @@ describe("separate", () => {
     const b = { id: "b", rect: box(30, 10) };
     const movable = new Set(["a", "b"]);
     expect([...separate([a, b], movable)]).toEqual([...separate([b, a], movable)]);
+  });
+});
+
+describe("separateTables", () => {
+  // a renderer that sizes a table by its columns: 60 wide each, 17 tall a row and a header
+  const renderer = (doc: { tables: Table[] }): RendererApi =>
+    ({
+      entityBBox: (sel: { type: string; id: string }) => {
+        const t = doc.tables.find((x) => x.id === sel.id);
+        return t
+          ? { x: t.x - 4, y: t.y - 4, w: (t.head?.length ?? 1) * 60 + 8, h: (t.rows.length + 2) * 17 + 8 }
+          : null;
+      },
+    }) as unknown as RendererApi;
+  const table = (id: string, x: number, y: number, columns: number): Table => ({
+    id,
+    x,
+    y,
+    kind: "table",
+    head: Array.from({ length: columns }, (_, i) => `c${i}`),
+    rows: [["1"]],
+  });
+
+  it("moves a table that grew onto its neighbour, and only that one", () => {
+    const doc = normalizeDoc({ tables: [table("a", 0, 0, 3), table("b", 200, 0, 3)] });
+    const [a, b] = doc.tables as [Table, Table];
+    a.head = [...(a.head ?? []), "c3"]; // a is now 240 wide and lies on b
+    const moved = separateTables(doc, renderer(doc), true, ["a"]);
+    expect(moved).toBe(1);
+    expect(b).toMatchObject({ x: 200, y: 0 });
+    const ra = renderer(doc).entityBBox({ type: "table", id: "a" }) as Rect;
+    const rb = renderer(doc).entityBBox({ type: "table", id: "b" }) as Rect;
+    expect(overlaps(ra, rb)).toBe(false);
+    // and on the grid
+    expect(Math.abs(a.x % 10)).toBe(0);
+    expect(Math.abs(a.y % 10)).toBe(0);
+  });
+
+  it("moves nothing when the table that changed lies on nothing", () => {
+    const doc = normalizeDoc({ tables: [table("a", 0, 0, 3), table("b", 400, 0, 3)] });
+    expect(separateTables(doc, renderer(doc), true, ["a"])).toBe(0);
   });
 });

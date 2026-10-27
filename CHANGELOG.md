@@ -122,6 +122,13 @@ All notable changes to this project are documented here. The format follows
 - A symbol can say what it stands for in the two tables with `role`
   (`"housing"` or `"termination"`); the round DIN symbol of the bundled plugin
   is a housing.
+- **Wire type** (GPT, GXL, HDT, SXL, TWP, TXL) is picked from a list under the
+  cell, with _Other type…_ and _Clear type_, and, like colour and size, is
+  brought into step at the far end of the wire. Cavity tables have a _Wire type_
+  column, and _Insert → Wire type column in every cavity table_ adds it to
+  existing drawings, moving apart any table the new column makes lie on another.
+  Only a column headed _Wire type_ (or _Tipo filo_) counts: a column called just
+  _Type_ is left alone, since older sheets use it for something else.
 
 ### Changed
 
