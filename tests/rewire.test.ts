@@ -5,6 +5,8 @@ import {
   connectEnds,
   connectViaSplice,
   detailsConflict,
+  connectionCount,
+  deleteConnector,
   disconnectWire,
   endLabel,
   moveWireEnd,
@@ -466,5 +468,56 @@ describe("a wire joining cavities that disagree about it", () => {
     const doc = unlike();
     Object.assign(rowOf(doc, "tc", "1"), { 1: "B.3" });
     expect(connectViaSplice(doc, made, "C.1")).toEqual({ ok: false, reason: "occupied", other: "B.3" });
+  });
+});
+
+describe("deleteConnector", () => {
+  it("counts the wires that touch a connector once each, whichever end says so", () => {
+    const doc = harness();
+    connectEnds(doc, "B.2", "C.1");
+    expect(connectionCount(doc, "B")).toBe(2);
+    expect(connectionCount(doc, "A")).toBe(1);
+    expect(connectionCount(doc, "S1")).toBe(0);
+  });
+
+  it("disconnects the other ends, deletes its table and takes the node off the sheet", () => {
+    const doc = harness();
+    expect(deleteConnector(doc, "B", "b")).toBe(1);
+    expect(doc.tables.map((t) => t.id)).toEqual(["ta", "tc"]);
+    expect(doc.nodes.some((n) => n.id === "b")).toBe(false);
+    expect(rowOf(doc, "ta", "1")).toEqual(["1", "", "Power", "Red", "1.5"]);
+  });
+
+  it("leaves nothing in the schematic pointing at it", () => {
+    const doc = harness();
+    deleteConnector(doc, "B", "b");
+    const model = buildSchematic(doc);
+    expect(model.wires).toHaveLength(0);
+    expect(model.byName.has("B")).toBe(false);
+  });
+
+  it("takes a splice out and lets go of the cavities that went to it", () => {
+    const doc = harness();
+    connectEnds(doc, "A.2", "S1");
+    connectEnds(doc, "C.1", "S1");
+    expect(deleteConnector(doc, "S1", "s")).toBe(2);
+    expect(rowOf(doc, "ta", "2")[1]).toBe("");
+    expect(rowOf(doc, "tc", "1")[1]).toBe("");
+    expect(doc.nodes.some((n) => n.id === "s")).toBe(false);
+  });
+
+  it("forgets where the box was put by hand", () => {
+    const doc = harness();
+    doc.schematic = { B: { x: 5, y: 5 }, C: { x: 9, y: 9 } };
+    deleteConnector(doc, "B", "b");
+    expect(doc.schematic).toEqual({ C: { x: 9, y: 9 } });
+  });
+
+  it("does not touch a connector whose name only starts the same", () => {
+    const doc = harness();
+    connectEnds(doc, "A.2", "C.1");
+    expect(deleteConnector(doc, "C", "c")).toBe(1);
+    expect(rowOf(doc, "ta", "1")[1]).toBe("B.1");
+    expect(rowOf(doc, "ta", "2")[1]).toBe("");
   });
 });

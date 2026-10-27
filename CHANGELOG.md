@@ -33,6 +33,10 @@ All notable changes to this project are documented here. The format follows
   Delete. Both cavities let go of it and nothing else changes: the colour,
   size, function and notes stay in the row, so putting a wire back finds them
   there. One undo step.
+- **Right-click menus in the schematic**: the background offers _Zoom to fit_,
+  and a connector or a splice offers _Delete connector_ or _Delete splice_.
+  Deleting disconnects the wires that went to it, deletes its table and takes it
+  off the sheet, after asking, as one undo step.
 - **Wires can start from a splice** (or any connector with no cavities) in the
   schematic: hover it and drag from the dot on either side onto a cavity.
 - **Right click a wire in the schematic** to change its colour, with the same

@@ -496,6 +496,14 @@ export const it = {
   "menu.wireDelete": "Elimina filo",
   "toast.wireDeleted": "Filo {from} – {to} eliminato",
   "toast.wireDeleteNone": "Questo filo non è più nelle tabelle",
+  "menu.zoomToFit": "Adatta vista",
+  "menu.deleteConnector": "Elimina connettore",
+  "menu.deleteSplice": "Elimina giunzione",
+  "dialog.deleteConnector.title": "Eliminare il connettore {name}?",
+  "dialog.deleteSplice.title": "Eliminare la giunzione {name}?",
+  "dialog.deleteConnector.body": "{name} viene tolto dal foglio, con la sua tabella.",
+  "dialog.deleteConnector.bodyWires":
+    "{name} viene tolto dal foglio, con la sua tabella, e i suoi {n} fili vengono scollegati.",
   "menu.wireColor": "Colore del filo…",
   "menu.wireColorClear": "Rimuovi colore",
   "toast.wireColorNone":

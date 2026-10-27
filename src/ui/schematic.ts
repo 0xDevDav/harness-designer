@@ -24,6 +24,7 @@ import { t } from "@/i18n";
 import type { SchematicRenderer } from "@/render/schematic";
 import { openColorPicker } from "./colorpicker";
 import { openMenu } from "./menu";
+import type { MenuItem } from "./menu";
 
 /** Below this the movement was a click, not a drag. */
 const DRAG_THRESHOLD_PX = 3;
@@ -67,6 +68,9 @@ interface PanState {
   vy: number;
 }
 
+/** What a right click landed on, other than a wire. */
+export type SchematicMenuTarget = { kind: "background" } | { kind: "box"; name: string; nodeId?: string };
+
 export interface SchematicInteractionOptions {
   store: Store;
   schematic: SchematicRenderer;
@@ -75,6 +79,8 @@ export interface SchematicInteractionOptions {
   onFocusChange(): void;
   /** double click on a box: show the same connector on the sheet */
   onReveal?(selection: Selection): void;
+  /** the right-click menu for the background and for a box; a wire's is built here */
+  menuFor?(target: SchematicMenuTarget): MenuItem[];
   /** something to tell the person: what was done, or why it could not be */
   notify?(message: string, kind: "info" | "error"): void;
   /**
@@ -406,9 +412,29 @@ export function attachSchematicInteraction(opts: SchematicInteractionOptions): (
     opts.notify?.(t("toast.wireDeleted", { from: wire.fromLabel, to: wire.toLabel }), "info");
   };
 
+  /** Right click on a box or on the background: what the application offers there. */
+  const otherMenu = (ev: MouseEvent): void => {
+    const boxId = boxIdOf(ev.target);
+    const box = boxId ? schematic.model().byName.get(boxId) : undefined;
+    const items = opts.menuFor?.(
+      box
+        ? { kind: "box", name: box.id, ...(box.nodeId ? { nodeId: box.nodeId } : {}) }
+        : { kind: "background" },
+    );
+    if (!items?.length) return;
+    ev.preventDefault();
+    focusWire(null);
+    // what the menu is about stays picked, so it is clear which one it is
+    store.select(box ? selectionForBox(box) : null);
+    openMenu(ev.clientX, ev.clientY, items);
+  };
+
   const onContextMenu = (ev: MouseEvent): void => {
     const wireId = attrOf(ev.target, "wire");
-    if (!wireId) return;
+    if (!wireId) {
+      otherMenu(ev);
+      return;
+    }
     const wire = schematic.model().wires.find((w) => w.id === wireId);
     if (!wire) return;
     ev.preventDefault();

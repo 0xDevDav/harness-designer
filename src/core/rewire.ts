@@ -6,6 +6,7 @@ import {
   cavityTables,
   cell,
   connectNodes,
+  deleteEntity,
   findNode,
   findSegment,
   nextName,
@@ -343,6 +344,50 @@ export function disconnectWire(doc: HarnessDoc, ends: readonly [string, string])
     }
   }
   return cleared;
+}
+
+/** A row that sends its wire to the connector, by cavity or by its bare name. */
+const pointsAt = (f: Found, name: string): boolean => {
+  const dest = destText(f);
+  return dest === name || dest.startsWith(`${name}.`);
+};
+
+/** How many wires touch a connector or splice: its own rows with a destination, and every row that goes to it. */
+export function connectionCount(doc: HarnessDoc, name: string): number {
+  const wires = new Set<string>();
+  for (const ct of cavityTables(doc)) {
+    ct.table.rows.forEach((row, index) => {
+      const found = { ct, index, row };
+      const dest = destText(found);
+      if (!dest || (ct.owner !== name && !pointsAt(found, name))) return;
+      wires.add([`${ct.owner}.${cell(row, ct.cols.cavity)}`, dest].sort().join("|"));
+    });
+  }
+  return wires.size;
+}
+
+/**
+ * Takes a connector, or a splice, out of the drawing: every other cavity that
+ * went to it lets go of its wire, its own cavity table goes, and the node goes
+ * from the sheet with the branches attached to it — what deleting it on the
+ * sheet does. What those cavities say about their wires stays, as it does when
+ * a wire is deleted. Returns how many wires were disconnected.
+ */
+export function deleteConnector(doc: HarnessDoc, name: string, nodeId?: string): number {
+  const wires = connectionCount(doc, name);
+  const tables = cavityTables(doc);
+  for (const ct of tables) {
+    if (ct.owner === name) continue;
+    ct.table.rows.forEach((row, index) => {
+      const found = { ct, index, row };
+      if (pointsAt(found, name)) clearEnd(found, true);
+    });
+  }
+  const own = new Set(tables.filter((ct) => ct.owner === name).map((ct) => ct.table.id));
+  doc.tables = doc.tables.filter((t) => !own.has(t.id));
+  if (doc.schematic) delete doc.schematic[name];
+  if (nodeId) deleteEntity(doc, "node", nodeId);
+  return wires;
 }
 
 /**
