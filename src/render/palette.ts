@@ -14,6 +14,8 @@
  * colpo d'occhio conta più dell'uniformità cromatica.
  */
 
+import { isVeryDark } from "@/core/colors";
+
 export interface DrawingPalette {
   /** sheet background */
   paper: string;
@@ -87,11 +89,25 @@ const DARK: DrawingPalette = {
   company: "#8b7bff",
 };
 
+/** Light enough to outline black, soft enough not to shout over the colours beside it. */
+const HALO = "#a9b1c1";
+
 let active: DrawingPalette = PAPER;
 let screen: DrawingPalette = PAPER;
 
 /** Palette in use: the drawing modules read it on every stroke. */
 export const palette = (): DrawingPalette => active;
+
+/**
+ * The edge to draw round a wire that would otherwise vanish into the dark sheet.
+ *
+ * Only black and what is nearly black have one, and only on screen in the dark
+ * guise: every other colour is already told from the sheet by being itself, and
+ * on paper — which is what prints — black needs no help. Null means none.
+ */
+export function wireHalo(hex: string): string | null {
+  return active === DARK && isVeryDark(hex) ? HALO : null;
+}
 
 /** Sets the on-screen guise from the interface theme. */
 export function setDrawingTheme(theme: "light" | "dark"): void {

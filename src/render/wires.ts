@@ -23,7 +23,7 @@ import { declaredColor, findNode, findSegment, nodeDegree, segmentPath, segments
 import { endpointConnector, namedNodes, routeWires } from "@/core/routing";
 import type { RoutedWire } from "@/core/routing";
 import type { HarnessDoc, Point, Rect, Selection } from "@/core/types";
-import { palette } from "./palette";
+import { palette, wireHalo } from "./palette";
 import { el } from "./svg";
 
 /** Distance from the bundle centre to the first strand, then one per lane. */
@@ -903,7 +903,7 @@ export function drawWirePreview(
       if (!d) return;
 
       const stroke = { d, fill: "none", "pointer-events": "none", "stroke-linecap": "round" };
-      el("path", { ...stroke, stroke: palette().paper, "stroke-width": CASING_W }, parent);
+      el("path", { ...stroke, stroke: wireHalo(base) ?? palette().paper, "stroke-width": CASING_W }, parent);
       el("path", { ...stroke, stroke: base, "stroke-width": STRAND_W }, parent);
 
       // Every colour after the first is a band printed across the wire and
