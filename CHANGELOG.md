@@ -26,6 +26,14 @@ All notable changes to this project are documented here. The format follows
   and a drawing whose bare sizes are really gauges (an 18 or a 22 under a plain
   _Section_) is asked whether to just label them. Choosing the unit the drawing
   is already in does nothing.
+  and asks before anything is written.
+- **Objects no longer lie on top of each other.** Drop a table or a connector on
+  the sheet, or a box in the schematic, on top of another and it goes to the
+  nearest free place instead, a little way off and on the grid, as part of the
+  same undo step. _Separate overlapping objects_ (in the command palette and the
+  sheet's background menu) clears up drawings that already have objects on top of
+  each other: tables give way to connectors, and only a box somebody placed by
+  hand moves in the schematic.
 
 ## [1.2.0]
 

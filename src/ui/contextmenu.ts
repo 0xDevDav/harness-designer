@@ -732,6 +732,7 @@ function backgroundItems(app: AppContext, world: Point): MenuItem[] {
     { label: t("menu.branchHere"), shortcut: "B", run: () => startBranchHere(app, world) },
     { separator: true },
     { label: t("menu.fitView"), shortcut: "F", run: () => app.renderer.fitView() },
+    { label: t("cmd.separate"), run: () => app.commands.run("arrange.separate") },
     { label: t("cmd.guide"), shortcut: "F1", run: () => app.showGuide() },
     { label: t("menu.addCavityTable"), run: () => addCavityTableAt(app, world) },
   ];
