@@ -21,6 +21,13 @@ All notable changes to this project are documented here. The format follows
   sheet as well as in Replace. The check reports both in drawings that already
   have them. Previous and Next are the arrows beside the Find field, and the
   panel is called Find until Replace is opened.
+- **Objects no longer lie on top of each other.** Drop a table or a connector on
+  the sheet, or a box in the schematic, on top of another and it goes to the
+  nearest free place instead, a little way off and on the grid, as part of the
+  same undo step. _Separate overlapping objects_ (in the command palette and the
+  sheet's background menu) clears up drawings that already have objects on top of
+  each other: tables give way to connectors, and only a box somebody placed by
+  hand moves in the schematic.
 
 ## [1.2.0]
 

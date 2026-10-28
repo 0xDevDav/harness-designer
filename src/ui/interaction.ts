@@ -28,6 +28,7 @@ import type { EntityType, Point, Selection } from "@/core/types";
 import { onLocaleChange } from "@/i18n";
 import type { Translate } from "@/i18n";
 import { notePointer } from "./pointer";
+import { settleSheetDrop } from "./separate";
 
 /** Node snap radius, in screen pixels, converted through the zoom. */
 const SNAP_RADIUS_PX = 14;
@@ -465,7 +466,12 @@ export function attachInteraction(opts: {
     if (drag && drag.pointerId === ev.pointerId) {
       if (drag.live) {
         if (aborted) store.cancelLive();
-        else store.endLive("move");
+        else {
+          // a drop on top of something is nudged to the nearest free place, in the same undo step
+          if (drag.kind === "node" || drag.kind === "table")
+            settleSheetDrop({ store, renderer }, drag.kind, drag.id);
+          store.endLive("move");
+        }
       }
       drag = null;
     }
