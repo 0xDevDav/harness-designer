@@ -13,7 +13,7 @@ export interface StoreEvents {
   /** settings that are not part of the document (snap, language…) */
   settings: Record<string, never>;
   /** the document was replaced (file opened, new, sample) */
-  load: { doc: HarnessDoc };
+  load: { doc: HarnessDoc; reason?: string };
 }
 
 type Listener<K extends keyof StoreEvents> = (payload: StoreEvents[K]) => void;
@@ -207,7 +207,7 @@ export class Store {
     this.also = [];
     this.liveSnapshot = null;
     this.persist?.(this.doc);
-    this.emit("load", { doc: next });
+    this.emit("load", { doc: next, ...(options.reason ? { reason: options.reason } : {}) });
     this.emit("selection", { selection: null });
     this.emit("doc", { reason: options.reason ?? "load" });
   }

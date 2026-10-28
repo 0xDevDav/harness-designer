@@ -482,6 +482,48 @@ body {
 .find__status {
   margin-top: 10px;
 }
+/* Reload, while the file on disk has been changed from outside this window */
+.btn.is-stale {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #1d1404;
+  animation: stale-pulse 1.8s ease-in-out infinite;
+}
+.btn.is-stale:hover {
+  background: #f5b95a;
+}
+@keyframes stale-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 #f0a63699;
+  }
+  50% {
+    box-shadow: 0 0 0 5px #f0a63600;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn.is-stale {
+    animation: none;
+  }
+}
+/* name of the file the edits are written to */
+.filetag {
+  max-width: 190px;
+  padding: 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--txt-dim);
+}
+.filetag.is-off {
+  font-style: italic;
+  color: var(--txt-faint);
+}
+.filetag.is-stale {
+  font-style: normal;
+  color: var(--amber);
+}
 .btn.is-active {
   background: var(--accent-soft);
   color: var(--accent);

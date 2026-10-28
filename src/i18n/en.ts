@@ -472,6 +472,32 @@ export const en = {
     "Not replaced: a connector cannot be left without a name or take the name of another one, and a table cannot take the name of another table or lose the name of its connector.",
   "cmd.find": "Find…",
   "cmd.replace": "Find and replace…",
+  /* ---------------- file on disk ---------------- */
+  "topbar.saveAs": "Save as…",
+  "topbar.reload": "Reload",
+  "topbar.reload.tip": "Read the file again from disk (Ctrl+Z undoes it)",
+  "topbar.reload.stale": "The file changed on disk: click to load the changes",
+  "topbar.reload.none": "Reload needs a file: use Open or Save first",
+  "topbar.file.none": "No file",
+  "topbar.file.none.tip":
+    "Autosave only keeps a copy in this browser. Open or Save to link a file on disk and have every edit written to it.",
+  "topbar.file.linked.tip": "Every edit is saved to {name} automatically",
+  "topbar.file.readonly.tip": "Write access to {name} was refused: edits are not saved to it",
+  "toast.openedFile": "Opened {name}: edits are saved to it automatically",
+  "toast.savedFile": "Saved to {name}: edits are saved to it automatically",
+  "toast.reloaded": "Reloaded {name} (Ctrl+Z undoes it)",
+  "toast.fileChanged":
+    "The file changed on disk. Autosave is paused: Reload to take the changes, or Save to overwrite them.",
+  "toast.saveFailed": "Could not save to the file: {error}",
+  "toast.undoReload":
+    "Undo brought back the drawing from before Reload. Autosave is paused so it does not replace the file: Reload to take the file again, or Save to overwrite it.",
+  "toast.autosaveFailed": "Could not write to the file. Use Save to try again.",
+  "dialog.overwrite.title": "Overwrite the file?",
+  "dialog.overwrite.body":
+    "{name} was changed outside this window since it was last read. Saving replaces those changes with what is on screen.",
+  "dialog.overwrite.confirm": "Overwrite",
+  "cmd.saveAs": "Save as…",
+  "cmd.reload": "Reload file from disk",
   "toast.pluginLoaded": "Plugin “{name}” loaded",
   "toast.pluginFailed": "Plugin “{name}” failed to load: {error}",
   "toast.titleTaken": "Another table already has that name",
