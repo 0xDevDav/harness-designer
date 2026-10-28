@@ -38,6 +38,13 @@ All notable changes to this project are documented here. The format follows
 - **Right click a wire in the schematic** to change its colour, with the same
   standard colour picker the sheet uses. The colour is written into the cavity
   tables at both ends of the wire.
+- **Objects no longer lie on top of each other.** Drop a table or a connector on
+  the sheet, or a box in the schematic, on top of another and it goes to the
+  nearest free place instead, a little way off and on the grid, as part of the
+  same undo step. _Separate overlapping objects_ (in the command palette and the
+  sheet's background menu) clears up drawings that already have objects on top of
+  each other: tables give way to connectors, and only a box somebody placed by
+  hand moves in the schematic.
 
 ## [1.2.0]
 
