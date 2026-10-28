@@ -4,8 +4,8 @@ import { HEAD_H, PIN_H, buildSchematic, targetAt, targetLabel } from "@/core/sch
 import { connectEnds, disconnectWire, endLabel, moveWireEnd, parseEnd } from "@/core/rewire";
 import type { HarnessDoc } from "@/core/types";
 
-const HEAD = ["Cavity", "To", "Function", "Colour", "Section"];
-const SPLIT = ["Cavity", "Dest", "PIN", "Function", "Colour", "Section"];
+const HEAD = ["Cavity", "To", "Function", "Colour", "Section", "Wire type"];
+const SPLIT = ["Cavity", "Dest", "PIN", "Function", "Colour", "Section", "Wire type"];
 
 /** Three connectors of three cavities each and a splice, joined by branches. */
 const harness = (): HarnessDoc =>
@@ -32,9 +32,9 @@ const harness = (): HarnessDoc =>
         node: "a",
         head: HEAD,
         rows: [
-          ["1", "B.1", "Power", "Red", "1.5"],
-          ["2", "", "", "", ""],
-          ["3", "", "", "", ""],
+          ["1", "B.1", "Power", "Red", "1.5", "GXL"],
+          ["2", "", "", "", "", ""],
+          ["3", "", "", "", "", ""],
         ],
       },
       {
@@ -45,9 +45,9 @@ const harness = (): HarnessDoc =>
         node: "b",
         head: HEAD,
         rows: [
-          ["1", "A.1", "Power", "Red", "1.5"],
-          ["2", "", "", "", ""],
-          ["3", "", "", "", ""],
+          ["1", "A.1", "Power", "Red", "1.5", "GXL"],
+          ["2", "", "", "", "", ""],
+          ["3", "", "", "", "", ""],
         ],
       },
       {
@@ -58,9 +58,9 @@ const harness = (): HarnessDoc =>
         node: "c",
         head: HEAD,
         rows: [
-          ["1", "", "", "", ""],
-          ["2", "", "", "", ""],
-          ["3", "", "", "", ""],
+          ["1", "", "", "", "", ""],
+          ["2", "", "", "", "", ""],
+          ["3", "", "", "", "", ""],
         ],
       },
     ],
@@ -88,9 +88,9 @@ describe("connectEnds", () => {
 
   it("carries the properties the near end already has", () => {
     const doc = harness();
-    rowOf(doc, "ta", "2").splice(3, 2, "Blue", "0.75");
+    rowOf(doc, "ta", "2").splice(3, 3, "Blue", "0.75", "TXL");
     connectEnds(doc, "A.2", "C.1");
-    expect(rowOf(doc, "tc", "1").slice(3)).toEqual(["Blue", "0.75"]);
+    expect(rowOf(doc, "tc", "1").slice(3)).toEqual(["Blue", "0.75", "TXL"]);
   });
 
   it("is what the schematic draws afterwards", () => {
@@ -147,15 +147,15 @@ describe("moveWireEnd", () => {
   it("lets the cavity it left go, and takes the wire properties with it", () => {
     const doc = harness();
     moveWireEnd(doc, ["A.1", "B.1"], 1, "B.2");
-    expect(rowOf(doc, "tb", "1")).toEqual(["1", "", "Power", "", ""]);
-    expect(rowOf(doc, "tb", "2")).toEqual(["2", "A.1", "Power", "Red", "1.5"]);
+    expect(rowOf(doc, "tb", "1")).toEqual(["1", "", "Power", "", "", ""]);
+    expect(rowOf(doc, "tb", "2")).toEqual(["2", "A.1", "Power", "Red", "1.5", "GXL"]);
   });
 
   it("moves the end to a different connector", () => {
     const doc = harness();
     expect(moveWireEnd(doc, ["A.1", "B.1"], 1, "C.3")).toEqual({ ok: true });
     expect(rowOf(doc, "ta", "1")[1]).toBe("C.3");
-    expect(rowOf(doc, "tc", "3").slice(1)).toEqual(["A.1", "Power", "Red", "1.5"]);
+    expect(rowOf(doc, "tc", "3").slice(1)).toEqual(["A.1", "Power", "Red", "1.5", "GXL"]);
     expect(rowOf(doc, "tb", "1")[1]).toBe("");
   });
 
@@ -164,7 +164,7 @@ describe("moveWireEnd", () => {
     expect(moveWireEnd(doc, ["A.1", "B.1"], 0, "A.3")).toEqual({ ok: true });
     expect(rowOf(doc, "tb", "1")[1]).toBe("A.3");
     expect(rowOf(doc, "ta", "3")[1]).toBe("B.1");
-    expect(rowOf(doc, "ta", "1").slice(1)).toEqual(["", "Power", "", ""]);
+    expect(rowOf(doc, "ta", "1").slice(1)).toEqual(["", "Power", "", "", ""]);
   });
 
   it("moves an end onto a splice", () => {
@@ -176,7 +176,7 @@ describe("moveWireEnd", () => {
 
   it("moves an end off a splice, keeping the wire on the new cavity", () => {
     const doc = harness();
-    rowOf(doc, "ta", "2").splice(1, 4, "S1", "", "Green", "1");
+    rowOf(doc, "ta", "2").splice(1, 5, "S1", "", "Green", "1", "GPT");
     expect(moveWireEnd(doc, ["A.2", "S1"], 1, "C.2")).toEqual({ ok: true });
     expect(rowOf(doc, "ta", "2")[1]).toBe("C.2");
     expect(rowOf(doc, "tc", "2")[1]).toBe("A.2");
@@ -184,41 +184,41 @@ describe("moveWireEnd", () => {
 
   it("keeps the wire on the new cavity when the end that stays is a splice", () => {
     const doc = harness();
-    rowOf(doc, "tb", "2").splice(1, 4, "S1", "", "Green", "1");
+    rowOf(doc, "tb", "2").splice(1, 5, "S1", "", "Green", "1", "GPT");
     expect(moveWireEnd(doc, ["B.2", "S1"], 0, "C.2")).toEqual({ ok: true });
-    expect(rowOf(doc, "tc", "2").slice(1)).toEqual(["S1", "", "Green", "1"]);
-    expect(rowOf(doc, "tb", "2").slice(1)).toEqual(["", "", "", ""]);
+    expect(rowOf(doc, "tc", "2").slice(1)).toEqual(["S1", "", "Green", "1", "GPT"]);
+    expect(rowOf(doc, "tb", "2").slice(1)).toEqual(["", "", "", "", ""]);
   });
 
-  it("treats a dash as empty on the cavity it lands on, so the colour and size arrive", () => {
+  it("treats a dash as empty on the cavity it lands on, so the colour, size and type arrive", () => {
     const doc = harness();
-    rowOf(doc, "tc", "2").splice(3, 2, "-", "–");
+    rowOf(doc, "tc", "2").splice(3, 3, "-", "–", "-");
     expect(moveWireEnd(doc, ["A.1", "B.1"], 1, "C.2")).toEqual({ ok: true });
-    expect(rowOf(doc, "tc", "2").slice(1)).toEqual(["A.1", "Power", "Red", "1.5"]);
-    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["Red", "1.5"]);
+    expect(rowOf(doc, "tc", "2").slice(1)).toEqual(["A.1", "Power", "Red", "1.5", "GXL"]);
+    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["Red", "1.5", "GXL"]);
   });
 
-  it("takes the colour and size of the cavity it leaves when the one that stays has dashes", () => {
+  it("takes what the cavity it leaves has when the one that stays has dashes", () => {
     const doc = harness();
-    rowOf(doc, "ta", "1").splice(3, 2, "-", "-");
+    rowOf(doc, "ta", "1").splice(3, 3, "-", "-", "-");
     expect(moveWireEnd(doc, ["A.1", "B.1"], 1, "B.2")).toEqual({ ok: true });
-    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["Red", "1.5"]);
-    expect(rowOf(doc, "tb", "2").slice(3)).toEqual(["Red", "1.5"]);
+    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["Red", "1.5", "GXL"]);
+    expect(rowOf(doc, "tb", "2").slice(3)).toEqual(["Red", "1.5", "GXL"]);
   });
 
   it("puts the properties of a wire on a cavity with dashes when the end that stays is a splice", () => {
     const doc = harness();
-    rowOf(doc, "tb", "2").splice(1, 4, "S1", "", "Green", "1");
-    rowOf(doc, "tc", "2").splice(3, 2, "-", "-");
+    rowOf(doc, "tb", "2").splice(1, 5, "S1", "", "Green", "1", "GPT");
+    rowOf(doc, "tc", "2").splice(3, 3, "-", "-", "-");
     expect(moveWireEnd(doc, ["B.2", "S1"], 0, "C.2")).toEqual({ ok: true });
-    expect(rowOf(doc, "tc", "2").slice(1)).toEqual(["S1", "", "Green", "1"]);
+    expect(rowOf(doc, "tc", "2").slice(1)).toEqual(["S1", "", "Green", "1", "GPT"]);
   });
 
   it("does not replace a real value on the cavity it lands on with the wire's own", () => {
     const doc = harness();
     rowOf(doc, "tc", "2").splice(3, 2, "Blue", "-");
     expect(moveWireEnd(doc, ["A.1", "B.1"], 1, "C.2")).toEqual({ ok: true });
-    expect(rowOf(doc, "tc", "2").slice(3)).toEqual(["Blue", "1.5"]);
+    expect(rowOf(doc, "tc", "2").slice(3)).toEqual(["Blue", "1.5", "GXL"]);
   });
 
   it("refuses a cavity that already has a wire, and changes nothing", () => {
@@ -249,8 +249,8 @@ describe("moveWireEnd", () => {
     if (split) {
       split.head = SPLIT;
       split.rows = [
-        ["1", "A", "1", "Power", "Red", "1.5"],
-        ["2", "", "", "", "", ""],
+        ["1", "A", "1", "Power", "Red", "1.5", "GXL"],
+        ["2", "", "", "", "", "", ""],
       ];
     }
     expect(moveWireEnd(doc, ["A.1", "B.1"], 1, "B.2")).toEqual({ ok: true });
@@ -290,11 +290,11 @@ describe("targetAt", () => {
 });
 
 describe("disconnectWire", () => {
-  it("lets go of the wire at both ends, taking its colour and size", () => {
+  it("lets go of the wire at both ends, taking its colour, size and type", () => {
     const doc = harness();
     expect(disconnectWire(doc, ["A.1", "B.1"])).toBe(2);
-    expect(rowOf(doc, "ta", "1")).toEqual(["1", "", "Power", "", ""]);
-    expect(rowOf(doc, "tb", "1")).toEqual(["1", "", "Power", "", ""]);
+    expect(rowOf(doc, "ta", "1")).toEqual(["1", "", "Power", "", "", ""]);
+    expect(rowOf(doc, "tb", "1")).toEqual(["1", "", "Power", "", "", ""]);
   });
 
   it("is gone from the schematic afterwards", () => {

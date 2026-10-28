@@ -11,7 +11,7 @@ import type { HarnessDoc } from "./types";
  * What lives here is the part of that which is bookkeeping, so that dragging an
  * end across the schematic does exactly what retyping it in the tables would
  * have done — including the far end filling itself in, through the same mutual
- * linking, and the colour and size going with the wire rather than
+ * linking, and the colour, size and type going with the wire rather than
  * staying behind on the cavity it left.
  *
  * Every refusal is decided before anything is written, so a move that cannot
@@ -47,7 +47,7 @@ export type RewireOutcome =
   | { ok: false; reason: "no-table" }
   | { ok: false; reason: "no-end" };
 
-const PROPS = ["color", "section"] as const;
+const PROPS = ["color", "section", "type"] as const;
 type Prop = (typeof PROPS)[number];
 
 /** Nothing written, or a dash standing for it: a cell that has no value to keep. */
@@ -161,7 +161,7 @@ export function connectEnds(doc: HarnessDoc, from: string, to: string): RewireOu
 /**
  * Takes a wire out: both cavities let go of it. Each end is cleared only if it
  * really points at the other, so a table that disagrees about the wire is not
- * made to lose a different one. The colour and size go with the wire; the
+ * made to lose a different one. The colour, size and type go with the wire; the
  * function and notes describe the cavity and stay.
  *
  * Returns how many rows were cleared, zero when the tables hold no such wire.
@@ -191,7 +191,7 @@ export function disconnectWire(doc: HarnessDoc, ends: readonly [string, string])
  * `ends` are the wire's two endpoints as the tables write them and `moving` is
  * which of them is picked up. The end that stays is re-pointed at the new place
  * and the new place at it; the cavity that was left lets go, taking nothing but
- * its own description with it — the colour and size belong to the wire and
+ * its own description with it — the colour, size and type belong to the wire and
  * go where it goes.
  */
 export function moveWireEnd(
