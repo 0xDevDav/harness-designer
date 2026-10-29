@@ -22,7 +22,7 @@ const FOCUSABLE_SELECTOR = [
 /** Counter for the ids used by aria-labelledby and aria-describedby. */
 let idSeed = 0;
 
-interface DialogConfig<T> {
+export interface DialogConfig<T> {
   title: string;
   confirmLabel: string;
   /** absent means a notice-only window, with the confirm button on its own */
@@ -30,8 +30,12 @@ interface DialogConfig<T> {
   danger?: boolean;
   /** more answers, as buttons between cancel and confirm */
   extra?: { label: string; value: T }[];
-  /** fills the body and returns the element to focus when it opens */
-  fillBody(body: HTMLElement): HTMLElement | null;
+  /**
+   * Fills the body and returns the element to focus when it opens. `submit`
+   * closes the window as the confirm button would, for a body that holds
+   * something to click on.
+   */
+  fillBody(body: HTMLElement, submit: () => void): HTMLElement | null;
   confirmValue(): T;
   cancelValue(): T;
 }
@@ -51,7 +55,7 @@ let openDialogs = 0;
  */
 export const isDialogOpen = (): boolean => openDialogs > 0;
 
-function openDialog<T>(config: DialogConfig<T>): Promise<T> {
+export function openDialog<T>(config: DialogConfig<T>): Promise<T> {
   return new Promise<T>((resolve) => {
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const seq = ++idSeed;
@@ -74,7 +78,7 @@ function openDialog<T>(config: DialogConfig<T>): Promise<T> {
     const body = document.createElement("div");
     body.className = "dialog__body";
     body.id = `dialog-body-${seq}`;
-    const initialFocus = config.fillBody(body);
+    const initialFocus = config.fillBody(body, () => close(config.confirmValue()));
     // The body describes the window only when it is prose: if it holds a
     // field, that field's label is already the useful part and repeating it is
     // just noise.
@@ -171,6 +175,12 @@ function openDialog<T>(config: DialogConfig<T>): Promise<T> {
     const toFocus = initialFocus ?? confirmButton;
     toFocus.focus();
     if (toFocus instanceof HTMLInputElement) toFocus.select();
+    // A window opened from a pointer press, a double click on the sheet, has
+    // focus taken straight back by the browser when the press finishes. Without
+    // asking again the keyboard would act on the page underneath.
+    window.setTimeout(() => {
+      if (!closed && !dialog.contains(document.activeElement)) toFocus.focus();
+    }, 0);
   });
 }
 

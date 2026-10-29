@@ -73,7 +73,8 @@ export function copySelection(doc: HarnessDoc, selection: readonly Selection[]):
       if (inline && once(inline.id)) clip.inlines.push(structuredCopy(inline));
     } else if (sel.type === "table") {
       const table = doc.tables.find((t) => t.id === sel.id);
-      if (table && table.kind !== "title" && once(table.id)) clip.tables.push(structuredCopy(table));
+      // the title block and the housing and termination tables are one to a drawing
+      if (table && table.kind === "table" && once(table.id)) clip.tables.push(structuredCopy(table));
     }
   }
   return clip;
