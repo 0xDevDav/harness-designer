@@ -391,6 +391,10 @@ body {
     border-color 0.12s ease,
     color 0.12s ease;
 }
+/* `display: inline-flex` above would otherwise win over the browser's own rule for the hidden attribute */
+.btn[hidden] {
+  display: none;
+}
 .btn:hover {
   background: var(--surface-3);
 }
