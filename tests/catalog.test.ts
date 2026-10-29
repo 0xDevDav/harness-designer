@@ -5,6 +5,7 @@ import {
   contactGenders,
   fitCavityRows,
   housingCavities,
+  namesATermination,
   nameIsFree,
   removeEntry,
   renameEntry,
@@ -13,11 +14,12 @@ import {
   totalUsage,
   usageOf,
 } from "@/core/catalog";
-import { normalizeDoc, tableColumns } from "@/core/doc";
-import { cavityTable, catalogTable } from "@/core/factories";
+import { cavityTables, isCavityTable, normalizeDoc, ownerName, spliceNode, tableColumns } from "@/core/doc";
+import { cavityTable, catalogTable, notesTable, revisionsTable, wireListHeadings } from "@/core/factories";
 import { Store } from "@/core/store";
 import { validateDoc } from "@/core/validate";
 import { en } from "@/i18n/en";
+import { it as italian } from "@/i18n/it";
 import type { HarnessDoc, Table } from "@/core/types";
 
 const t = (key: string, params: Record<string, string | number> = {}): string =>
@@ -520,5 +522,117 @@ describe("what the consistency check says about housings", () => {
   it("does not flag pins alone, or sockets alone", () => {
     expect(about(contacts("pin", "pin"), "c1")).toEqual([]);
     expect(about(contacts("socket", "socket"), "c1")).toEqual([]);
+  });
+});
+
+describe("the templates in both languages", () => {
+  const translators = {
+    en: (key: string): string => (en as Record<string, string>)[key] ?? key,
+    it: (key: string): string => (italian as Record<string, string>)[key] ?? key,
+  };
+
+  for (const [name, tr] of Object.entries(translators)) {
+    it(`recognises the termination column of its own cavity table in ${name}`, () => {
+      const table = cavityTable(tr, 0, 0);
+      const cols = tableColumns(table);
+      expect(cols.termination).toBeDefined();
+      expect(cols.cavity).toBe(0);
+      expect(cols.dest).toBeDefined();
+      expect(isCavityTable(table)).toBe(true);
+    });
+  }
+});
+
+describe("which tables are cavity tables", () => {
+  it("is not the notes, the revisions or the wire list", () => {
+    const tr = (key: string): string => (en as Record<string, string>)[key] ?? key;
+    expect(isCavityTable(notesTable(tr as never, 0, 0))).toBe(false);
+    expect(isCavityTable(revisionsTable(tr as never, 0, 0))).toBe(false);
+    const wireList: Table = {
+      id: "w",
+      x: 0,
+      y: 0,
+      kind: "table",
+      head: wireListHeadings(tr),
+      rows: [["1", "A.1", "B.2", "", "", "", ""]],
+    };
+    expect(isCavityTable(wireList)).toBe(false);
+  });
+
+  it("is not a catalogue or the title block", () => {
+    const doc = drawing();
+    expect(isCavityTable(catalogOf(doc, "housings") as Table)).toBe(false);
+  });
+});
+
+describe("making a connector a splice", () => {
+  const withTable = (title: string): HarnessDoc =>
+    normalizeDoc({
+      nodes: [
+        { id: "n5", x: 0, y: 0, kind: "connector", name: "C5", style: "plug" },
+        { id: "n9", x: 100, y: 0, kind: "connector", name: "C9", style: "plug" },
+      ],
+      segments: [{ id: "s", a: "n5", b: "n9", len: "", refs: "" }],
+      tables: [
+        {
+          id: "t5",
+          node: "n5",
+          x: 0,
+          y: 0,
+          kind: "table",
+          title,
+          head: ["Cavity", "Dest"],
+          rows: [["1", "C9.1"]],
+        },
+        {
+          id: "t9",
+          node: "n9",
+          x: 0,
+          y: 0,
+          kind: "table",
+          title: "C9",
+          head: ["Cavity", "Dest"],
+          rows: [["1", "C5.1"]],
+        },
+      ],
+    });
+
+  it("leaves the table on the sheet under the old name, so the wires to it still reach it", () => {
+    const doc = withTable("C5");
+    expect(spliceNode(doc, "n5")).toBe(true);
+    const node = doc.nodes.find((n) => n.id === "n5");
+    expect(node).toMatchObject({ kind: "connector", style: "splice", name: "S1" });
+    const table = doc.tables.find((tb) => tb.id === "t5") as Table;
+    expect(table.node).toBeUndefined();
+    expect(ownerName(doc, table)).toBe("C5");
+    // C9 still says C5.1, and C5 is still there to be that
+    expect(cavityTables(doc).some((ct) => ct.owner === "C5")).toBe(true);
+  });
+
+  it("keeps a table that was known by something else answering to the connector's name", () => {
+    const doc = withTable("Engine ECU");
+    spliceNode(doc, "n5");
+    const table = doc.tables.find((tb) => tb.id === "t5") as Table;
+    expect(table.title).toBe("C5 Engine ECU");
+    expect(ownerName(doc, table)).toBe("C5");
+  });
+
+  it("keeps the name of a splice that already has one, and takes a node with no table as it is", () => {
+    const doc = normalizeDoc({
+      nodes: [{ id: "x", x: 0, y: 0, kind: "junction", name: "J1" }],
+    });
+    spliceNode(doc, "x");
+    expect(doc.nodes[0]).toMatchObject({ style: "splice", name: "J1" });
+    expect(spliceNode(doc, "missing")).toBe(false);
+  });
+});
+
+describe("a table that names a termination", () => {
+  it("says so when any cavity has one", () => {
+    const doc = drawing();
+    const c1 = doc.tables.find((tb) => tb.id === "c1") as Table;
+    expect(namesATermination(c1)).toBe(true);
+    c1.rows = [["1", "", "", ""]];
+    expect(namesATermination(c1)).toBe(false);
   });
 });

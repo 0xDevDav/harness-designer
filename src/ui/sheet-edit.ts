@@ -7,6 +7,7 @@ import {
   findSegment,
   findTable,
   isAutoLinkEnabled,
+  isCavityTable,
   nodeForTable,
   renameNode,
   segmentEnds,
@@ -115,7 +116,7 @@ function editTable(app: AppContext, id: string, row?: number, col?: number): boo
   if (row >= 0 && isCatalog(table) && isDerivedColumn(table.kind, col)) return false;
 
   // a cavity's termination is picked from the termination table, not typed
-  if (row >= 0 && table.kind === "table" && col === tableColumns(table).termination) {
+  if (row >= 0 && isCavityTable(table) && col === tableColumns(table).termination) {
     void assignTermination(app, id, row);
     return true;
   }
