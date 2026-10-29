@@ -147,8 +147,6 @@ export function autoLinkRow(doc: HarnessDoc, tableId: string, rowIndex: number):
 
   const target = tables.find((c) => c.owner === dest.connector);
   if (!target) {
-    // the wire goes to a connector with no table: it is still a new wire
-    applyWireDefaults(row, source.cols, doc.defaults);
     return { status: "no-target-table", from, to };
   }
   if (target.table.id === source.table.id) return { status: "no-destination", from, to };
@@ -176,9 +174,6 @@ export function autoLinkRow(doc: HarnessDoc, tableId: string, rowIndex: number):
   const already = !!existing;
   if (!already) {
     writeDest(targetRow, target.cols, { connector: source.owner, cavity });
-    // a wire that is new at both ends starts from the defaults, and the far end
-    // takes them from this one just below
-    applyWireDefaults(row, source.cols, doc.defaults);
   }
 
   const updatedFields: ("color" | "section" | "type")[] = [];
@@ -225,4 +220,27 @@ export function rowHasDestination(table: Table, rowIndex: number): boolean {
   const cols = tableColumns(table);
   const row = table.rows[rowIndex];
   return !!row && !!cell(row, cols.cavity) && !!resolveDest(row, cols);
+}
+
+/**
+ * Gives the wire a row has just been given its starting colour, size and type,
+ * from the drawing's defaults. Called where a wire is born, once the link is
+ * made: a destination typed into an empty cell. Never by the linking itself,
+ * which runs after every edit and would fill again a cell somebody emptied.
+ * Mutates the document, so it must be called from inside a store edit.
+ */
+export function applyBirthDefaults(doc: HarnessDoc, tableId: string, rowIndex: number): void {
+  if (!doc.defaults) return;
+  const tables = cavityTables(doc);
+  const source = tables.find((c) => c.table.id === tableId);
+  const row = source?.table.rows[rowIndex];
+  if (!source || !row) return;
+  const dest = resolveDest(row, source.cols);
+  const target = dest ? tables.find((c) => c.owner === dest.connector) : undefined;
+  const farRow = dest && target?.table.rows.find((r) => cell(r, target.cols.cavity) === dest.cavity);
+  applyWireDefaults(
+    { row, cols: source.cols },
+    target && farRow ? { row: farRow, cols: target.cols } : null,
+    doc.defaults,
+  );
 }

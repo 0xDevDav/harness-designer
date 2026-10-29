@@ -1,5 +1,5 @@
 import type { AppContext } from "@/app/context";
-import { autoLinkRow, rowHasDestination } from "@/core/autolink";
+import { applyBirthDefaults, autoLinkRow, rowHasDestination } from "@/core/autolink";
 import { isCatalog, isDerivedColumn, nameIsFree, renameEntry } from "@/core/catalog";
 import {
   findInline,
@@ -183,6 +183,9 @@ function commitCell(app: AppContext, id: string, row: number, col: number, value
 
   let refused: TitleProblem | null = null;
   let owner = "";
+  // a destination written into a row that had none makes a new wire
+  const before = findTable(app.store.doc, id);
+  const hadWire = !!before && row >= 0 && rowHasDestination(before, row);
   const changed = app.store.edit((doc) => {
     const table = findTable(doc, id);
     if (!table) return;
@@ -211,11 +214,11 @@ function commitCell(app: AppContext, id: string, row: number, col: number, value
     app.toast.error(app.t(refused === "taken" ? "toast.titleTaken" : "toast.titleUnlinked", { name: owner }));
     return;
   }
-  if (changed && row >= 0) runAutoLink(app, id, row);
+  if (changed && row >= 0) runAutoLink(app, id, row, !hadWire);
 }
 
 /** Mutual linking after a row is edited, along with its feedback. */
-export function runAutoLink(app: AppContext, tableId: string, rowIndex: number): void {
+export function runAutoLink(app: AppContext, tableId: string, rowIndex: number, newWire = false): void {
   const { t } = app;
   const table = findTable(app.store.doc, tableId);
   if (!table || table.kind !== "table" || !isAutoLinkEnabled(table)) return;
@@ -227,6 +230,10 @@ export function runAutoLink(app: AppContext, tableId: string, rowIndex: number):
   let fields: string[] = [];
   app.store.edit((doc) => {
     const result = autoLinkRow(doc, tableId, rowIndex);
+    // only a wire made by this edit starts from the defaults
+    if (newWire && (result.status === "linked" || result.status === "no-target-table")) {
+      applyBirthDefaults(doc, tableId, rowIndex);
+    }
     status = result.status;
     to = result.to ?? "";
     conflictWith = result.conflictWith ?? "";
