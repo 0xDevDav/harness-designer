@@ -25,10 +25,14 @@ All notable changes to this project are documented here. The format follows
   cavity, or another connector, to move it there; drag from a free cavity onto
   another to make a wire. The cavity under the pointer is outlined, in red when
   it already has a wire. The cavity tables at both ends are rewritten as if
-  typed, the colour and size go with the wire, and it is one undo step.
+  typed, the colour and size go with the wire, and it is one undo step. When
+  the two cavities describe the wire differently (another colour or size), a
+  window asks whose details it takes, or offers to join them through a new
+  splice so that each keeps its own; Cancel leaves everything as it was.
 - **Delete wire**: right-click a wire in the schematic, or pick it and press
-  Delete. Both cavities let go of it (colour and size go with it; function
-  and notes stay), as one undo step.
+  Delete. Both cavities let go of it and nothing else changes: the colour,
+  size, function and notes stay in the row, so putting a wire back finds them
+  there. One undo step.
 - **Wires can start from a splice** (or any connector with no cavities) in the
   schematic: hover it and drag from the dot on either side onto a cavity.
 - **Right click a wire in the schematic** to change its colour, with the same

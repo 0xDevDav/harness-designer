@@ -394,7 +394,7 @@ export const it = {
     "Mentre modifichi una cella: <b>Tab</b> passa alla successiva, <b>Invio</b> scende, <b>Esc</b> annulla.",
   "guide.branch": "<b>B</b> o tasto destro sul vuoto per disegnare un ramo; Esc per terminare.",
   "guide.rewire":
-    "<b>Nello schema</b>, trascina l'estremità di un filo su un'altra cavità o su un altro connettore per spostarlo lì, oppure trascina da una cavità libera (il punto compare passandoci sopra con il puntatore) su un'altra per fare un filo nuovo. Il contorno rosso indica che la cavità ha già un filo. Seleziona un filo e premi <b>Canc</b>, o fai clic destro, per eliminarlo.",
+    "<b>Nello schema</b>, trascina l'estremità di un filo su un'altra cavità o su un altro connettore per spostarlo lì, oppure trascina da una cavità libera (il punto compare passandoci sopra con il puntatore) su un'altra per fare un filo nuovo. Il contorno rosso indica che la cavità ha già un filo. Seleziona un filo e premi <b>Canc</b>, o fai clic destro, per eliminarlo. Se le due cavità descrivono il filo in modo diverso ti viene chiesto quali dati prende, o se unirle con un nuovo splice.",
   "guide.drag": "Trascina gli elementi per spostarli; trascina il vuoto per la vista, rotella per lo zoom.",
   "guide.copy": "<b>Ctrl+C</b> copia la selezione, <b>Ctrl+V</b> ne rimette una uguale dov'è il puntatore.",
   "guide.keys": "<b>Canc</b> elimina la selezione, <b>Ctrl+Z</b> annulla, <b>Ctrl+K</b> cerca un comando.",
@@ -480,6 +480,13 @@ export const it = {
     "Non sostituito: un connettore non può restare senza nome né prendere il nome di un altro, e una tabella non può prendere il nome di un'altra tabella né perdere quello del suo connettore.",
   "cmd.find": "Trova…",
   "cmd.replace": "Trova e sostituisci…",
+  "dialog.wireDetails.title": "Le due cavità descrivono il filo in modo diverso",
+  "dialog.wireDetails.body":
+    "{start} e {target} non concordano su com'è il filo. Scegli quali dati prende, oppure unile con un nuovo splice in modo che ognuna tenga i suoi.",
+  "dialog.wireDetails.start": "Usa i dati di {name}",
+  "dialog.wireDetails.target": "Usa i dati di {name}",
+  "dialog.wireDetails.splice": "Unisci con un nuovo splice",
+  "toast.rewire.splice": "{from} e {to} unite con il nuovo splice {splice}",
   "toast.rewire.moved": "Filo {from} spostato su {to}",
   "toast.rewire.made": "{from} collegato a {to}",
   "toast.rewire.occupied": "{to} ha già un filo, verso {other}",

@@ -107,8 +107,20 @@ export interface PromptOptions {
   placeholder?: string;
 }
 
+/** A window that asks for one of several answers; the first choice is the one Enter gives. */
+export interface ChooseOptions<T> {
+  title: string;
+  body: string;
+  /** a small table under the text: the first row is the heading */
+  rows?: string[][];
+  choices: { label: string; value: T }[];
+  cancelLabel?: string;
+}
+
 export interface DialogsApi {
   confirm(options: ConfirmOptions): Promise<boolean>;
+  /** Which of the choices, or null when the window is cancelled. */
+  choose<T>(options: ChooseOptions<T>): Promise<T | null>;
   prompt(options: PromptOptions): Promise<string | null>;
   alert(options: { title: string; body: string }): Promise<void>;
 }

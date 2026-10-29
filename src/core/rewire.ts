@@ -1,7 +1,22 @@
 import { autoLinkRow, insertCavityRow } from "./autolink";
-import { DEST_RE, NOT_CONNECTED_RE, cavityTables, cell, resolveDest, writeDest } from "./doc";
+import { wireColorKey } from "./colors";
+import {
+  DEST_RE,
+  NOT_CONNECTED_RE,
+  cavityTables,
+  cell,
+  connectNodes,
+  findNode,
+  findSegment,
+  nextName,
+  resolveDest,
+  splitSegment,
+  writeDest,
+} from "./doc";
 import type { CavityTable } from "./doc";
-import type { HarnessDoc } from "./types";
+import { uid } from "./ids";
+import { findPath, namedNodes, pathNodes } from "./routing";
+import type { HarnessDoc, HNode } from "./types";
 
 /**
  * Connecting and re-connecting wires.
@@ -107,15 +122,116 @@ function writeEnd(f: Found, to: End): void {
   if (cols.destPin !== undefined) f.row[cols.destPin] = "";
 }
 
-function clearEnd(f: Found): void {
+/**
+ * Lets go of the wire a row has. The colour and size go too unless
+ * `keepDetails`: they belong to the wire when it is moved, and stay with the
+ * cavity when the wire is taken out, so putting a wire back finds them there.
+ */
+function clearEnd(f: Found, keepDetails = false): void {
   const { cols } = f.ct;
   while (f.row.length < width(f.ct)) f.row.push("");
   f.row[cols.dest] = "";
   if (cols.destPin !== undefined) f.row[cols.destPin] = "";
+  if (keepDetails) return;
   for (const prop of PROPS) {
     const col = cols[prop];
     if (col !== undefined) f.row[col] = "";
   }
+}
+
+/** Gives the loser the details the winner has, wherever the winner has one. */
+function adopt(winner: Found, loser: Found): void {
+  for (const prop of PROPS) {
+    const to = loser.ct.cols[prop];
+    const value = cell(winner.row, winner.ct.cols[prop]);
+    if (to === undefined || isBlank(value)) continue;
+    while (loser.row.length <= to) loser.row.push("");
+    loser.row[to] = value;
+  }
+}
+
+/**
+ * Which cavity's colour and size a wire takes when the two it joins disagree:
+ * `start` is the cavity the wire comes from, `target` the one it is dropped on.
+ */
+export type Prefer = "start" | "target";
+
+/** What is being done to a wire: one of its ends is moved, or a new wire starts at a cavity. */
+export type WireOp =
+  { kind: "move"; ends: readonly [string, string]; moving: 0 | 1 } | { kind: "new"; from: string };
+
+export interface DetailDifference {
+  /** the column's heading, as the start's table writes it */
+  label: string;
+  start: string;
+  target: string;
+}
+
+/** Two cavities about to share a wire that they describe differently. */
+export interface DetailsConflict {
+  start: string;
+  target: string;
+  differences: DetailDifference[];
+}
+
+/** The same text once spelled the way the tables vary it: case, spaces, a decimal comma. */
+const plain = (v: string): string => v.trim().toLowerCase().replace(/\s+/g, " ").replace(/,/g, ".");
+
+function sameDetail(prop: Prop, a: string, b: string): boolean {
+  if (prop === "color") {
+    const ka = wireColorKey(a);
+    const kb = wireColorKey(b);
+    if (ka && kb) return ka === kb;
+  }
+  return plain(a) === plain(b);
+}
+
+/** The end that stays and the end that is let go, for an operation; the latter only when a wire is moved. */
+function endsOfOp(op: WireOp): { kept: End | null; old: End | null } {
+  if (op.kind === "new") return { kept: parseEnd(op.from), old: null };
+  return { kept: parseEnd(op.ends[op.moving === 0 ? 1 : 0]), old: parseEnd(op.ends[op.moving]) };
+}
+
+/** The colour and size the wire has: those of the end that stays, or of the one it leaves if that has none. */
+function wireDetails(tables: readonly CavityTable[], kept: End, old: End | null): Record<Prop, string> {
+  const fk = rowOf(tables, kept);
+  const fo = old ? rowOf(tables, old) : null;
+  const out = {} as Record<Prop, string>;
+  for (const prop of PROPS) {
+    const own = fk ? cell(fk.row, fk.ct.cols[prop]) : "";
+    const left = fo ? cell(fo.row, fo.ct.cols[prop]) : "";
+    out[prop] = isBlank(own) ? (isBlank(left) ? "" : left) : own;
+  }
+  return out;
+}
+
+/**
+ * What the wire and the cavity it is dropped on disagree about, or null when
+ * they agree or one of them has nothing to say. A blank is not a disagreement:
+ * it takes what the other has, as it always did.
+ */
+export function detailsConflict(doc: HarnessDoc, op: WireOp, to: string): DetailsConflict | null {
+  const { kept, old } = endsOfOp(op);
+  const target = parseEnd(to);
+  if (!kept || !target?.cavity) return null;
+  const tables = cavityTables(doc);
+  const ft = rowOf(tables, target);
+  if (!ft) return null;
+  const mine = wireDetails(tables, kept, old);
+  const fk = rowOf(tables, kept) ?? (old ? rowOf(tables, old) : null);
+  const differences: DetailDifference[] = [];
+  for (const prop of PROPS) {
+    const col = ft.ct.cols[prop];
+    const theirs = cell(ft.row, col);
+    if (isBlank(mine[prop]) || isBlank(theirs) || sameDetail(prop, mine[prop], theirs)) continue;
+    const heading = fk?.ct.cols[prop] === undefined ? undefined : fk.ct.table.head?.[fk.ct.cols[prop]];
+    differences.push({
+      label: heading ?? ft.ct.table.head?.[col ?? 0] ?? prop,
+      start: mine[prop],
+      target: theirs,
+    });
+  }
+  return differences.length ? { start: endLabel(kept), target: endLabel(target), differences } : null;
 }
 
 /** Puts a wire property in a row that has nothing there yet, a dash included. */
@@ -137,7 +253,7 @@ function occupant(f: Found | null, other: End): string | null {
  * Makes a wire between two ends that have none. Mutates the document, so it has
  * to be called from inside a store edit.
  */
-export function connectEnds(doc: HarnessDoc, from: string, to: string): RewireOutcome {
+export function connectEnds(doc: HarnessDoc, from: string, to: string, prefer?: Prefer): RewireOutcome {
   const a = parseEnd(from);
   const b = parseEnd(to);
   if (!a || !b) return { ok: false, reason: "no-end" };
@@ -155,14 +271,26 @@ export function connectEnds(doc: HarnessDoc, from: string, to: string): RewireOu
   if (!row) return { ok: false, reason: "no-table" };
   writeEnd(row, far);
   autoLinkRow(doc, row.ct.table.id, row.index);
+  if (prefer) settle(doc, a, b, prefer);
   return { ok: true };
+}
+
+/** Makes the two cavities of a wire agree about it, the preferred one's details winning. */
+function settle(doc: HarnessDoc, start: End, target: End, prefer: Prefer): void {
+  const tables = cavityTables(doc);
+  const fs = rowOf(tables, start);
+  const ft = rowOf(tables, target);
+  if (!fs || !ft) return;
+  if (prefer === "start") adopt(fs, ft);
+  else adopt(ft, fs);
 }
 
 /**
  * Takes a wire out: both cavities let go of it. Each end is cleared only if it
  * really points at the other, so a table that disagrees about the wire is not
- * made to lose a different one. The colour and size go with the wire; the
- * function and notes describe the cavity and stay.
+ * made to lose a different one. What the cavity says about the wire — colour,
+ * size, function, notes — stays, so that putting the wire back, or another one
+ * in its place, does not start from an empty row.
  *
  * Returns how many rows were cleared, zero when the tables hold no such wire.
  */
@@ -178,7 +306,7 @@ export function disconnectWire(doc: HarnessDoc, ends: readonly [string, string])
   ] as const) {
     const row = rowOf(tables, mine);
     if (row && destText(row) === endLabel(other)) {
-      clearEnd(row);
+      clearEnd(row, true);
       cleared++;
     }
   }
@@ -199,6 +327,7 @@ export function moveWireEnd(
   ends: readonly [string, string],
   moving: 0 | 1,
   to: string,
+  prefer?: Prefer,
 ): RewireOutcome {
   const kept = parseEnd(ends[moving === 0 ? 1 : 0]);
   const old = parseEnd(ends[moving]);
@@ -238,5 +367,76 @@ export function moveWireEnd(
     writeEnd(row, kept);
     for (const prop of PROPS) fill(row, prop, props[prop]);
   }
+  if (prefer) settle(doc, kept, target, prefer);
   return { ok: true };
+}
+
+/**
+ * Joins a wire to a cavity through a new splice instead of making one wire of
+ * the two: the cavity that stays and the one the wire is dropped on each keep
+ * their own colour and size and each send a wire to the splice. The splice is
+ * put on the sheet where it is on the way, at the nearest junction between
+ * the two connectors, so that both wires can be followed to it.
+ */
+export function connectViaSplice(
+  doc: HarnessDoc,
+  op: WireOp,
+  to: string,
+): RewireOutcome & { splice?: string } {
+  const { kept, old } = endsOfOp(op);
+  const target = parseEnd(to);
+  if (!kept?.cavity || !target?.cavity || (op.kind === "move" && !old))
+    return { ok: false, reason: "no-end" };
+  if (old && endLabel(target) === endLabel(old)) return { ok: false, reason: "unchanged" };
+  if (target.connector === kept.connector) return { ok: false, reason: "same-connector" };
+
+  const tables = cavityTables(doc);
+  const fk = rowOf(tables, kept);
+  const ft = rowOf(tables, target);
+  if (!fk || !ft) return { ok: false, reason: "no-table" };
+  // the cavity that stays has its wire only when that wire is the one being moved
+  const taken = destText(ft) || (op.kind === "new" ? destText(fk) : "");
+  if (taken) return { ok: false, reason: "occupied", other: taken };
+
+  const fo = old ? rowOf(tables, old) : null;
+  const splice = addSpliceBetween(doc, kept.connector, target.connector);
+  if (fo) clearEnd(fo);
+  writeEnd(fk, { connector: splice });
+  writeEnd(ft, { connector: splice });
+  return { ok: true, splice };
+}
+
+/**
+ * A new splice on the sheet, on the way from one connector to the other: a
+ * leaf off the first junction the bundle passes through, or off a junction put
+ * in the middle of the first branch when it passes through none. When the two
+ * connectors are not joined at all it is put by the first one and left for
+ * the check to say that no branch reaches it.
+ */
+function addSpliceBetween(doc: HarnessDoc, from: string, to: string): string {
+  const names = namedNodes(doc);
+  const a = names.get(from);
+  const b = names.get(to);
+  let anchor: HNode | undefined;
+  const path = a && b ? findPath(doc, a.id, b.id) : null;
+  if (a && path?.length) {
+    const along = pathNodes(doc, a.id, path).slice(1, -1);
+    anchor = along.map((id) => findNode(doc, id)).find((n) => n?.kind === "junction");
+    const first = findSegment(doc, path[0] ?? "");
+    if (!anchor && first) anchor = splitSegment(doc, first, 0.5) ?? undefined;
+  }
+  const at = anchor ?? a;
+  const name = nextName(doc, "S");
+  const node: HNode = {
+    id: uid("n"),
+    x: (at?.x ?? 0) + (anchor ? 0 : 80),
+    y: (at?.y ?? 0) + 70,
+    kind: "connector",
+    name,
+    style: "splice",
+    refs: "",
+  };
+  doc.nodes.push(node);
+  if (anchor) connectNodes(doc, anchor.id, node.id);
+  return name;
 }
