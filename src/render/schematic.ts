@@ -26,7 +26,7 @@ import { clamp } from "@/core/geometry";
 import type { Store } from "@/core/store";
 import type { Point, Rect, Viewport } from "@/core/types";
 import type { Translate } from "@/i18n";
-import { palette } from "./palette";
+import { palette, wireHalo } from "./palette";
 import { sameView } from "./renderer";
 import { el, ellipsize, text, textWidth } from "./svg";
 import { filletedPath } from "./wires";
@@ -484,6 +484,21 @@ export class SchematicRenderer {
       el(
         "path",
         { ...shape, stroke: palette().selection, "stroke-width": WIRE_W + 5, opacity: 0.45 },
+        parent,
+      );
+    }
+    // a black wire on the dark sheet is outlined, or it cannot be followed
+    const halo = wireHalo(base);
+    if (halo) {
+      el(
+        "path",
+        {
+          ...shape,
+          stroke: halo,
+          "stroke-width": WIRE_W + 2.6,
+          opacity: dimmed ? 0.12 : 0.85,
+          "pointer-events": "none",
+        },
         parent,
       );
     }

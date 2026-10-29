@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Black wires show in the dark theme.** A wire that is black or nearly so gets
+  a light edge, in the schematic and on the sheet, and no other colour is
+  touched. Export and print are unchanged.
+
 ## [1.2.0]
 
 ### Added
