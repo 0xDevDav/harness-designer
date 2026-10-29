@@ -42,9 +42,9 @@ All notable changes to this project are documented here. The format follows
   existing drawings; a table the wider one now lies on is pushed to the right
   just far enough to clear it, so the layout stays as it was.
   Only a column headed _Wire type_ (or _Tipo filo_) counts: a column called just
-  _Type_ is left alone, since older sheets use it for something else. The check warns when the two ends of a wire
-  declare different wire types, as it does for colour and section.
-  _Type_ is left alone, since older sheets use it for something else.
+  _Type_ is left alone, since older sheets use it for something else. The check
+  warns when the two ends of a wire declare different wire types, as it does for
+  colour and section.
 - **Dragging wires in the schematic.** Drag the end of a wire onto another
   cavity, or another connector, to move it there; drag from a free cavity onto
   another to make a wire. The cavity under the pointer is outlined, in red when
@@ -63,9 +63,12 @@ All notable changes to this project are documented here. The format follows
   standard colour picker the sheet uses. The colour is written into the cavity
   tables at both ends of the wire.
 - **Defaults** in the bar: wire size, wire type and wire colour. A wire starts
-  from them when it is connected, in the schematic or by typing a destination
-  in a table. They only fill empty cells, are saved with the drawing, and the
-  size follows a change of unit.
+  from them when it is made, by connecting it in the schematic or by typing a
+  destination into an empty cell, and only then: a wire that is already there,
+  or one that is moved, keeps the cells it has, empty ones included. They fill
+  only what neither end of the wire says anything about, so the two ends never
+  disagree, are saved with the drawing, and the size follows a change of unit
+  (the window that warns about rounding lists it).
 
 ## [1.2.0]
 

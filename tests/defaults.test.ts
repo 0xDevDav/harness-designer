@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyWireDefaults, normalizeDefaults, setDefaults } from "@/core/defaults";
-import { autoLinkRow } from "@/core/autolink";
+import { applyBirthDefaults, autoLinkRow } from "@/core/autolink";
 import { normalizeDoc, tableColumns } from "@/core/doc";
 import { connectEnds } from "@/core/rewire";
 import { setWireUnit } from "@/core/wiresize";
@@ -75,26 +75,35 @@ describe("setDefaults", () => {
 
 describe("applyWireDefaults", () => {
   const cols = tableColumns({ id: "t", x: 0, y: 0, kind: "table", head: HEAD, rows: [] });
+  const defaults = { color: "red", size: "1.5", type: "GXL" };
 
   it("fills what is empty and nothing that is written", () => {
     const row = ["1", "B.1", "", "Blue", "", ""];
-    applyWireDefaults(row, cols, { color: "red", size: "1.5", type: "GXL" });
+    applyWireDefaults({ row, cols }, null, defaults);
     expect(row).toEqual(["1", "B.1", "", "Blue", "1.5", "GXL"]);
   });
 
   it("treats a dash as empty", () => {
     const row = ["1", "B.1", "", "-", "–", "-"];
-    applyWireDefaults(row, cols, { color: "red", size: "1.5", type: "GXL" });
+    applyWireDefaults({ row, cols }, null, defaults);
     expect(row).toEqual(["1", "B.1", "", "red", "1.5", "GXL"]);
   });
 
   it("pads a short row, and does nothing with no defaults", () => {
     const row = ["1"];
-    applyWireDefaults(row, cols, { color: "", size: "", type: "GXL" });
+    applyWireDefaults({ row, cols }, null, { color: "", size: "", type: "GXL" });
     expect(row[5]).toBe("GXL");
     const same = ["1"];
-    applyWireDefaults(same, cols, undefined);
+    applyWireDefaults({ row: same, cols }, null, undefined);
     expect(same).toEqual(["1"]);
+  });
+
+  it("fills both ends alike, and a property one end already has is left to that end", () => {
+    const near = ["1", "B.1", "", "", "", ""];
+    const far = ["1", "A.1", "", "Blue", "", "-"];
+    applyWireDefaults({ row: near, cols }, { row: far, cols }, defaults);
+    expect(near.slice(3)).toEqual(["", "1.5", "GXL"]); // the colour is the far end's to give
+    expect(far.slice(3)).toEqual(["Blue", "1.5", "GXL"]);
   });
 });
 
@@ -133,6 +142,7 @@ describe("a new wire starts from the defaults", () => {
     const doc = harness(defaults);
     rowOf(doc, "ta", "1")[1] = "B.1";
     expect(autoLinkRow(doc, "ta", 0).status).toBe("linked");
+    applyBirthDefaults(doc, "ta", 0); // what the edit that wrote the destination goes on to do
     expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["red", "1.5", "GXL"]);
     expect(rowOf(doc, "tb", "1").slice(3)).toEqual(["red", "1.5", "GXL"]);
   });
@@ -144,6 +154,19 @@ describe("a new wire starts from the defaults", () => {
     doc.defaults = defaults;
     expect(autoLinkRow(doc, "ta", 0).status).toBe("already");
     expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["", "", ""]);
+  });
+
+  it("but not by the linking that follows every edit: a size somebody cleared stays cleared", () => {
+    const doc = harness(defaults);
+    // a wire to a connector that has no table, its size cleared on purpose
+    rowOf(doc, "ta", "1").splice(1, 5, "G1.1", "Power", "Red", "", "");
+    expect(autoLinkRow(doc, "ta", 0).status).toBe("no-target-table");
+    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["Red", "", ""]);
+    // and not on Realign, nor on a link that was only made now by a move
+    doc.tables[1]!.rows[0]![1] = "";
+    rowOf(doc, "ta", "2")[1] = "B.1";
+    expect(autoLinkRow(doc, "ta", 1).status).toBe("linked");
+    expect(rowOf(doc, "ta", "2").slice(3)).toEqual(["Blue", "", ""]);
   });
 
   it("not at all without defaults", () => {

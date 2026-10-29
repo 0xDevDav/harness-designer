@@ -35,24 +35,50 @@ export function setDefaults(
   else delete doc.defaults;
 }
 
-/** Fills the colour, size and type a wire row has none of, or has a dash for, with the defaults. Mutates the row. */
+/** A wire's row in a cavity table, with where its columns are. */
+export interface WireRow {
+  row: string[];
+  cols: TableColumns;
+}
+
+/** Nothing written, or a dash standing for it. */
+const blank = (row: string[], col: number): boolean => {
+  const written = String(row[col] ?? "").trim();
+  return !written || NOT_CONNECTED_RE.test(written);
+};
+
+/**
+ * Starts a new wire from the defaults: its colour, size and type, for each one
+ * that neither end says anything about, or has a dash for. A property that
+ * either end already has is left as it is, so the two ends never disagree and
+ * nothing written is changed. `far` is the cavity at the other end, when it has
+ * a table; it is given the same values. Mutates the rows.
+ *
+ * This is for a wire that has just been made, and only then: a wire that is
+ * already there, whose cell was left empty on purpose, is not to be filled
+ * again by a later edit.
+ */
 export function applyWireDefaults(
-  row: string[],
-  cols: TableColumns,
+  near: WireRow,
+  far: WireRow | null,
   defaults: WireDefaults | undefined,
 ): void {
   if (!defaults) return;
-  const wanted: ReadonlyArray<readonly [number | undefined, string]> = [
-    [cols.color, defaults.color],
-    [cols.section, defaults.size],
-    [cols.type, defaults.type],
-  ];
-  for (const [col, value] of wanted) {
-    if (col === undefined || !value) continue;
-    // a dash is a cell with nothing in it, as it is everywhere else in the tables
-    const written = String(row[col] ?? "").trim();
-    if (written && !NOT_CONNECTED_RE.test(written)) continue;
-    while (row.length <= col) row.push("");
-    row[col] = value;
+  const props = [
+    ["color", defaults.color],
+    ["section", defaults.size],
+    ["type", defaults.type],
+  ] as const;
+  for (const [prop, value] of props) {
+    if (!value) continue;
+    const sides = [near, far].flatMap((side) => {
+      const col = side?.cols[prop];
+      return side && col !== undefined ? [{ row: side.row, col }] : [];
+    });
+    if (!sides.length || !sides.every((side) => blank(side.row, side.col))) continue;
+    for (const { row, col } of sides) {
+      while (row.length <= col) row.push("");
+      row[col] = value;
+    }
   }
 }

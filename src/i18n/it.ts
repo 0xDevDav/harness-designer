@@ -491,7 +491,7 @@ export const it = {
   "cmd.defaults": "Valori predefiniti per nuovi fili…",
   "defaults.title": "Valori predefiniti",
   "defaults.intro":
-    "Da cosa parte un filo quando viene collegato. Vengono riempite solo le celle vuote: ciò che è già scritto non cambia.",
+    "I valori con cui parte un filo nuovo quando viene collegato. Vengono riempite solo le celle vuote: ciò che è già scritto non cambia.",
   "defaults.size": "Sezione del filo ({unit})",
   "defaults.type": "Tipo di filo",
   "defaults.color": "Colore del filo",
