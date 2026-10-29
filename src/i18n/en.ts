@@ -463,7 +463,7 @@ export const en = {
   "find.replaced": "Replaced in {n} places",
   "find.replacedOne": "Replaced in 1 place",
   "find.replacedHeld":
-    "Replaced in {n} places. {held} left as they were: a connector cannot take the name of another one, and what refers to it keeps its name.",
+    "Places replaced: {n}. Left as they were: {held}. A connector cannot take the name of another one, and what refers to it keeps its name.",
   "find.refused": "Not replaced: a connector cannot be left without a name or take the name of another one.",
   "cmd.find": "Find…",
   "cmd.replace": "Find and replace…",

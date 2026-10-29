@@ -469,7 +469,7 @@ export const it = {
   "find.replaced": "Sostituito in {n} punti",
   "find.replacedOne": "Sostituito in 1 punto",
   "find.replacedHeld":
-    "Sostituito in {n} punti. {held} lasciati come erano: un connettore non può prendere il nome di un altro, e ciò che vi fa riferimento tiene il suo nome.",
+    "Punti sostituiti: {n}. Lasciati invariati: {held}. Un connettore non può prendere il nome di un altro, e i riferimenti a quel connettore restano invariati.",
   "find.refused": "Non sostituito: un connettore non può restare senza nome né prendere il nome di un altro.",
   "cmd.find": "Trova…",
   "cmd.replace": "Trova e sostituisci…",

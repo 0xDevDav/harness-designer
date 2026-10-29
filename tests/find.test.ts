@@ -165,6 +165,24 @@ describe("replaceAll", () => {
     expect(doc.tables[1]?.rows[0]?.[1]).toBe("AA.1");
   });
 
+  it("does not rewrite a reference twice when the name contains the old one and the match is not whole", () => {
+    const doc = harness();
+    // "A" is also a bare part of "A.1", "A.2" and the title: the rename has done those already
+    replaceAll(doc, "A", "AX", opt({ whole: false, matchCase: true }));
+    expect(doc.nodes[0]?.name).toBe("AX");
+    expect(doc.tables[0]?.title).toBe("AX — Headlights");
+    expect(doc.tables[1]?.rows[0]?.[1]).toBe("AX.1");
+    expect(doc.tables[1]?.rows[1]?.[1]).toBe("AX.2");
+  });
+
+  it("counts the references a rename carried along as places changed", () => {
+    const doc = harness();
+    // the connector, its table title and the two cells that point at it, and the
+    // revision, which is "A" by default and is not about the connector
+    const result = replaceAll(doc, "A", "ALT", opt({ whole: true, matchCase: true }));
+    expect(result).toEqual({ changed: 5, held: 0 });
+  });
+
   it("refuses to give a connector the name another one has", () => {
     const doc = harness();
     replaceAll(doc, "A", "B", opt({ whole: true, matchCase: true }));

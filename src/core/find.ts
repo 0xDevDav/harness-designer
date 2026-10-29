@@ -165,11 +165,28 @@ export function replaceAt(
 }
 
 export interface ReplaceResult {
-  /** places that changed */
+  /** places that changed, the references a rename carried along included */
   changed: number;
   /** places left as they were because the connector they belong to could not be renamed */
   held: number;
 }
+
+/** What every table title and cell says, by where it is, so a pass can tell what it changed. */
+function textsOfTables(doc: HarnessDoc): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const table of doc.tables) {
+    out.set(`${table.id}|t`, table.title ?? "");
+    table.rows.forEach((row, r) => row.forEach((value, c) => out.set(`${table.id}|${r}|${c}`, value)));
+  }
+  return out;
+}
+
+const textKey = (target: FindTarget): string | null =>
+  target.kind === "title"
+    ? `${target.table}|t`
+    : target.kind === "cell"
+      ? `${target.table}|${target.row}|${target.col}`
+      : null;
 
 /**
  * Replaces the query everywhere it was found.
@@ -177,8 +194,12 @@ export interface ReplaceResult {
  * Connectors go first. Renaming one rewrites its table title and every
  * reference to it, and the rename can be refused (the name is taken, or would be
  * empty): when it is, the references to that connector keep the name it still
- * has, or they would end up pointing at some other connector. Every text is read
- * afresh, so a reference already rewritten by a rename is not rewritten twice.
+ * has, or they would end up pointing at some other connector.
+ *
+ * A title or cell that the renames already rewrote is not replaced in again:
+ * with a new name that contains the old one, `MAP.3` would go to `MAPX.3` and
+ * then, still finding `MAP`, to `MAPXX.3`. They are counted instead, so the
+ * number of places changed is what changed.
  */
 export function replaceAll(
   doc: HarnessDoc,
@@ -190,6 +211,7 @@ export function replaceAll(
   const result: ReplaceResult = { changed: 0, held: 0 };
   /** connectors that kept their name, by name, with the id of the node */
   const kept = new Map<string, string>();
+  const was = textsOfTables(doc);
 
   for (const target of hits) {
     if (target.kind !== "connector") continue;
@@ -202,6 +224,12 @@ export function replaceAll(
     }
   }
 
+  // what the renames rewrote on their way: the titles and references of the connectors
+  const now = textsOfTables(doc);
+  const carried = new Set<string>();
+  for (const [key, text] of now) if (was.get(key) !== text) carried.add(key);
+  result.changed += carried.size;
+
   const pointsAtKept = (target: FindTarget): boolean => {
     if (!kept.size) return false;
     if (target.kind === "title") return [...kept.values()].includes(findTable(doc, target.table)?.node ?? "");
@@ -212,6 +240,8 @@ export function replaceAll(
 
   for (const target of hits) {
     if (target.kind === "connector") continue;
+    const key = textKey(target);
+    if (key && carried.has(key)) continue;
     if (pointsAtKept(target)) {
       if (textOf(doc, target) !== undefined) result.held++;
       continue;
