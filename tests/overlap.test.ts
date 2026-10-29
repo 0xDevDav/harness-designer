@@ -3,7 +3,7 @@ import type { RendererApi } from "@/app/context";
 import { normalizeDoc } from "@/core/doc";
 import { freeSpot, overlaps, overlapsAny, separate } from "@/core/overlap";
 import type { Rect, Table } from "@/core/types";
-import { separateTables } from "@/ui/separate";
+import { separateTables, widenTables } from "@/ui/separate";
 
 const box = (x: number, y: number, w = 100, h = 50): Rect => ({ x, y, w, h });
 const at = (r: Rect, p: { x: number; y: number }): Rect => ({ ...r, x: p.x, y: p.y });
@@ -164,5 +164,85 @@ describe("separateTables", () => {
   it("moves nothing when the table that changed lies on nothing", () => {
     const doc = normalizeDoc({ tables: [table("a", 0, 0, 3), table("b", 400, 0, 3)] });
     expect(separateTables(doc, renderer(doc), true, ["a"])).toBe(0);
+  });
+});
+
+describe("widenTables", () => {
+  // the same renderer as above, defined again so this block stands on its own
+  const renderer = (doc: { tables: Table[] }): RendererApi =>
+    ({
+      entityBBox: (sel: { type: string; id: string }) => {
+        const t = doc.tables.find((x) => x.id === sel.id);
+        return t
+          ? { x: t.x - 4, y: t.y - 4, w: (t.head?.length ?? 1) * 60 + 8, h: (t.rows.length + 2) * 17 + 8 }
+          : null;
+      },
+    }) as unknown as RendererApi;
+  const table = (id: string, x: number, y: number, columns: number): Table => ({
+    id,
+    x,
+    y,
+    kind: "table",
+    head: Array.from({ length: columns }, (_, i) => `c${i}`),
+    rows: [["1"]],
+  });
+  const grow = (doc: { tables: Table[] }, ids: string[]) => (): string[] => {
+    for (const t of doc.tables) if (ids.includes(t.id)) t.head = [...(t.head ?? []), "new"];
+    return ids;
+  };
+
+  it("pushes the tables to the right just far enough to clear the table that got wider", () => {
+    const doc = normalizeDoc({ tables: [table("a", 0, 0, 3), table("b", 200, 0, 3), table("c", 400, 0, 3)] });
+    const [a, b, c] = doc.tables as [Table, Table, Table];
+    const result = widenTables(doc, renderer(doc), true, grow(doc, ["a"]));
+    expect(result).toEqual({ widened: ["a"], moved: 2 });
+    expect(a).toMatchObject({ x: 0 });
+    expect(b.x).toBe(260); // 60 wider
+    expect(c.x).toBe(460);
+  });
+
+  it("pushes a chain of tables along, each as far as the one before needs", () => {
+    const doc = normalizeDoc({ tables: [table("a", 0, 0, 3), table("b", 200, 0, 3), table("c", 400, 0, 3)] });
+    const [, b, c] = doc.tables as [Table, Table, Table];
+    widenTables(doc, renderer(doc), true, grow(doc, ["a", "b"]));
+    expect(b.x).toBe(260);
+    expect(c.x).toBe(520);
+  });
+
+  it("leaves tables of other rows and tables to the left where they are", () => {
+    const doc = normalizeDoc({
+      tables: [
+        table("a", 200, 0, 3),
+        table("left", 0, 0, 3),
+        table("below", 200, 300, 3),
+        table("up", 400, -300, 3),
+      ],
+    });
+    widenTables(doc, renderer(doc), true, grow(doc, ["a"]));
+    expect(doc.tables.map((t) => [t.id, t.x])).toEqual([
+      ["a", 200],
+      ["left", 0],
+      ["below", 200],
+      ["up", 400],
+    ]);
+  });
+
+  it("leaves a table that is still clear of the wider one where it is", () => {
+    const doc = normalizeDoc({ tables: [table("a", 0, 0, 3), table("b", 400, 0, 3)] });
+    const [, b] = doc.tables as [Table, Table];
+    expect(widenTables(doc, renderer(doc), true, grow(doc, ["a"]))).toEqual({ widened: ["a"], moved: 0 });
+    expect(b.x).toBe(400);
+  });
+
+  it("keeps the moved tables on the grid", () => {
+    const doc = normalizeDoc({ tables: [table("a", 0, 0, 3), table("b", 200, 0, 3)] });
+    const [, b] = doc.tables as [Table, Table];
+    widenTables(doc, renderer(doc), true, grow(doc, ["a"]));
+    expect(b.x % 10).toBe(0);
+  });
+
+  it("moves nothing when nothing got wider", () => {
+    const doc = normalizeDoc({ tables: [table("a", 0, 0, 3), table("b", 400, 0, 3)] });
+    expect(widenTables(doc, renderer(doc), true, () => [])).toEqual({ widened: [], moved: 0 });
   });
 });

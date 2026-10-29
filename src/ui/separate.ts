@@ -13,7 +13,7 @@
 import type { AppContext, RendererApi } from "@/app/context";
 import { findNode, findTable } from "@/core/doc";
 import { GRID } from "@/core/geometry";
-import { freeSpot, overlaps, separate } from "@/core/overlap";
+import { OVERLAP_GAP, freeSpot, overlaps, separate } from "@/core/overlap";
 import type { Item } from "@/core/overlap";
 import { buildSchematic } from "@/core/schematic";
 import type { HarnessDoc, Point, Rect } from "@/core/types";
@@ -121,17 +121,17 @@ function separateSheet(doc: HarnessDoc, renderer: RendererApi, snap: boolean): n
     if (connectors.slice(0, n).some((earlier) => overlaps(c.rect, earlier.rect))) movable.add(c.id);
   });
   for (const item of items) if (item.kind === "table") movable.add(item.id);
-  return moveApart(doc, items, movable);
+  return moveApart(doc, items, movable).length;
 }
 
-/** Moves the movable items off whatever they lie on, in the document. Returns how many moved. */
-function moveApart(doc: HarnessDoc, items: readonly SheetItem[], movable: ReadonlySet<string>): number {
+/** Moves the movable items off whatever they lie on, in the document. Returns the ids that moved. */
+function moveApart(doc: HarnessDoc, items: readonly SheetItem[], movable: ReadonlySet<string>): string[] {
   const moved = separate(items, movable);
   for (const [id, spot] of moved) {
     const item = items.find((i) => i.id === id);
     if (item) moveSheetObject(doc, item, spot);
   }
-  return moved.size;
+  return [...moved.keys()];
 }
 
 /**
@@ -146,7 +146,52 @@ export function separateTables(
   tableIds: readonly string[],
 ): number {
   const items = sheetItems(doc, renderer, snap);
-  return moveApart(doc, items, new Set(tableIds.map((id) => keyOf("table", id))));
+  return moveApart(doc, items, new Set(tableIds.map((id) => keyOf("table", id)))).length;
+}
+
+/**
+ * Lets tables get wider without them lying on their neighbours: `widen` changes
+ * the document and returns the ids of the tables it made wider. A table that
+ * the wider one now lies on is pushed to the right, just far enough to clear it
+ * (and onto the grid), and pushes in turn whatever it now lies on, so the
+ * layout stays what it was and nothing travels farther than it has to; a table
+ * that was clear of the widened one does not move. What still lies on something
+ * afterwards, a connector or a table that was not to the right, gives way as in
+ * `separateTables`. Returns the tables that were widened and how many moved.
+ */
+export function widenTables(
+  doc: HarnessDoc,
+  renderer: RendererApi,
+  snap: boolean,
+  widen: () => string[],
+): { widened: string[]; moved: number } {
+  const widened = widen();
+  const rects = new Map<string, Rect>();
+  for (const i of sheetItems(doc, renderer, snap)) if (i.kind === "table") rects.set(i.ref, { ...i.rect });
+
+  const pushed = new Set<string>();
+  const pending = widened.filter((id) => rects.has(id));
+  while (pending.length) {
+    pending.sort((p, q) => rects.get(p)!.x - rects.get(q)!.x);
+    const id = pending.shift()!;
+    const wide = rects.get(id)!;
+    for (const [other, rect] of rects) {
+      if (other === id || rect.x < wide.x || !overlaps(wide, rect)) continue;
+      let by = wide.x + wide.w + OVERLAP_GAP - rect.x;
+      if (snap) by = Math.ceil(by / GRID) * GRID;
+      const table = findTable(doc, other);
+      if (!table) continue;
+      table.x += by;
+      rect.x += by;
+      pushed.add(other);
+      if (!pending.includes(other)) pending.push(other);
+    }
+  }
+
+  const items = sheetItems(doc, renderer, snap);
+  const movable = new Set([...widened, ...pushed].map((id) => keyOf("table", id)));
+  const clearedUp = moveApart(doc, items, movable).map((id) => id.slice("table:".length));
+  return { widened, moved: new Set([...pushed, ...clearedUp]).size };
 }
 
 /**

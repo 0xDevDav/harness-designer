@@ -26,7 +26,6 @@ All notable changes to this project are documented here. The format follows
   and a drawing whose bare sizes are really gauges (an 18 or a 22 under a plain
   _Section_) is asked whether to just label them. Choosing the unit the drawing
   is already in does nothing.
-  and asks before anything is written.
 - **Objects no longer lie on top of each other.** Drop a table or a connector on
   the sheet, or a box in the schematic, on top of another and it goes to the
   nearest free place instead, a little way off and on the grid, as part of the
@@ -36,12 +35,12 @@ All notable changes to this project are documented here. The format follows
   hand moves in the schematic. It works on the views on screen only, and a drop
   whose nearest free place is more than 240 units away stays where it was
   dropped, with a message, rather than jumping across a long table.
-  hand moves in the schematic.
 - **Wire type** (GPT, GXL, HDT, SXL, TWP, TXL) is picked from a list under the
   cell, with _Other type…_ and _Clear type_, and, like colour and size, is
   brought into step at the far end of the wire. Cavity tables have a _Wire type_
   column, and _Insert → Wire type column in every cavity table_ adds it to
-  existing drawings, moving apart any table the new column makes lie on another.
+  existing drawings; a table the wider one now lies on is pushed to the right
+  just far enough to clear it, so the layout stays as it was.
   Only a column headed _Wire type_ (or _Tipo filo_) counts: a column called just
   _Type_ is left alone, since older sheets use it for something else.
 

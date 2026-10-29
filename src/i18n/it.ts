@@ -459,8 +459,9 @@ export const it = {
   "toast.otherTab": "Questo schema è aperto anche in un'altra scheda: l'ultimo salvataggio automatico vince.",
   "cmd.insertTypeColumn": "Aggiungi una colonna Tipo filo alle tabelle delle cavità",
   "insert.typeColumn": "Colonna Tipo filo in ogni tabella delle cavità",
-  "toast.typeColumnAdded": "Colonna Tipo filo aggiunta a {n} tabelle",
-  "toast.typeColumnMoved": "Colonna Tipo filo aggiunta a {n} tabelle, {moved} spostate lontano dalle vicine",
+  "toast.typeColumnAdded": "Colonna Tipo filo aggiunta alle tabelle: {n}",
+  "toast.typeColumnMoved":
+    "Colonna Tipo filo aggiunta alle tabelle: {n}. Tabelle spostate per fare spazio: {moved}",
   "toast.typeColumnNone": "Ogni tabella delle cavità ha già una colonna Tipo filo",
   "topbar.unit.tip":
     "Unità di misura delle sezioni. Sceglierne un'altra converte tutte le sezioni del disegno",
