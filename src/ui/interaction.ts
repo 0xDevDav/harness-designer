@@ -85,6 +85,8 @@ export function attachInteraction(opts: {
   onContextMenu: (target: Selection | null, world: Point, ev: MouseEvent) => void;
   /** double click on the sheet: opens in-place editing for the element hit */
   onEdit?: (ev: MouseEvent) => void;
+  /** a short message for the person: a drop that could not be nudged clear */
+  notify?: (message: string) => void;
 }): () => void {
   const { store, renderer, svg, hint, t } = opts;
 
@@ -468,8 +470,11 @@ export function attachInteraction(opts: {
         if (aborted) store.cancelLive();
         else {
           // a drop on top of something is nudged to the nearest free place, in the same undo step
-          if (drag.kind === "node" || drag.kind === "table")
-            settleSheetDrop({ store, renderer }, drag.kind, drag.id);
+          if (
+            (drag.kind === "node" || drag.kind === "table") &&
+            settleSheetDrop({ store, renderer }, drag.kind, drag.id) === "far"
+          )
+            opts.notify?.(t("toast.dropFar"));
           store.endLive("move");
         }
       }
