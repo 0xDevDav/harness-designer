@@ -90,6 +90,8 @@ export function drawTable(
   /** cells Find matched in this table, and which of them is the current one */
   found?: ReadonlySet<string>,
   currentKey?: string,
+  /** no connector on the sheet answers to this table */
+  orphan = false,
 ): void {
   const g = el(
     "g",
@@ -171,17 +173,23 @@ export function drawTable(
         // a connector's housing is read off its table, where the pin-out is
         table.housing ? `${table.title}  ·  ${table.housing}` : table.title,
         FONT + 1,
-        W - (isolated ? 26 : 10),
+        W - 10 - (isolated ? 16 : 0) - (orphan ? 16 : 0),
         true,
       ),
       {
         "font-size": FONT + 1,
         "font-weight": 700,
         "text-anchor": "middle",
-        fill: palette().text,
+        fill: orphan ? palette().errorStroke : palette().text,
       },
       g,
     );
+    if (orphan) {
+      text(6, ROW_H - 5, "⚠", { "font-size": FONT + 1, fill: palette().errorStroke }, g).setAttribute(
+        "data-tip",
+        t("table.noConnector"),
+      );
+    }
     if (isolated) {
       text(
         W - 6,

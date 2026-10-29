@@ -14,7 +14,15 @@ import {
   totalUsage,
   usageOf,
 } from "@/core/catalog";
-import { cavityTables, isCavityTable, normalizeDoc, ownerName, spliceNode, tableColumns } from "@/core/doc";
+import {
+  cavityTables,
+  isCavityTable,
+  isOrphanTable,
+  normalizeDoc,
+  ownerName,
+  spliceNode,
+  tableColumns,
+} from "@/core/doc";
 import { cavityTable, catalogTable, notesTable, revisionsTable, wireListHeadings } from "@/core/factories";
 import { Store } from "@/core/store";
 import { validateDoc } from "@/core/validate";
@@ -615,6 +623,24 @@ describe("making a connector a splice", () => {
     const table = doc.tables.find((tb) => tb.id === "t5") as Table;
     expect(table.title).toBe("C5 Engine ECU");
     expect(ownerName(doc, table)).toBe("C5");
+  });
+
+  it("leaves the table without a connector, which the check calls an error", () => {
+    const doc = withTable("C5");
+    const table = doc.tables.find((tb) => tb.id === "t5") as Table;
+    expect(isOrphanTable(doc, table)).toBe(false);
+    spliceNode(doc, "n5");
+    expect(isOrphanTable(doc, table)).toBe(true);
+    // a table of another kind is no pin-out and has no connector to miss
+    expect(isOrphanTable(doc, notesTable(t, 0, 0))).toBe(false);
+    const issues = validateDoc(doc, t).filter((i) => i.rule === "drawing-hygiene");
+    expect(issues).toEqual([
+      expect.objectContaining({
+        severity: "error",
+        message: "Table “C5”: its connector is missing, nothing on the sheet answers to it",
+        target: { type: "table", id: "t5" },
+      }),
+    ]);
   });
 
   it("keeps the name of a splice that already has one, and takes a node with no table as it is", () => {
