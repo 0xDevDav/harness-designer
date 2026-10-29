@@ -14,6 +14,12 @@ export interface ConnectorSymbol {
   draw(group: SVGGElement): void;
   /** hidden symbols stay drawable but do not appear in the menus */
   hidden?: boolean;
+  /**
+   * What the symbol stands for in the housing and termination tables: a housing
+   * (the plastic a connector is made of) or a termination (the contact on the
+   * end of a wire). A symbol with none, like the splice, is not offered there.
+   */
+  role?: "housing" | "termination";
 }
 
 const symbols = new Map<string, ConnectorSymbol>();
@@ -27,6 +33,10 @@ export const connectorSymbols = (): ConnectorSymbol[] => [...symbols.values()];
 export const visibleConnectorSymbols = (): ConnectorSymbol[] =>
   [...symbols.values()].filter((s) => !s.hidden);
 
+/** The symbols a housing or a termination can be drawn with. */
+export const symbolsWithRole = (role: "housing" | "termination"): ConnectorSymbol[] =>
+  [...symbols.values()].filter((s) => !s.hidden && s.role === role);
+
 export function connectorSymbol(id: string): ConnectorSymbol | undefined {
   return symbols.get(id);
 }
@@ -36,6 +46,7 @@ export function connectorSymbol(id: string): ConnectorSymbol | undefined {
 registerConnectorSymbol({
   id: "plug",
   labelKey: "style.plug",
+  role: "housing",
   tip: 40,
   draw(g) {
     el(
@@ -64,6 +75,7 @@ registerConnectorSymbol({
 registerConnectorSymbol({
   id: "ring",
   labelKey: "style.ring",
+  role: "termination",
   tip: 31,
   draw(g) {
     el(
@@ -79,6 +91,7 @@ registerConnectorSymbol({
 registerConnectorSymbol({
   id: "faston",
   labelKey: "style.faston",
+  role: "termination",
   tip: 26,
   draw(g) {
     el(
@@ -107,6 +120,7 @@ registerConnectorSymbol({
 registerConnectorSymbol({
   id: "pin",
   labelKey: "style.pin",
+  role: "termination",
   tip: 26,
   draw(g) {
     el(
@@ -115,6 +129,36 @@ registerConnectorSymbol({
       g,
     );
     el("line", { x1: -24, y1: 0, x2: -16, y2: 0, stroke: "#5b6773", "stroke-width": 2.5 }, g);
+  },
+});
+
+registerConnectorSymbol({
+  id: "socket",
+  labelKey: "style.socket",
+  role: "termination",
+  tip: 27,
+  draw(g) {
+    // crimp barrel behind a round socket contact, its open end towards the mate
+    el(
+      "rect",
+      { x: -14, y: -3, width: 10, height: 6, fill: "#b9c2cc", stroke: "#5b6773", "stroke-width": 1 },
+      g,
+    );
+    el(
+      "rect",
+      {
+        x: -26,
+        y: -4.5,
+        width: 12,
+        height: 9,
+        rx: 2,
+        fill: "#c9d2dc",
+        stroke: "#5b6773",
+        "stroke-width": 1.2,
+      },
+      g,
+    );
+    el("ellipse", { cx: -26, cy: 0, rx: 1.6, ry: 3, fill: "#5b6773" }, g);
   },
 });
 
@@ -150,6 +194,7 @@ registerConnectorSymbol({
 registerConnectorSymbol({
   id: "none",
   labelKey: "style.none",
+  role: "termination",
   tip: 8,
   draw() {
     /* estremità libera: nessun simbolo */

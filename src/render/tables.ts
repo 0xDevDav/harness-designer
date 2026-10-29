@@ -167,7 +167,13 @@ export function drawTable(
     text(
       W / 2,
       ROW_H - 5,
-      ellipsize(table.title, FONT + 1, W - (isolated ? 26 : 10), true),
+      ellipsize(
+        // a connector's housing is read off its table, where the pin-out is
+        table.housing ? `${table.title}  ·  ${table.housing}` : table.title,
+        FONT + 1,
+        W - (isolated ? 26 : 10),
+        true,
+      ),
       {
         "font-size": FONT + 1,
         "font-weight": 700,

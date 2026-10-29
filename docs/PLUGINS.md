@@ -20,10 +20,10 @@ Tutto ciò che gli serve arriva dall'oggetto `api` passato ad `activate`.
 
 Due esempi pronti si trovano in `public/plugins/`:
 
-| file                                 | id                 | cosa aggiunge                                                           |
-| ------------------------------------ | ------------------ | ----------------------------------------------------------------------- |
-| `public/plugins/metraggi.js`         | `metraggi`         | comando "metraggio per copertura" + regola di verifica sulle lunghezze  |
-| `public/plugins/connettore-tondo.js` | `connettore-tondo` | simbolo di connettore circolare + voce di menù + sigle colore DIN 47002 |
+| file                                 | id                 | cosa aggiunge                                                          |
+| ------------------------------------ | ------------------ | ---------------------------------------------------------------------- |
+| `public/plugins/metraggi.js`         | `metraggi`         | comando "metraggio per copertura" + regola di verifica sulle lunghezze |
+| `public/plugins/connettore-tondo.js` | `connettore-tondo` | simbolo di connettore circolare + sigle colore DIN 47002               |
 
 ## L'oggetto da esportare
 
@@ -186,6 +186,7 @@ interface ConnectorSymbol {
   tip: number; // distanza dall'origine alla punta, per collocare l'etichetta
   draw(group: SVGGElement): void;
   hidden?: boolean;
+  role?: "housing" | "termination"; // listato nella tabella degli alloggiamenti o dei terminali; nessuno = non listato
 }
 ```
 
@@ -292,7 +293,7 @@ plugin**.
 
 ### `public/plugins/connettore-tondo.js`
 
-Cosa mostra: **simbolo di connettore**, **voce di menù contestuale condizionata**, **nomi colore**.
+Cosa mostra: **simbolo di connettore**, **il suo posto nella tabella degli alloggiamenti**, **nomi colore**.
 
 - `api.symbols.registerConnector` aggiunge lo stile `round`. Il gruppo SVG ricevuto da `draw(g)` è già
   ruotato in modo che il filo entri **da destra**, con l'origine sul nodo: il simbolo si sviluppa quindi
@@ -300,9 +301,9 @@ Cosa mostra: **simbolo di connettore**, **voce di menù contestuale condizionata
   collocare l'etichetta del nodo senza sovrapposizioni.
 - L'id dello stile (`"round"`) finisce dentro `node.style` e quindi nel file `.json`: se il plugin non è
   installato, quel connettore viene disegnato con lo stile di ripiego, ma il dato non va perso.
-- `api.menu.contribute` restituisce la voce **solo** quando il bersaglio è un nodo con al più un ramo
-  collegato — l'invariante dell'applicazione vuole i terminali soltanto alle estremità — e la disabilita se
-  lo stile è già applicato.
+- `role: "housing"` mette il simbolo fra quelli della tabella degli alloggiamenti (`"termination"` fra
+  quella dei terminali; senza `role` non compare in nessuna). Un connettore con quell'alloggiamento viene
+  disegnato con il simbolo.
 - `api.colors.registerName` registra le sigle DIN 47002 (`sw` nero, `rt` rosso, `ge` giallo, `gn` verde,
   `bl` blu, `br` marrone, `ws` bianco, `gr` grigio) con le stesse tinte dei nomi italiani, così una cella
   scritta `ge/sw` produce lo stesso campione a due bande di `giallo/nero`.
@@ -326,7 +327,7 @@ Two ready-made examples live in `public/plugins/`:
 | file                                 | id                 | what it adds                                                     |
 | ------------------------------------ | ------------------ | ---------------------------------------------------------------- |
 | `public/plugins/metraggi.js`         | `metraggi`         | "length by covering" command + validation rule on branch lengths |
-| `public/plugins/connettore-tondo.js` | `connettore-tondo` | round connector symbol + menu entry + DIN 47002 colour codes     |
+| `public/plugins/connettore-tondo.js` | `connettore-tondo` | round connector symbol + DIN 47002 colour codes                  |
 
 ## The object to export
 
@@ -487,6 +488,7 @@ interface ConnectorSymbol {
   tip: number; // origin-to-tip distance, used to place the node label
   draw(group: SVGGElement): void;
   hidden?: boolean;
+  role?: "housing" | "termination"; // listed in the housing or termination table; none = not listed
 }
 ```
 
@@ -588,7 +590,7 @@ Shows: **a command that writes on the sheet**, **a validation rule**, **translat
 
 ### `public/plugins/connettore-tondo.js`
 
-Shows: **a connector symbol**, **a conditional context-menu entry**, **colour names**.
+Shows: **a connector symbol**, **its place in the housing table**, **colour names**.
 
 - `api.symbols.registerConnector` adds the `round` style. The SVG group handed to `draw(g)` is already
   rotated so that the wire comes in **from the right**, with the origin on the node: the symbol therefore
@@ -596,9 +598,9 @@ Shows: **a connector symbol**, **a conditional context-menu entry**, **colour na
   node label without overlaps.
 - The style id (`"round"`) is stored in `node.style` and hence in the `.json` file: without the plugin
   installed that connector falls back to a default symbol, but the data is not lost.
-- `api.menu.contribute` returns the entry **only** when the target is a node with at most one branch
-  attached — the application's invariant keeps terminals at branch ends — and disables it when the style is
-  already applied.
+- `role: "housing"` lists the symbol with the entries of the housing table (`"termination"` puts it in the
+  termination table; without a `role` it is in neither). A connector whose housing is that entry is drawn
+  with the symbol.
 - `api.colors.registerName` registers the DIN 47002 codes (`sw` black, `rt` red, `ge` yellow, `gn` green,
   `bl` blue, `br` brown, `ws` white, `gr` grey) with the same tints as the built-in names, so a cell reading
   `ge/sw` yields the same two-band swatch as `yellow/black`.

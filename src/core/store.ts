@@ -1,3 +1,4 @@
+import { syncCatalogs } from "./catalog";
 import { cloneDoc, emptyDoc, normalizeConnectors, normalizeDoc, normalizeMates } from "./doc";
 import type { HarnessDoc, Selection, Viewport } from "./types";
 
@@ -84,6 +85,7 @@ export class Store {
     mutate(this.doc);
     normalizeConnectors(this.doc);
     normalizeMates(this.doc);
+    syncCatalogs(this.doc);
     const after = JSON.stringify(this.doc);
     if (before === after) return false;
     this.pushHistory(before);
@@ -109,6 +111,7 @@ export class Store {
     if (before === null) return false;
     normalizeConnectors(this.doc);
     normalizeMates(this.doc);
+    syncCatalogs(this.doc);
     if (before === JSON.stringify(this.doc)) return false;
     this.pushHistory(before);
     this.afterChange(reason);

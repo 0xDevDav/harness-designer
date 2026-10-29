@@ -1,5 +1,6 @@
 import type { AppContext } from "@/app/context";
 import { autoLinkRow, rowHasDestination } from "@/core/autolink";
+import { isCatalog, isDerivedColumn, nameIsFree, renameEntry } from "@/core/catalog";
 import {
   findInline,
   findNode,
@@ -17,6 +18,7 @@ import { lerpPoint } from "@/core/geometry";
 import type { HarnessDoc, Point, Rect, Selection, Table } from "@/core/types";
 import { HEAD_ROW, ROW_H, TITLE_ROW, cellAt, cellRect, titleBlockLayout } from "@/render/tables";
 import { textWidth } from "@/render/svg";
+import { assignTermination } from "./catalog";
 import { openColorPicker } from "./colorpicker";
 import { openInlineEditor } from "./inline-edit";
 
@@ -106,6 +108,15 @@ function editTable(app: AppContext, id: string, row?: number, col?: number): boo
   const rect = cellRect(table, row, col);
   if (!rect) return false;
 
+  // quantity and where-used are worked out from the cavity tables, never typed
+  if (row >= 0 && isCatalog(table) && isDerivedColumn(table.kind, col)) return false;
+
+  // a cavity's termination is picked from the termination table, not typed
+  if (row >= 0 && table.kind === "table" && col === tableColumns(table).termination) {
+    void assignTermination(app, id, row);
+    return true;
+  }
+
   // the colour column is picked from the palette, not typed
   const colorCol = tableColumns(table).color;
   if (row >= 0 && col === colorCol) {
@@ -134,6 +145,19 @@ const readCell = (table: Table, row: number, col: number): string => {
 };
 
 function commitCell(app: AppContext, id: string, row: number, col: number, value: string): void {
+  // The name of a housing or a termination is what the cavity tables point at.
+  // It has to stay one a row can be told apart by, and renaming it takes the
+  // cavity tables along rather than leaving them naming something that is gone.
+  const named = findTable(app.store.doc, id);
+  if (named && isCatalog(named) && row >= 0 && col === 0 && value !== (named.rows[row]?.[0] ?? "")) {
+    if (!nameIsFree(named, value, row)) {
+      app.toast.error(
+        app.t(value.trim() ? "catalog.nameTaken" : "catalog.nameRequired", { name: value.trim() }),
+      );
+      return;
+    }
+  }
+
   let refused: TitleProblem | null = null;
   let owner = "";
   const changed = app.store.edit((doc) => {
@@ -155,7 +179,9 @@ function commitCell(app: AppContext, id: string, row: number, col: number, value
     const cells = table.rows[row];
     if (!cells) return;
     while (cells.length <= col) cells.push("");
+    const before = cells[col] ?? "";
     cells[col] = value;
+    if (isCatalog(table) && col === 0) renameEntry(doc, table, before, value);
   }, "cell");
 
   if (refused) {

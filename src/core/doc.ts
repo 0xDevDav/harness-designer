@@ -1,5 +1,6 @@
 import { DOC_VERSION } from "./types";
 import type { DocMeta, HarnessDoc, HNode, Inline, Point, Segment, Table } from "./types";
+import { CATALOG_KINDS, catalogWidth, syncCatalogs } from "./catalog";
 import { seedIds, uid } from "./ids";
 import { T_MAX, T_MIN, alongPolyline, clamp, dist, polylineLength, projectPolyline } from "./geometry";
 
@@ -150,19 +151,33 @@ export function normalizeDoc(input: unknown): HarnessDoc {
   // --- tables: rectangular rows, a single title block, node links verified
   const seenTableIds = new Set<string>();
   let titleBlockSeen = false;
+  const catalogsSeen = new Set<Table["kind"]>();
   for (const t of asArray(raw.tables)) {
     const src = t as Partial<Table>;
     const id = str(src.id);
     if (!id || seenTableIds.has(id)) continue;
-    const kind: Table["kind"] = src.kind === "title" ? "title" : "table";
+    const kind: Table["kind"] =
+      src.kind === "title"
+        ? "title"
+        : (CATALOG_KINDS as readonly unknown[]).includes(src.kind)
+          ? (src.kind as Table["kind"])
+          : "table";
     if (kind === "title") {
       if (titleBlockSeen) continue; // there is only ever one title block
       titleBlockSeen = true;
     }
+    if (kind === "housings" || kind === "terminations") {
+      if (catalogsSeen.has(kind)) continue; // nor is there more than one of each catalogue
+      catalogsSeen.add(kind);
+    }
     seenTableIds.add(id);
     const head = asArray(src.head).map((h) => str(h));
     const rows = asArray(src.rows).map((r) => asArray(r).map((c) => str(c)));
-    const width = Math.max(head.length, ...rows.map((r) => r.length), 0);
+    const width = Math.max(
+      head.length,
+      ...rows.map((r) => r.length),
+      kind === "housings" || kind === "terminations" ? catalogWidth(kind) : 0,
+    );
     for (const r of rows) while (r.length < width) r.push("");
     const table: Table = { id, x: num(src.x), y: num(src.y), kind, rows };
     if (src.title !== undefined) table.title = str(src.title);
@@ -170,6 +185,10 @@ export function normalizeDoc(input: unknown): HarnessDoc {
     const node = str(src.node);
     if (node && seenNodeIds.has(node)) table.node = node;
     if (src.autoLink === false) table.autoLink = false;
+    if (kind === "table" && str(src.housing).trim()) table.housing = str(src.housing).trim();
+    const symbols =
+      kind === "housings" || kind === "terminations" ? normalizeSymbols(src.symbols) : undefined;
+    if (symbols) table.symbols = symbols;
     doc.tables.push(table);
   }
 
@@ -179,12 +198,23 @@ export function normalizeDoc(input: unknown): HarnessDoc {
 
   doc.version = DOC_VERSION;
   normalizeConnectors(doc);
+  syncCatalogs(doc);
   seedIds(doc.nodes.length + doc.segments.length + doc.inlines.length + doc.tables.length);
   return doc;
 }
 
 function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
+}
+
+/** The symbol of each catalogue entry, with anything that is not a name and a symbol id left out. */
+function normalizeSymbols(raw: unknown): Record<string, string> | undefined {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return undefined;
+  const out: Record<string, string> = {};
+  for (const [name, symbol] of Object.entries(raw)) {
+    if (name.trim() && typeof symbol === "string" && symbol.trim()) out[name] = symbol.trim();
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /**
@@ -482,6 +512,8 @@ export interface TableColumns {
   color?: number;
   section?: number;
   func?: number;
+  /** the contact this cavity takes, picked from the termination table */
+  termination?: number;
 }
 
 /**
@@ -504,6 +536,7 @@ export function tableColumns(t: Table): TableColumns {
     if (idx.color === undefined && /^(colore|color|colour)$/.test(s)) idx.color = i;
     if (idx.section === undefined && /(sezione|section|gauge|awg|mm²|mm2)/.test(s)) idx.section = i;
     if (idx.func === undefined && /(funzione|function|circuito|circuit|signal)/.test(s)) idx.func = i;
+    if (idx.termination === undefined && /^(terminazione|termination)$/.test(s)) idx.termination = i;
   });
 
   if (idx.cavity === undefined) {

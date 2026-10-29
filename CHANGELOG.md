@@ -21,6 +21,40 @@ All notable changes to this project are documented here. The format follows
   sheet as well as in Replace. The check reports both in drawings that already
   have them. Previous and Next are the arrows beside the Find field, and the
   panel is called Find until Replace is opened.
+- **Housing and termination tables**, from the _Insert_ menu and given to every
+  new drawing. A housing is the plastic a connector is built on, with its
+  number of cavities, part number, maker, series, plug or receptacle and
+  description; a termination is the contact crimped on a wire. Each has a
+  quantity and a _Where Used_ column that are worked out from the cavity tables
+  after every edit and cannot be typed over. A new drawing starts with the
+  multi-pin and DIN housings and the ring, faston, pin, socket and free-end terminations.
+- A cavity table takes **one housing**, picked from the housing table, and each
+  of its rows **one termination**, picked from the termination table (the new
+  _Termination_ column; _Add termination column_ gives it to an older table).
+  When the one needed is not in the list, _+ New_ asks for it on the spot and
+  picks it. A connector is drawn with the symbol of its housing, or, with none,
+  of the first termination it names.
+- Giving a cavity table a housing makes it as long as the housing has cavities
+  (the _# of Cavities_ column; blank means it is not checked): a short table grows,
+  numbering the new rows on, and a long one loses only the empty rows at its
+  end, never one with anything written in it.
+- The consistency check flags a cavity table with more rows than its housing has
+  cavities (an error) or fewer (a warning), and one that uses pins and sockets in
+  the same housing.
+- Deleting a housing or a termination that is in use says how many connectors
+  or cavities it will be taken from, and which, before it does it.
+- A symbol can say what it stands for in the two tables with `role`
+  (`"housing"` or `"termination"`); the round DIN symbol of the bundled plugin
+  is a housing.
+
+### Changed
+
+- The right-click menu at the end of a branch offers three things: a **plain
+  junction** (no name), a **splice** (named, no cavity table) and a
+  **connector**, whose name comes from the cavity table it is given, picked from
+  those that belong to nothing yet or started new. The list of symbols is gone
+  from it: how a connector is drawn follows from its housing and terminations.
+- The round-connector example plugin no longer adds its own menu entry.
 
 ## [1.2.0]
 
