@@ -490,19 +490,20 @@ body {
 .btn.is-stale {
   background: var(--amber);
   border-color: var(--amber);
-  color: #1d1404;
+  /* dark text on the amber, worked out from it so a change of amber carries over */
+  color: color-mix(in srgb, var(--amber) 15%, #000);
   animation: stale-pulse 1.8s ease-in-out infinite;
 }
 .btn.is-stale:hover {
-  background: #f5b95a;
+  background: color-mix(in srgb, var(--amber) 80%, #fff);
 }
 @keyframes stale-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 #f0a63699;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--amber) 60%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 5px #f0a63600;
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--amber) 0%, transparent);
   }
 }
 @media (prefers-reduced-motion: reduce) {
