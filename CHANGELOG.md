@@ -24,7 +24,7 @@ All notable changes to this project are documented here. The format follows
 - **Dragging wires in the schematic.** Drag the end of a wire onto another
   cavity, or another connector, to move it there; drag from a free cavity onto
   another to make a wire. The cavity under the pointer is outlined, in red when
-  it already has a wire. The cavity tables at both ends are rewritten as if
+  it already has a wire, written on either side. The cavity tables at both ends are rewritten as if
   typed, the colour and size go with the wire, and it is one undo step. When
   the two cavities describe the wire differently (another colour or size), a
   window asks whose details it takes, or offers to join them through a new

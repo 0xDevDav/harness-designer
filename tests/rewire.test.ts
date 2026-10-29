@@ -128,6 +128,31 @@ describe("connectEnds", () => {
     expect(JSON.stringify(doc)).toBe(before);
   });
 
+  it("refuses a cavity that another one sends its wire to, though its own row is blank", () => {
+    const doc = harness();
+    rowOf(doc, "ta", "3")[1] = "C.2"; // a wire written on one side only
+    const before = JSON.stringify(doc);
+    expect(connectEnds(doc, "B.2", "C.2")).toEqual({ ok: false, reason: "occupied", other: "A.3" });
+    expect(connectEnds(doc, "C.2", "B.2")).toEqual({ ok: false, reason: "occupied", other: "A.3" });
+    expect(moveWireEnd(doc, ["A.1", "B.1"], 1, "C.2")).toEqual({
+      ok: false,
+      reason: "occupied",
+      other: "A.3",
+    });
+    expect(connectViaSplice(doc, { kind: "move", ends: ["A.1", "B.1"], moving: 1 }, "C.2")).toEqual({
+      ok: false,
+      reason: "occupied",
+      other: "A.3",
+    });
+    expect(JSON.stringify(doc)).toBe(before);
+  });
+
+  it("still lets the cavity be joined to the very cavity that points at it", () => {
+    const doc = harness();
+    rowOf(doc, "ta", "3")[1] = "C.2";
+    expect(connectEnds(doc, "A.3", "C.2")).toEqual({ ok: true });
+  });
+
   it("refuses a connector wired to itself", () => {
     const doc = harness();
     expect(connectEnds(doc, "A.2", "A.3")).toEqual({ ok: false, reason: "same-connector" });
