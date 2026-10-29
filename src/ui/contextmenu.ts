@@ -30,10 +30,13 @@ import {
   splitSegment,
   tableForNode,
   isAutoLinkEnabled,
+  isCavityTable,
+  spliceNode,
 } from "@/core/doc";
-import { isCatalog, isDerivedColumn } from "@/core/catalog";
+import { catalogOf, isCatalog, isDerivedColumn, namesATermination } from "@/core/catalog";
 import { cavityTable, cavityTableFor } from "@/core/factories";
 import { projectT, snapTo } from "@/core/geometry";
+import { visibleConnectorSymbols } from "@/render/connectors";
 import { heldClipping, pasteHeldAt } from "./clipboard";
 import {
   addTerminationColumn,
@@ -167,6 +170,25 @@ function nodeItems(app: AppContext, id: string): MenuItem[] {
     });
     items.push({ separator: true });
 
+    // Where nothing says what the end is made of, how it is drawn is still a
+    // choice to make: a drawing with no housing or termination table (every
+    // file made before them) and a connector whose table names neither.
+    const linkedTable = what === "connector" ? tableForNode(app.doc, id) : undefined;
+    const named = !!linkedTable?.housing || (linkedTable ? namesATermination(linkedTable) : false);
+    const catalogs = !!(catalogOf(app.doc, "housings") || catalogOf(app.doc, "terminations"));
+    if (what !== "splice" && (!catalogs || (what === "connector" && !named))) {
+      items.push({ header: t("menu.drawnAs") });
+      for (const symbol of visibleConnectorSymbols()) {
+        if (symbol.id === "splice") continue;
+        const here = self?.kind === "connector" && self.style === symbol.id;
+        items.push({
+          label: mark(here) + t(symbol.labelKey),
+          run: () => setConnectorStyle(app, id, symbol.id),
+        });
+      }
+      items.push({ separator: true });
+    }
+
     // a plain junction has no name; the others are known by theirs
     if (what !== "junction") items.push({ label: t("menu.rename"), run: () => void renameFlow(app, id) });
     items.push({
@@ -264,6 +286,25 @@ async function coordinatesFlow(app: AppContext, id: string): Promise<void> {
   });
 }
 
+/**
+ * Draws an end as one of the symbols, for an end that no housing or termination
+ * says anything about. It is auto-named only when it has no name yet: a
+ * draughtsman who named the node must not see that name overwritten.
+ */
+function setConnectorStyle(app: AppContext, id: string, style: string): void {
+  editDoc(
+    app,
+    (doc) => {
+      const node = findNode(doc, id);
+      if (!node) return;
+      node.kind = "connector";
+      node.style = style;
+      if (!node.name && style !== "none") node.name = nextName(doc, "C");
+    },
+    "connector-style",
+  );
+}
+
 /** A plain junction: a point the bundle ends at, with no name and no table. */
 function makeJunction(app: AppContext, id: string): void {
   editDoc(
@@ -294,19 +335,7 @@ async function makeSplice(app: AppContext, id: string): Promise<void> {
     });
     if (!ok) return;
   }
-  editDoc(
-    app,
-    (doc) => {
-      const target = findNode(doc, id);
-      if (!target) return;
-      const owned = tableForNode(doc, id);
-      if (owned) delete owned.node;
-      target.kind = "connector";
-      target.style = "splice";
-      if (!target.name || owned) target.name = nextName(doc, "S");
-    },
-    "splice",
-  );
+  editDoc(app, (doc) => void spliceNode(doc, id), "splice");
 }
 
 /**
@@ -321,7 +350,7 @@ async function makeConnector(app: AppContext, id: string): Promise<void> {
   if (!node) return;
   if (node.kind === "connector" && node.style !== "splice" && tableForNode(app.doc, id)) return;
 
-  const free = app.doc.tables.filter((tb) => tb.kind === "table" && !nodeForTable(app.doc, tb));
+  const free = app.doc.tables.filter((tb) => isCavityTable(tb) && !nodeForTable(app.doc, tb));
   const choice = free.length ? await pickFreeTable(app, free) : ({ type: "new" } as const);
   if (!choice) return;
 
@@ -714,7 +743,7 @@ function tableItems(app: AppContext, id: string, row?: number, col?: number): Me
     }
 
     // what a connector is made of is picked from the catalogues, not typed
-    if (table.kind === "table") {
+    if (isCavityTable(table)) {
       items.push({
         label: table.housing ? t("menu.housingIs", { name: table.housing }) : t("menu.housing"),
         run: () => void assignHousing(app, id),

@@ -583,7 +583,7 @@ export const en = {
   "dialog.deleteCatalog.title": "Delete “{title}”?",
   "dialog.makeSplice.title": "Make {name} a splice?",
   "dialog.makeSplice.body":
-    "A splice takes no cavity table. The table of {name} stays on the sheet as a table of its own, and the splice gets a new name.",
+    "A splice takes no cavity table. The table stays on the sheet as a table of its own, still called {name}, so the wires that go to it keep going to it, and the splice gets a new name.",
   "dialog.deleteEntry.housing.one":
     "{name} is the housing of {owners}. It will be unassigned from it before it is deleted.",
   "dialog.deleteEntry.housing.other":
@@ -606,4 +606,5 @@ export const en = {
   "validate.cavitiesOver": "{name} has {rows} cavity rows, but its housing {housing} has only {n} cavities",
   "validate.cavitiesUnder": "{name} has {rows} cavity rows, but its housing {housing} has {n} cavities",
   "validate.pinsAndSockets": "{name} uses pins and sockets in the same housing",
+  "menu.drawnAs": "Drawn as",
 } as const;

@@ -631,6 +631,39 @@ export function declaredColor(doc: HarnessDoc, endpoint: string): string {
   return "";
 }
 
+/**
+ * A cavity table in the sense of the pin-outs: one with a Cavity column and a
+ * destination. The notes, the revisions and the wire list are ordinary tables
+ * too, and are not what a connector is made of or can be tied to.
+ */
+export function isCavityTable(t: Table): boolean {
+  if (t.kind !== "table") return false;
+  const cols = tableColumns(t);
+  return cols.cavity !== undefined && cols.dest !== undefined;
+}
+
+/**
+ * Makes a node a splice: named, joining the wires that reach it, with no cavity
+ * table. A connector that had one lets it go, and the table stays on the sheet
+ * as a table of its own, still called what the connector was, so every wire that
+ * went to it still does; the splice takes a new name, which nothing refers to.
+ */
+export function spliceNode(doc: HarnessDoc, nodeId: string): boolean {
+  const node = findNode(doc, nodeId);
+  if (!node) return false;
+  const owned = node.kind === "connector" && node.style !== "splice" ? tableForNode(doc, nodeId) : undefined;
+  if (owned) {
+    const old = node.name.trim();
+    delete owned.node;
+    // a table known by something else than the connector's name would stop answering to it
+    if (old && !titleMatchesName(owned.title, old)) owned.title = `${old} ${owned.title ?? ""}`.trim();
+  }
+  node.kind = "connector";
+  node.style = "splice";
+  if (!node.name || owned) node.name = nextName(doc, "S");
+  return true;
+}
+
 /** Tables usable by the check and the wire list: they have Cavity, Dest and an owner. */
 export function cavityTables(doc: HarnessDoc): CavityTable[] {
   const out: CavityTable[] = [];

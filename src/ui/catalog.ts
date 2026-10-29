@@ -23,7 +23,7 @@ import {
   usageOf,
 } from "@/core/catalog";
 import type { CatalogField, CatalogKind, EntryValues, Fitted } from "@/core/catalog";
-import { cell, deleteEntity, findTable, ownerName, tableColumns } from "@/core/doc";
+import { cell, deleteEntity, findTable, isCavityTable, ownerName, tableColumns } from "@/core/doc";
 import { catalogTable } from "@/core/factories";
 import { snapTo } from "@/core/geometry";
 import type { Table } from "@/core/types";
@@ -363,7 +363,7 @@ const nameOf = (app: AppContext, table: Table): string =>
 /** Picks the housing of a cavity table, or takes it away. */
 export async function assignHousing(app: AppContext, tableId: string): Promise<void> {
   const table = findTable(app.doc, tableId);
-  if (!table || table.kind !== "table") return;
+  if (!table || !isCavityTable(table)) return;
   const choice = await pickEntry(
     app,
     "housings",
@@ -405,7 +405,7 @@ export async function assignHousing(app: AppContext, tableId: string): Promise<v
 export async function assignTermination(app: AppContext, tableId: string, row: number): Promise<void> {
   const table = findTable(app.doc, tableId);
   const col = table ? tableColumns(table).termination : undefined;
-  if (!table || table.kind !== "table" || col === undefined || row < 0 || row >= table.rows.length) return;
+  if (!table || !isCavityTable(table) || col === undefined || row < 0 || row >= table.rows.length) return;
 
   const cavity = cell(table.rows[row], tableColumns(table).cavity) || String(row + 1);
   const choice = await pickEntry(
@@ -435,7 +435,7 @@ export async function assignTermination(app: AppContext, tableId: string, row: n
 export function addTerminationColumn(app: AppContext, tableId: string): void {
   app.store.edit((doc) => {
     const table = findTable(doc, tableId);
-    if (!table || table.kind !== "table" || tableColumns(table).termination !== undefined) return;
+    if (!table || !isCavityTable(table) || tableColumns(table).termination !== undefined) return;
     const cols = tableColumns(table);
     const after = cols.section ?? cols.color ?? cols.cavity;
     const at = after === undefined ? (table.head?.length ?? 0) : after + 1;

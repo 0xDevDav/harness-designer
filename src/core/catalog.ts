@@ -293,6 +293,12 @@ export function syncCatalogs(doc: HarnessDoc): void {
   }
 }
 
+/** Whether any cavity of the table names a termination, whether or not the termination table has it. */
+export function namesATermination(table: Table): boolean {
+  const col = tableColumns(table).termination;
+  return col !== undefined && table.rows.some((row) => cell(row, col) !== "");
+}
+
 /* ============================ housings and their cavities ============================ */
 
 /** How many cavities a housing has, when its row says: a blank or a non-number says nothing. */

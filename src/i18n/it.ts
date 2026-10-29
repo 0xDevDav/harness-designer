@@ -550,7 +550,7 @@ export const it = {
   "menu.addTerminationColumn": "Aggiungi colonna terminale",
   "table.title.housings": "Alloggiamenti",
   "table.title.terminations": "Terminali",
-  "table.head.termination": "Terminale",
+  "table.head.termination": "Terminazione",
   "catalog.head.name": "Nome",
   "catalog.head.cavities": "N. di cavità",
   "catalog.head.manufacturer": "Produttore",
@@ -589,7 +589,7 @@ export const it = {
   "dialog.deleteCatalog.title": "Eliminare «{title}»?",
   "dialog.makeSplice.title": "Trasformare {name} in uno splice?",
   "dialog.makeSplice.body":
-    "Uno splice non ha tabella cavità. La tabella di {name} resta sul foglio come tabella a sé, e lo splice riceve un nome nuovo.",
+    "Uno splice non ha tabella cavità. La tabella resta sul foglio come tabella a sé, sempre chiamata {name}, così i fili che vanno a lei continuano ad andarci, e lo splice riceve un nome nuovo.",
   "dialog.deleteEntry.housing.one":
     "{name} è l'alloggiamento di {owners}. Verrà tolto prima di essere eliminato.",
   "dialog.deleteEntry.housing.other":
@@ -614,4 +614,5 @@ export const it = {
   "validate.cavitiesUnder":
     "{name} ha {rows} righe di cavità, ma il suo alloggiamento {housing} ha {n} cavità",
   "validate.pinsAndSockets": "{name} usa pin e socket nello stesso alloggiamento",
+  "menu.drawnAs": "Disegnato come",
 } as const;

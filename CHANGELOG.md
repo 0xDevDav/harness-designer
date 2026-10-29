@@ -52,8 +52,10 @@ All notable changes to this project are documented here. The format follows
 - The right-click menu at the end of a branch offers three things: a **plain
   junction** (no name), a **splice** (named, no cavity table) and a
   **connector**, whose name comes from the cavity table it is given, picked from
-  those that belong to nothing yet or started new. The list of symbols is gone
-  from it: how a connector is drawn follows from its housing and terminations.
+  those that belong to nothing yet or started new. How a connector is drawn
+  follows from its housing and terminations; the list of symbols stays, under
+  _Drawn as_, for a drawing that has neither table and for a connector whose
+  table names neither, so a ring or faston end can still be made.
 - The round-connector example plugin no longer adds its own menu entry.
 
 ## [1.2.0]
