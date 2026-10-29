@@ -120,7 +120,8 @@ export function schematicMenuItems(app: AppContext, target: SchematicMenuTarget)
     return [{ label: t("menu.zoomToFit"), shortcut: "F", run: () => app.schematic.fitView() }];
   }
   const node = target.nodeId ? findNode(app.doc, target.nodeId) : undefined;
-  const splice = node?.style === "splice";
+  // a name with no node on the sheet is a splice unless it has a cavity table to be the connector's
+  const splice = node ? node.style === "splice" : !target.hasTable;
   return [
     { header: target.name },
     {
@@ -144,10 +145,14 @@ async function deleteConnectorFlow(
   const wires = connectionCount(app.doc, name);
   const ok = await app.dialogs.confirm({
     title: app.t(splice ? "dialog.deleteSplice.title" : "dialog.deleteConnector.title", { name }),
-    body: app.t(wires ? "dialog.deleteConnector.bodyWires" : "dialog.deleteConnector.body", {
-      name,
-      n: wires,
-    }),
+    body: app.t(
+      wires === 0
+        ? "dialog.deleteConnector.body"
+        : wires === 1
+          ? "dialog.deleteConnector.bodyWire"
+          : "dialog.deleteConnector.bodyWires",
+      { name, n: wires },
+    ),
     confirmLabel: app.t("props.delete"),
     danger: true,
   });
