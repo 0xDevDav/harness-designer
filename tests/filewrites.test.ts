@@ -1,39 +1,89 @@
 import { describe, expect, it } from "vitest";
+import { Store } from "@/core/store";
 import { ReloadGuard } from "@/io/reloadguard";
 import { createWriteQueue } from "@/io/writequeue";
 
 describe("ReloadGuard", () => {
   it("knows nothing before a Reload", () => {
-    expect(new ReloadGuard().wouldRevert("anything")).toBe(false);
+    expect(new ReloadGuard().wouldRevert(0)).toBe(false);
   });
 
-  it("flags the drawing a Reload replaced, and only that one", () => {
+  it("flags any position below the one a Reload left, and none at or above it", () => {
     const guard = new ReloadGuard();
-    guard.arm("before", "after");
-    expect(guard.wouldRevert("before")).toBe(true);
-    expect(guard.wouldRevert("after")).toBe(false);
-    expect(guard.wouldRevert("edited after")).toBe(false);
+    guard.arm("before", "after", 5);
+    expect(guard.wouldRevert(4)).toBe(true);
+    expect(guard.wouldRevert(3)).toBe(true);
+    expect(guard.wouldRevert(5)).toBe(false);
+    expect(guard.wouldRevert(7)).toBe(false);
   });
 
   it("has nothing to protect when the file said what the screen said", () => {
     const guard = new ReloadGuard();
-    guard.arm("same", "same");
-    expect(guard.wouldRevert("same")).toBe(false);
+    guard.arm("same", "same", 5);
+    expect(guard.wouldRevert(0)).toBe(false);
   });
 
-  it("lets go once the file and the screen agree again", () => {
+  it("stays armed however many times it is asked, because writing does not let it go", () => {
     const guard = new ReloadGuard();
-    guard.arm("before", "after");
+    guard.arm("before", "after", 5);
+    expect(guard.wouldRevert(4)).toBe(true);
+    expect(guard.wouldRevert(4)).toBe(true);
+    // a redo back to the Reload's own drawing is fine, and an undo again is not
+    expect(guard.wouldRevert(5)).toBe(false);
+    expect(guard.wouldRevert(4)).toBe(true);
+  });
+
+  it("lets go when the person has settled it", () => {
+    const guard = new ReloadGuard();
+    guard.arm("before", "after", 5);
     guard.clear();
-    expect(guard.wouldRevert("before")).toBe(false);
+    expect(guard.wouldRevert(0)).toBe(false);
   });
 
   it("follows the latest Reload", () => {
     const guard = new ReloadGuard();
-    guard.arm("one", "two");
-    guard.arm("two", "three");
-    expect(guard.wouldRevert("one")).toBe(false);
-    expect(guard.wouldRevert("two")).toBe(true);
+    guard.arm("one", "two", 3);
+    guard.arm("two", "three", 8);
+    expect(guard.wouldRevert(5)).toBe(true);
+    expect(guard.wouldRevert(8)).toBe(false);
+  });
+
+  it("works on the history the store keeps: Reload, an edit, then two undos reaches below", () => {
+    const store = new Store();
+    store.load({ meta: { title: "on screen" } });
+    // Reload replaces the drawing, as one step that can be undone
+    store.load({ meta: { title: "from the file" } }, { resetHistory: false, reason: "reload" });
+    const guard = new ReloadGuard();
+    guard.arm("on screen", "from the file", store.historyPosition);
+
+    store.edit((d) => {
+      d.meta.title = "edited after";
+    });
+    expect(guard.wouldRevert(store.historyPosition)).toBe(false);
+    store.undo();
+    expect(guard.wouldRevert(store.historyPosition)).toBe(false);
+    store.undo();
+    expect(store.doc.meta.title).toBe("on screen");
+    expect(guard.wouldRevert(store.historyPosition)).toBe(true);
+    store.redo();
+    expect(guard.wouldRevert(store.historyPosition)).toBe(false);
+  });
+
+  it("keeps counting when the oldest steps are dropped to make room", () => {
+    const store = new Store();
+    store.load({});
+    for (let i = 0; i < 130; i++) {
+      store.edit((d) => {
+        d.meta.title = `step ${i}`;
+      });
+    }
+    const here = store.historyPosition;
+    store.edit((d) => {
+      d.meta.title = "one more";
+    });
+    expect(store.historyPosition).toBe(here + 1);
+    store.undo();
+    expect(store.historyPosition).toBe(here);
   });
 });
 

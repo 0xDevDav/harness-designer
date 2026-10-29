@@ -9,7 +9,8 @@
  *   writing stops, the Reload button lights up, and the person decides;
  * - a drawing that stops being the file's (new, sample) is unlinked first, or
  *   the next autosave would replace the file with something unrelated;
- * - undoing a Reload does not write the drawing it replaced back over the file;
+ * - undoing past a Reload, however it is done, does not write the drawing it
+ *   replaced back over the file;
  * - writes go one at a time, in order, and a failed Save says so.
  */
 import type { DialogsApi, FileApi, ToastApi } from "@/app/context";
@@ -53,15 +54,13 @@ export function createFileSession(options: FileSessionOptions): FileSession {
     timer = undefined;
     return queue(async () => {
       if (!disk.canAutosave) return;
-      const text = serializeDoc(store.doc);
-      if (guard.wouldRevert(text)) {
+      if (guard.wouldRevert(store.historyPosition)) {
         holdForUndo();
         return;
       }
       try {
-        const result = await disk.write(text);
+        const result = await disk.write(serializeDoc(store.doc));
         failedOnce = false;
-        if (result === "written") guard.clear();
         if (result === "stale") tellPaused();
       } catch (err) {
         console.error("[harness] autosave to file failed", err);
@@ -101,7 +100,7 @@ export function createFileSession(options: FileSessionOptions): FileSession {
     const after = serializeDoc(store.doc);
     // the drawing now is the file: the autosave that load queued has nothing to write
     disk.markLoaded(after);
-    if (reason === "reload") guard.arm(before, after);
+    if (reason === "reload") guard.arm(before, after, store.historyPosition);
     else guard.clear();
   };
 
@@ -180,9 +179,8 @@ export function createFileSession(options: FileSessionOptions): FileSession {
       window.clearTimeout(timer);
       timer = undefined;
       try {
-        const text = serializeDoc(store.doc);
         if (disk.attached) {
-          if (disk.isStale || guard.wouldRevert(text) || (await disk.check())) {
+          if (disk.isStale || guard.wouldRevert(store.historyPosition) || (await disk.check())) {
             const ok = await dialogs.confirm({
               title: t("dialog.overwrite.title"),
               body: t("dialog.overwrite.body", { name: base() }),
