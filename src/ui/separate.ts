@@ -17,11 +17,22 @@ import { freeSpot, overlaps, separate } from "@/core/overlap";
 import type { Item } from "@/core/overlap";
 import { buildSchematic } from "@/core/schematic";
 import type { HarnessDoc, Point, Rect } from "@/core/types";
+import { showsBoard, showsSchematic } from "./viewmode";
 
 /** Clear space left round a box in the schematic: the wires run in it. */
 const BOX_GAP = 24;
 
 const gridFor = (snap: boolean): number | null => (snap ? GRID : null);
+
+/**
+ * How far a drop on the sheet may be moved. A connector dropped on the middle
+ * of a long table would otherwise jump to its nearest edge, a long way off and
+ * dragging its branches with it; past this it stays where it was dropped.
+ */
+export const MAX_NUDGE = 240;
+
+/** What came of a drop on the sheet: nothing to do, moved clear, or no free place near enough. */
+export type SettleResult = "clear" | "moved" | "far";
 
 /** What kind of object a drop on the sheet was. */
 export type SheetObject = "node" | "table";
@@ -73,24 +84,26 @@ function moveSheetObject(doc: HarnessDoc, item: SheetItem, corner: Point): void 
  * Called when a drop on the sheet is about to be committed: if what was dropped
  * lies on a table or a connector, it is moved to the nearest place that does
  * not, inside the same edit, so the drop and the nudge are one undo step.
- * Returns true when it was moved.
+ * A free place farther than `MAX_NUDGE` is not taken: it stays where it was
+ * dropped and the result says so, for the caller to tell the person.
  */
 export function settleSheetDrop(
   app: Pick<AppContext, "store" | "renderer">,
   kind: SheetObject,
   ref: string,
-): boolean {
+): SettleResult {
   const { store, renderer } = app;
-  if (kind === "node" && findNode(store.doc, ref)?.kind !== "connector") return false;
+  if (kind === "node" && findNode(store.doc, ref)?.kind !== "connector") return "clear";
   const items = sheetItems(store.doc, renderer, store.snapEnabled);
   const key = keyOf(kind, ref);
   const dropped = items.find((i) => i.id === key);
-  if (!dropped) return false;
+  if (!dropped) return "clear";
   const others = items.filter((i) => i.id !== key).map((i) => i.rect);
   const spot = freeSpot(dropped.rect, others, dropped.options);
-  if (spot.x === dropped.rect.x && spot.y === dropped.rect.y) return false;
+  if (spot.x === dropped.rect.x && spot.y === dropped.rect.y) return "clear";
+  if (Math.hypot(spot.x - dropped.rect.x, spot.y - dropped.rect.y) > MAX_NUDGE) return "far";
   store.live((doc) => moveSheetObject(doc, dropped, spot), "move");
-  return true;
+  return "moved";
 }
 
 /**
@@ -160,12 +173,15 @@ function separateSchematic(doc: HarnessDoc, snap: boolean): number {
   return moved.size;
 }
 
-/** The command: clears up both views. Returns how many objects moved. */
+/**
+ * The command: clears up the views on screen, and only those, so nothing moves
+ * that the person cannot see. Returns how many objects moved.
+ */
 export function separateOverlaps(app: AppContext): number {
   let moved = 0;
   app.store.edit((doc) => {
-    moved =
-      separateSheet(doc, app.renderer, app.store.snapEnabled) + separateSchematic(doc, app.store.snapEnabled);
+    if (showsBoard()) moved += separateSheet(doc, app.renderer, app.store.snapEnabled);
+    if (showsSchematic()) moved += separateSchematic(doc, app.store.snapEnabled);
   }, "separate");
   return moved;
 }

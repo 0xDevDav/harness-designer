@@ -67,18 +67,14 @@ export function freeSpot(rect: Rect, obstacles: readonly Rect[], options: SpotOp
     return !obstacles.some((o) => overlaps(at, grown(o, gap)));
   };
 
-  let best: Point | null = null;
-  let bestCost = Infinity;
-  for (const x of xs) {
-    for (const y of ys) {
-      const cost = (x - rect.x) ** 2 + (y - rect.y) ** 2;
-      if (cost >= bestCost || !clear(x, y)) continue;
-      best = { x, y };
-      bestCost = cost;
-    }
-  }
+  // nearest first, so the first one that is clear is the answer; sort is stable, so ties keep their order
+  const candidates: { x: number; y: number; cost: number }[] = [];
+  for (const x of xs)
+    for (const y of ys) candidates.push({ x, y, cost: (x - rect.x) ** 2 + (y - rect.y) ** 2 });
+  candidates.sort((a, b) => a.cost - b.cost);
+  const best = candidates.find((c) => clear(c.x, c.y));
   // there is always room beyond the last obstacle, which the candidates include
-  return best ?? { x: rect.x, y: rect.y };
+  return best ? { x: best.x, y: best.y } : { x: rect.x, y: rect.y };
 }
 
 export interface Item {
