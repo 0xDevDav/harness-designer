@@ -69,7 +69,10 @@ interface PanState {
 }
 
 /** What a right click landed on, other than a wire. */
-export type SchematicMenuTarget = { kind: "background" } | { kind: "box"; name: string; nodeId?: string };
+export type SchematicMenuTarget =
+  | { kind: "background" }
+  /** `hasTable`: the name has a cavity table, which a splice does not */
+  | { kind: "box"; name: string; nodeId?: string; hasTable?: boolean };
 
 export interface SchematicInteractionOptions {
   store: Store;
@@ -418,7 +421,12 @@ export function attachSchematicInteraction(opts: SchematicInteractionOptions): (
     const box = boxId ? schematic.model().byName.get(boxId) : undefined;
     const items = opts.menuFor?.(
       box
-        ? { kind: "box", name: box.id, ...(box.nodeId ? { nodeId: box.nodeId } : {}) }
+        ? {
+            kind: "box",
+            name: box.id,
+            ...(box.nodeId ? { nodeId: box.nodeId } : {}),
+            ...(box.tableId ? { hasTable: true } : {}),
+          }
         : { kind: "background" },
     );
     if (!items?.length) return;

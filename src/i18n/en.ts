@@ -496,6 +496,8 @@ export const en = {
   "dialog.deleteConnector.title": "Delete connector {name}?",
   "dialog.deleteSplice.title": "Delete splice {name}?",
   "dialog.deleteConnector.body": "{name} is taken off the sheet, with its table.",
+  "dialog.deleteConnector.bodyWire":
+    "{name} is taken off the sheet, with its table, and its wire is disconnected.",
   "dialog.deleteConnector.bodyWires":
     "{name} is taken off the sheet, with its table, and its {n} wires are disconnected.",
   "menu.wireColor": "Wire colour…",

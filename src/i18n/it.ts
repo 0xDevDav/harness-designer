@@ -502,6 +502,8 @@ export const it = {
   "dialog.deleteConnector.title": "Eliminare il connettore {name}?",
   "dialog.deleteSplice.title": "Eliminare la giunzione {name}?",
   "dialog.deleteConnector.body": "{name} viene tolto dal foglio, con la sua tabella.",
+  "dialog.deleteConnector.bodyWire":
+    "{name} viene tolto dal foglio, con la sua tabella, e il suo filo viene scollegato.",
   "dialog.deleteConnector.bodyWires":
     "{name} viene tolto dal foglio, con la sua tabella, e i suoi {n} fili vengono scollegati.",
   "menu.wireColor": "Colore del filo…",
