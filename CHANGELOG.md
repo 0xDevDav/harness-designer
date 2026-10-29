@@ -41,6 +41,9 @@ All notable changes to this project are documented here. The format follows
 - The consistency check flags a cavity table with more rows than its housing has
   cavities (an error) or fewer (a warning), and one that uses pins and sockets in
   the same housing.
+- A cavity table whose connector is gone (turned into a splice, or taken off the
+  sheet) says so: its title turns red with a warning mark on the sheet and in the
+  schematic, and the check reports it as an error, since its wires go nowhere.
 - Deleting a housing or a termination that is in use says how many connectors
   or cavities it will be taken from, and which, before it does it.
 - A symbol can say what it stands for in the two tables with `role`

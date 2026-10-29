@@ -502,6 +502,15 @@ export function titleProblem(doc: HarnessDoc, table: Table, title: string): Titl
 const same = (a: string | undefined, b: string): boolean =>
   (a ?? "").trim().toLowerCase() === b.toLowerCase();
 
+/**
+ * A cavity table with no connector on the sheet: the connector was turned into
+ * a splice, or taken off, and the table is still there describing it. The
+ * wires in its rows go nowhere on the drawing until a connector answers to it.
+ */
+export function isOrphanTable(doc: HarnessDoc, table: Table): boolean {
+  return isCavityTable(table) && !nodeForTable(doc, table);
+}
+
 /* ============================ Cavity table columns ============================ */
 
 export interface TableColumns {

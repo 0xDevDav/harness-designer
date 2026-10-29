@@ -220,6 +220,8 @@ export class SchematicRenderer {
   /* ---------------- boxes ---------------- */
 
   private drawBox(box: SchemBox, ends: readonly Point[], parent: SVGGElement, lit: boolean): void {
+    // a table that no connector on the sheet answers to
+    const orphan = !!box.tableId && !box.nodeId && !box.unknown;
     const g = el(
       "g",
       {
@@ -265,10 +267,21 @@ export class SchematicRenderer {
     text(
       box.w / 2,
       HEAD_H - 8,
-      ellipsize(box.title, 12.5, box.w - 14, true),
-      { "font-size": 12.5, "font-weight": 700, "text-anchor": "middle", fill: palette().text },
+      ellipsize(box.title, 12.5, box.w - (orphan ? 40 : 14), true),
+      {
+        "font-size": 12.5,
+        "font-weight": 700,
+        "text-anchor": "middle",
+        fill: orphan ? palette().errorStroke : palette().text,
+      },
       g,
     );
+    if (orphan) {
+      text(8, HEAD_H - 8, "⚠", { "font-size": 12.5, fill: palette().errorStroke }, g).setAttribute(
+        "data-tip",
+        this.t("table.noConnector"),
+      );
+    }
 
     box.pins.forEach((pin, index) => {
       const y = pinOffset(index);

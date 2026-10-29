@@ -3,6 +3,7 @@ import {
   cavityTables,
   cell,
   findNode,
+  isOrphanTable,
   nodeForTable,
   resolveDest,
   titleMatchesName,
@@ -274,10 +275,11 @@ const drawingHygiene: ValidationRule = {
       if (table.kind !== "table") continue;
       if (table.node && !findNode(doc, table.node)) continue;
       const looksLikeCavityTable = /cavit|cavity|pin/i.test((table.head ?? []).join(" "));
-      if (looksLikeCavityTable && !nodeForTable(doc, table)) {
+      if ((looksLikeCavityTable && !nodeForTable(doc, table)) || isOrphanTable(doc, table)) {
         issues.push({
           rule: "drawing-hygiene",
-          severity: "warning",
+          // a pin-out whose connector is gone describes wires that go nowhere
+          severity: "error",
           message: t("validate.tableWithoutNode", { title: table.title ?? "" }),
           target: { type: "table", id: table.id },
         });

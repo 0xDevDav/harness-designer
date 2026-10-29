@@ -355,7 +355,9 @@ export const it = {
   "validate.titleWithoutName":
     "Tabella «{title}»: il titolo dovrebbe iniziare con il nome del suo connettore, {name}",
   "validate.duplicateTitle": "Due tabelle si chiamano «{title}»",
-  "validate.tableWithoutNode": "Tabella «{title}»: nessun connettore corrispondente nello schema",
+  "table.noConnector":
+    "Nessun connettore sul foglio corrisponde a questa tabella. Dagliene uno, oppure elimina la tabella.",
+  "validate.tableWithoutNode": "Tabella «{title}»: manca il suo connettore, nulla sul foglio le corrisponde",
 
   /* ---------------- distinta fili ---------------- */
   "wirelist.empty": "Nessuna tabella cavità con colonne Cavità e Verso nel foglio.",
