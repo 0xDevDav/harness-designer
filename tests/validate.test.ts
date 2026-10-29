@@ -535,3 +535,31 @@ describe("colours across a joint", () => {
     expect(colourIssues(through(false, "Rosso", "Rosso"))).toHaveLength(0);
   });
 });
+
+describe("the names of tables", () => {
+  const issuesOf = (doc: HarnessDoc): string[] =>
+    validateDoc(doc, t)
+      .filter((i) => i.rule === "drawing-hygiene")
+      .map((i) => i.message);
+
+  it("flags a connector's table whose title no longer starts with the connector's name", () => {
+    const doc = docWith(["C1"], [{ id: "t1", node: "c1", title: "Fuel pump", rows: [["1", "", "", ""]] }]);
+    expect(issuesOf(doc)).toEqual(["validate.titleWithoutName"]);
+  });
+
+  it("flags two plain tables with one name, and no cavity table twice over", () => {
+    const doc = docWith(["C1"], [{ id: "t1", node: "c1", title: "C1 plug", rows: [["1", "", "", ""]] }]);
+    for (const id of ["n1", "n2"]) {
+      doc.tables.push({
+        id,
+        x: 0,
+        y: 0,
+        kind: "table",
+        title: "Notes",
+        head: ["N", "Text"],
+        rows: [["1", "x"]],
+      });
+    }
+    expect(issuesOf(doc)).toEqual(["validate.duplicateTitle"]);
+  });
+});

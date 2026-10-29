@@ -16,6 +16,11 @@ All notable changes to this project are documented here. The format follows
   match case and whole-cell options are offered, and Replace all is a single
   undo step. Renaming a connector through it carries the new name into its table
   and every reference to it.
+  Two tables never end up with one name: a title that would copy another, or
+  that stops starting with the name of its connector, is left as it was, on the
+  sheet as well as in Replace. The check reports both in drawings that already
+  have them. Previous and Next are the arrows beside the Find field, and the
+  panel is called Find until Replace is opened.
 
 ## [1.2.0]
 

@@ -11,6 +11,7 @@ import { DEFAULT_FIND_OPTIONS, cellKey, findAll, replaceAll, replaceAt, tableOfT
 import type { FindTarget, ReplaceResult } from "@/core/find";
 import type { Selection } from "@/core/types";
 import type { FoundMarks } from "@/render/tables";
+import { icon } from "./icons";
 import { closePanel, isPanelOpen, openPanel } from "./panel";
 import { setViewMode, showsBoard } from "./viewmode";
 
@@ -183,6 +184,18 @@ function action(label: string, onClick: () => void, primary = false): HTMLButton
   return b;
 }
 
+/** A small button with an icon for a face; the words are in the tooltip and for a screen reader. */
+function arrow(name: string, label: string, onClick: () => void): HTMLButtonElement {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "btn btn--outline btn--icon btn--small";
+  b.setAttribute("aria-label", label);
+  b.dataset["tip"] = label;
+  b.appendChild(icon(name, 12));
+  b.addEventListener("click", onClick);
+  return b;
+}
+
 function renderFind(app: AppContext, body: HTMLElement): void {
   const { t } = app;
   body.replaceChildren();
@@ -240,7 +253,23 @@ function renderFind(app: AppContext, body: HTMLElement): void {
     }
   });
 
-  body.appendChild(field(t("find.find"), query));
+  // previous above next, to the right of the field they act on
+  const arrows = document.createElement("div");
+  arrows.className = "find__arrows";
+  arrows.append(
+    arrow("chevronUp", t("find.prev"), () => {
+      step(app, -1);
+      refreshStatus();
+    }),
+    arrow("chevron", t("find.next"), () => {
+      step(app, 1);
+      refreshStatus();
+    }),
+  );
+  const findRow = document.createElement("div");
+  findRow.className = "find__row";
+  findRow.append(field(t("find.find"), query), arrows);
+  body.appendChild(findRow);
   if (state.mode === "replace") body.appendChild(field(t("find.replace"), replacement));
 
   const options = document.createElement("div");
@@ -263,16 +292,6 @@ function renderFind(app: AppContext, body: HTMLElement): void {
 
   const buttons = document.createElement("div");
   buttons.className = "stack";
-  buttons.append(
-    action(t("find.prev"), () => {
-      step(app, -1);
-      refreshStatus();
-    }),
-    action(t("find.next"), () => {
-      step(app, 1);
-      refreshStatus();
-    }),
-  );
   if (state.mode === "replace") {
     buttons.append(
       action(
@@ -288,8 +307,8 @@ function renderFind(app: AppContext, body: HTMLElement): void {
         refreshStatus();
       }),
     );
+    body.appendChild(buttons);
   }
-  body.appendChild(buttons);
 
   refreshStatus();
   body.appendChild(status);
@@ -317,7 +336,7 @@ export function openFind(app: AppContext, mode: FindMode): void {
   state.mode = mode;
   openPanel({
     id: PANEL_ID,
-    title: app.t("find.title"),
+    title: app.t(mode === "replace" ? "find.title" : "find.titleFind"),
     width: 330,
     dock: "top-right",
     render: (body) => renderFind(app, body),

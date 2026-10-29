@@ -216,3 +216,66 @@ describe("replaceAll", () => {
     expect(doc.meta.title).toBe("Opel GT 1970");
   });
 });
+
+/** Two injectors whose tables are tied to them by their titles alone, as a drawing from a file is. */
+const injectors = (): HarnessDoc =>
+  normalizeDoc({
+    nodes: [
+      { id: "n2", x: 0, y: 0, kind: "connector", name: "INJ2" },
+      { id: "n3", x: 100, y: 0, kind: "connector", name: "INJ3" },
+    ],
+    segments: [{ id: "s", a: "n2", b: "n3", len: "300 mm" }],
+    tables: [
+      {
+        id: "t2",
+        x: 0,
+        y: 0,
+        kind: "table",
+        title: "INJ2 — Injector 2",
+        head: HEAD,
+        rows: [["1", "INJ3.1", "Fuel", "Red"]],
+      },
+      {
+        id: "t3",
+        x: 0,
+        y: 0,
+        kind: "table",
+        title: "INJ3 — Injector 3",
+        head: HEAD,
+        rows: [["1", "INJ2.1", "Fuel", "Red"]],
+      },
+    ],
+  });
+
+describe("table titles", () => {
+  it("leaves a connector's table alone when the connector cannot take the new name", () => {
+    const doc = injectors();
+    const result = replaceAll(doc, "INJ2", "INJ3", opt());
+    expect(doc.nodes[0]?.name).toBe("INJ2");
+    expect(doc.tables[0]?.title).toBe("INJ2 — Injector 2");
+    expect(doc.tables[1]?.rows[0]?.[1]).toBe("INJ2.1");
+    expect(result.changed).toBe(0);
+    expect(result.held).toBeGreaterThan(0);
+  });
+
+  it("refuses a title that gives two tables the same name", () => {
+    const doc = injectors();
+    expect(replaceAt(doc, { kind: "title", table: "t3" }, "Injector 3", "Injector 2", opt())).toBe(true);
+    expect(replaceAt(doc, { kind: "title", table: "t3" }, "INJ3", "INJ2", opt())).toBe(false);
+    expect(doc.tables[1]?.title).toBe("INJ3 — Injector 2");
+  });
+
+  it("refuses a title that stops starting with the connector's name", () => {
+    const doc = injectors();
+    expect(replaceAt(doc, { kind: "title", table: "t2" }, "INJ2", "FUEL", opt())).toBe(false);
+    expect(doc.tables[0]?.title).toBe("INJ2 — Injector 2");
+  });
+
+  it("still renames the connector and its table together when the name is free", () => {
+    const doc = injectors();
+    replaceAll(doc, "INJ2", "INJ9", opt());
+    expect(doc.nodes[0]?.name).toBe("INJ9");
+    expect(doc.tables[0]?.title).toBe("INJ9 — Injector 2");
+    expect(doc.tables[1]?.rows[0]?.[1]).toBe("INJ9.1");
+  });
+});

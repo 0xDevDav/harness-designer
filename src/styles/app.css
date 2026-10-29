@@ -442,6 +442,29 @@ body {
   font-size: 12px;
 }
 /* Find and replace panel */
+.find__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.find__row .field {
+  flex: 1;
+  min-width: 0;
+}
+/* the two arrows sit level with the field, as tall as it is */
+.find__arrows {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.find__arrows .btn {
+  height: 34px;
+  width: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .find__options {
   display: flex;
   flex-wrap: wrap;

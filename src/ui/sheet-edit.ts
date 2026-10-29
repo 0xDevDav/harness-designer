@@ -6,10 +6,13 @@ import {
   findSegment,
   findTable,
   isAutoLinkEnabled,
+  nodeForTable,
   renameNode,
   segmentEnds,
   tableColumns,
+  titleProblem,
 } from "@/core/doc";
+import type { TitleProblem } from "@/core/doc";
 import { lerpPoint } from "@/core/geometry";
 import type { HarnessDoc, Point, Rect, Selection, Table } from "@/core/types";
 import { HEAD_ROW, ROW_H, TITLE_ROW, cellAt, cellRect, titleBlockLayout } from "@/render/tables";
@@ -131,11 +134,16 @@ const readCell = (table: Table, row: number, col: number): string => {
 };
 
 function commitCell(app: AppContext, id: string, row: number, col: number, value: string): void {
+  let refused: TitleProblem | null = null;
+  let owner = "";
   const changed = app.store.edit((doc) => {
     const table = findTable(doc, id);
     if (!table) return;
     if (row === TITLE_ROW) {
-      table.title = value;
+      // two tables never share a name, and a connector's table keeps the connector's
+      refused = titleProblem(doc, table, value);
+      owner = nodeForTable(doc, table)?.name ?? "";
+      if (!refused) table.title = value;
       return;
     }
     if (row === HEAD_ROW) {
@@ -150,6 +158,10 @@ function commitCell(app: AppContext, id: string, row: number, col: number, value
     cells[col] = value;
   }, "cell");
 
+  if (refused) {
+    app.toast.error(app.t(refused === "taken" ? "toast.titleTaken" : "toast.titleUnlinked", { name: owner }));
+    return;
+  }
   if (changed && row >= 0) runAutoLink(app, id, row);
 }
 

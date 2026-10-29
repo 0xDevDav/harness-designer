@@ -351,6 +351,9 @@ export const it = {
   "validate.wireUnreachable":
     "Filo {from} → {to}: i due connettori esistono ma nessun ramo li collega, il filo non è realizzabile",
   "validate.unnamedConnector": "Connettore senza nome: non può comparire nella distinta fili",
+  "validate.titleWithoutName":
+    "Tabella «{title}»: il titolo dovrebbe iniziare con il nome del suo connettore, {name}",
+  "validate.duplicateTitle": "Due tabelle si chiamano «{title}»",
   "validate.tableWithoutNode": "Tabella «{title}»: nessun connettore corrispondente nello schema",
 
   /* ---------------- distinta fili ---------------- */
@@ -454,6 +457,7 @@ export const it = {
   "toast.otherTab": "Questo schema è aperto anche in un'altra scheda: l'ultimo salvataggio automatico vince.",
 
   "find.title": "Trova e sostituisci",
+  "find.titleFind": "Trova",
   "find.find": "Trova",
   "find.replace": "Sostituisci con",
   "find.matchCase": "Maiuscole/minuscole",
@@ -469,12 +473,16 @@ export const it = {
   "find.replaced": "Sostituito in {n} punti",
   "find.replacedOne": "Sostituito in 1 punto",
   "find.replacedHeld":
-    "Punti sostituiti: {n}. Lasciati invariati: {held}. Un connettore non può prendere il nome di un altro, e i riferimenti a quel connettore restano invariati.",
-  "find.refused": "Non sostituito: un connettore non può restare senza nome né prendere il nome di un altro.",
+    "Punti sostituiti: {n}. Lasciati invariati: {held}. Un connettore non può prendere il nome di un altro, e i riferimenti a quel connettore restano invariati. Una tabella conserva un nome tutto suo che inizia con quello del suo connettore.",
+  "find.refused":
+    "Non sostituito: un connettore non può restare senza nome né prendere il nome di un altro, e una tabella non può prendere il nome di un'altra tabella né perdere quello del suo connettore.",
   "cmd.find": "Trova…",
   "cmd.replace": "Trova e sostituisci…",
   "toast.pluginLoaded": "Plugin «{name}» caricato",
   "toast.pluginFailed": "Plugin «{name}» non caricato: {error}",
+  "toast.titleTaken": "Un'altra tabella ha già questo nome",
+  "toast.titleUnlinked":
+    "Questa è la tabella di {name}: il titolo deve iniziare con quel nome. Rinomina il connettore per rinominare entrambi.",
   "toast.offlineReady": "Applicazione disponibile anche offline",
   "toast.updateReady": "È pronta una versione più recente",
   "toast.updateReload": "Ricarica",

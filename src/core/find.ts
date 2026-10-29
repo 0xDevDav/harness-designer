@@ -1,4 +1,4 @@
-import { findInline, findNode, findSegment, findTable, renameNode } from "./doc";
+import { findInline, findNode, findSegment, findTable, nodeForTable, renameNode, titleProblem } from "./doc";
 import type { DocMeta, HarnessDoc } from "./types";
 
 /**
@@ -70,7 +70,9 @@ function setText(doc: HarnessDoc, target: FindTarget, value: string): boolean {
   switch (target.kind) {
     case "title": {
       const table = findTable(doc, target.table);
-      if (!table) return false;
+      // a title that would give two tables one name, or take a connector's table
+      // away from the connector, is refused like a name that is already taken
+      if (!table || titleProblem(doc, table, value)) return false;
       table.title = value;
       return true;
     }
@@ -196,6 +198,9 @@ const textKey = (target: FindTarget): string | null =>
  * empty): when it is, the references to that connector keep the name it still
  * has, or they would end up pointing at some other connector.
  *
+ * A table title is replaced only if the table keeps a name of its own and keeps
+ * its connector's: otherwise it is left as it was and counted as held.
+ *
  * A title or cell that the renames already rewrote is not replaced in again:
  * with a new name that contains the old one, `MAP.3` would go to `MAPX.3` and
  * then, still finding `MAP`, to `MAPXX.3`. They are counted instead, so the
@@ -232,7 +237,10 @@ export function replaceAll(
 
   const pointsAtKept = (target: FindTarget): boolean => {
     if (!kept.size) return false;
-    if (target.kind === "title") return [...kept.values()].includes(findTable(doc, target.table)?.node ?? "");
+    if (target.kind === "title") {
+      const table = findTable(doc, target.table);
+      return !!table && [...kept.values()].includes(nodeForTable(doc, table)?.id ?? "");
+    }
     if (target.kind !== "cell") return false;
     const text = (textOf(doc, target) ?? "").trim();
     return [...kept.keys()].some((name) => text === name || text.startsWith(`${name}.`));
@@ -246,7 +254,12 @@ export function replaceAll(
       if (textOf(doc, target) !== undefined) result.held++;
       continue;
     }
+    const before = textOf(doc, target);
     if (replaceAt(doc, target, query, replacement, options)) result.changed++;
+    // a replacement the drawing refused is left as it was, and counted
+    else if (before !== undefined && replaceInText(before, query, replacement, options) !== before) {
+      result.held++;
+    }
   }
   return result;
 }

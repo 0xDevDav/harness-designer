@@ -427,7 +427,7 @@ export function nextName(doc: HarnessDoc, prefix: string): string {
 
 /* ============================ Table ↔ connector link ============================ */
 
-const titleMatchesName = (title: string | undefined, name: string): boolean =>
+export const titleMatchesName = (title: string | undefined, name: string): boolean =>
   !!title && !!name && (title === name || title.startsWith(name + " "));
 
 /** A connector's cavity table: explicit link, falling back to the title when there is none. */
@@ -448,6 +448,29 @@ export function nodeForTable(doc: HarnessDoc, t: Table): HNode | undefined {
   if (!t.title) return undefined;
   return doc.nodes.find((n) => n.kind === "connector" && titleMatchesName(t.title, n.name));
 }
+
+export type TitleProblem = "taken" | "unlinked";
+
+/**
+ * Why a table cannot be given this title, or null when it can.
+ *
+ * Two tables with one name cannot be told apart, in the schematic or in the
+ * check, and a connector's table that stops starting with the connector's name
+ * is no longer visibly its table. Both are refused before the title is written
+ * rather than reported afterwards.
+ */
+export function titleProblem(doc: HarnessDoc, table: Table, title: string): TitleProblem | null {
+  const text = title.trim();
+  if (text && doc.tables.some((o) => o.id !== table.id && o.kind === "table" && same(o.title, text))) {
+    return "taken";
+  }
+  const node = nodeForTable(doc, table);
+  if (node?.name.trim() && !titleMatchesName(text, node.name.trim())) return "unlinked";
+  return null;
+}
+
+const same = (a: string | undefined, b: string): boolean =>
+  (a ?? "").trim().toLowerCase() === b.toLowerCase();
 
 /* ============================ Cavity table columns ============================ */
 
