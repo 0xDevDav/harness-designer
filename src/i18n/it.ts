@@ -462,7 +462,7 @@ export const it = {
   "toast.wireUnitSet": "Le sezioni sono ora in {unit}",
   "dialog.unit.title": "Convertire le sezioni in {unit}?",
   "dialog.unit.body":
-    "Le due scale non coincidono, quindi ogni sezione diventa la misura standard più vicina della nuova:\n\n{lines}\n\nUn filo che risulta più sottile porta meno corrente. Ctrl+Z annulla la conversione.",
+    "Le due scale non coincidono. Le sezioni sono arrotondate alla misura standard più vicina dell'altra scala, quindi riconvertendo non si ritrovano le sezioni di prima:\n\n{lines}\n\nUn filo che risulta più sottile porta meno corrente. Ctrl+Z annulla la conversione.",
   "dialog.unit.thinner": "{pct} % più sottile",
   "dialog.unit.thicker": "{pct} % più spesso",
   "dialog.unit.more": "• e altre {n} sezioni",
