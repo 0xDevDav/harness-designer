@@ -268,20 +268,6 @@ function nextCell(
   return row > 0 ? { row: row - 1, col: columns - 1 } : null;
 }
 
-/**
- * The sizes of the drawing's unit as a list under the cell. Each one shows what
- * it comes to in the other unit, because the point of having both is to read
- * across.
- */
-function openSizeMenu(app: AppContext, table: Table, row: number, col: number, rect: Rect): void {
-  const { t } = app;
-  const unit = wireUnitOf(app.store.doc);
-  const other = unit === "awg" ? "mm2" : "awg";
-  const now = readCell(table, row, col).trim();
-  // "2.5 mm²", "0,75" and "18 AWG" are the sizes they say, however they are spelled
-  const written = parseSize(now, unit);
-  const isNow = (area: number): boolean =>
-    !!written && (written.unit ?? unit) === unit && Math.abs(written.area / area - 1) < 1e-6;
 /** One entry of a list picked from under a cell. */
 interface Choice {
   value: string;
@@ -301,16 +287,21 @@ function openChoiceMenu(
   row: number,
   col: number,
   rect: Rect,
-  options: { header: string; choices: readonly Choice[]; other: string; clear: string },
+  options: {
+    header: string;
+    choices: readonly Choice[];
+    other: string;
+    clear: string;
+    /** whether the cell already holds this choice, when spelling it differently is still the same */
+    holds?: (choice: Choice, written: string) => boolean;
+  },
 ): void {
   const now = readCell(table, row, col).trim();
+  const holds = options.holds ?? ((choice: Choice, written: string): boolean => written === choice.value);
   const items: MenuItem[] = [{ header: options.header }];
   for (const choice of options.choices) {
     items.push({
-      label: `${isNow(size.area) ? "● " : "○ "}${size.label} ${unitLabel(unit)}`,
-      shortcut: `≈ ${nearestSize(size.area, other).label} ${unitLabel(other)}`,
-      run: () => commitCell(app, table.id, row, col, size.label),
-      label: `${now === choice.value ? "● " : "○ "}${choice.label}`,
+      label: `${holds(choice, now) ? "● " : "○ "}${choice.label}`,
       ...(choice.note ? { shortcut: choice.note } : {}),
       run: () => commitCell(app, table.id, row, col, choice.value),
     });
@@ -350,6 +341,12 @@ function openSizeMenu(app: AppContext, table: Table, row: number, col: number, r
     })),
     other: t("menu.sizeOther"),
     clear: t("menu.sizeClear"),
+    // "2.5 mm²", "0,75" and "18 AWG" are the sizes they say, however they are spelled
+    holds: (choice, written) => {
+      const here = parseSize(written, unit);
+      const size = sizesFor(unit).find((s) => s.label === choice.value);
+      return !!here && !!size && (here.unit ?? unit) === unit && Math.abs(here.area / size.area - 1) < 1e-6;
+    },
   });
 }
 

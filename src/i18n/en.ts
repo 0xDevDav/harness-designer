@@ -518,8 +518,10 @@ export const en = {
   "toast.wireColorNone": "This wire has no Colour column to write to: add one to the cavity table.",
   "cmd.insertTypeColumn": "Add a Wire type column to the cavity tables",
   "insert.typeColumn": "Wire type column in every cavity table",
-  "toast.typeColumnAdded": "Wire type column added to {n} tables",
-  "toast.typeColumnMoved": "Wire type column added to {n} tables, {moved} moved clear of their neighbours",
+  "toast.typeColumnAdded": "Wire type column added to tables: {n}",
+  "toast.typeColumnMoved": "Wire type column added to tables: {n}. Tables moved over to make room: {moved}",
+  "toast.typeColumnStuck":
+    "Wire type column added to tables: {n}. Tables moved over to make room: {moved}. Still lying on something, left where they were: {names}",
   "toast.typeColumnNone": "Every cavity table already has a Wire type column",
   "topbar.unit.tip": "Wire size unit. Choosing the other one converts every size in the drawing",
   "cmd.unitMm2": "Wire sizes in mm²",

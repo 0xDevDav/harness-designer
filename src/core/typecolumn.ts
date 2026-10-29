@@ -2,7 +2,7 @@ import { tableColumns } from "./doc";
 import type { HarnessDoc } from "./types";
 
 /**
- * Adds a Type column to every cavity table that does not have one.
+ * Adds a Wire type column to every cavity table that does not have one.
  *
  * The column goes after the section when there is one, otherwise after the
  * colour or the cavity, so it sits with the other facts about the wire and its

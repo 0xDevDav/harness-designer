@@ -526,8 +526,11 @@ export const it = {
     "Questo filo non ha una colonna Colore su cui scrivere: aggiungila alla tabella delle cavità.",
   "cmd.insertTypeColumn": "Aggiungi una colonna Tipo filo alle tabelle delle cavità",
   "insert.typeColumn": "Colonna Tipo filo in ogni tabella delle cavità",
-  "toast.typeColumnAdded": "Colonna Tipo filo aggiunta a {n} tabelle",
-  "toast.typeColumnMoved": "Colonna Tipo filo aggiunta a {n} tabelle, {moved} spostate lontano dalle vicine",
+  "toast.typeColumnAdded": "Colonna Tipo filo aggiunta alle tabelle: {n}",
+  "toast.typeColumnMoved":
+    "Colonna Tipo filo aggiunta alle tabelle: {n}. Tabelle spostate per fare spazio: {moved}",
+  "toast.typeColumnStuck":
+    "Colonna Tipo filo aggiunta alle tabelle: {n}. Tabelle spostate per fare spazio: {moved}. Ancora sopra qualcosa, lasciate dove erano: {names}",
   "toast.typeColumnNone": "Ogni tabella delle cavità ha già una colonna Tipo filo",
   "topbar.unit.tip":
     "Unità di misura delle sezioni. Sceglierne un'altra converte tutte le sezioni del disegno",

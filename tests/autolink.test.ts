@@ -352,3 +352,21 @@ describe("not-connected cells", () => {
     expect(resolveDest(table.rows[0], tableColumns(table))).toBeNull();
   });
 });
+
+describe("the wire type", () => {
+  it("reaches the far end of a new link, in a table that has the column", () => {
+    const head = ["Cavity", "Wire type", "To"];
+    const doc = normalizeDoc({
+      nodes: [
+        { id: "n1", x: 0, y: 0, kind: "connector", name: "A", style: "plug", refs: "" },
+        { id: "n2", x: 100, y: 0, kind: "connector", name: "B", style: "plug", refs: "" },
+      ],
+      tables: [
+        { id: "ta", node: "n1", x: 0, y: 0, kind: "table", title: "A", head, rows: [["1", "TXL", "B.1"]] },
+        { id: "tb", node: "n2", x: 0, y: 0, kind: "table", title: "B", head, rows: [["1", "", ""]] },
+      ],
+    });
+    autoLinkRow(doc, "ta", 0);
+    expect(findTable(doc, "tb")?.rows[0]).toEqual(["1", "TXL", "A.1"]);
+  });
+});

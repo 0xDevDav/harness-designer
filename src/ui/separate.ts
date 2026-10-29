@@ -13,7 +13,7 @@
 import type { AppContext, RendererApi } from "@/app/context";
 import { findNode, findTable } from "@/core/doc";
 import { GRID } from "@/core/geometry";
-import { freeSpot, overlaps, separate } from "@/core/overlap";
+import { OVERLAP_GAP, freeSpot, overlaps, separate } from "@/core/overlap";
 import type { Item } from "@/core/overlap";
 import { buildSchematic } from "@/core/schematic";
 import type { HarnessDoc, Point, Rect } from "@/core/types";
@@ -33,6 +33,14 @@ export const MAX_NUDGE = 240;
 
 /** What came of a drop on the sheet: nothing to do, moved clear, or no free place near enough. */
 export type SettleResult = "clear" | "moved" | "far";
+
+/**
+ * How far a table that got wider may be moved to clear what it now lies on.
+ * Shorter than a drop's, since nothing was dragged: a table that has to travel
+ * more than this has probably run into the bundle, which the search cannot see,
+ * and is better left than put somewhere the drawing did not have it.
+ */
+export const MAX_WIDEN_NUDGE = 100;
 
 /** What kind of object a drop on the sheet was. */
 export type SheetObject = "node" | "table";
@@ -121,17 +129,17 @@ function separateSheet(doc: HarnessDoc, renderer: RendererApi, snap: boolean): n
     if (connectors.slice(0, n).some((earlier) => overlaps(c.rect, earlier.rect))) movable.add(c.id);
   });
   for (const item of items) if (item.kind === "table") movable.add(item.id);
-  return moveApart(doc, items, movable);
+  return moveApart(doc, items, movable).length;
 }
 
-/** Moves the movable items off whatever they lie on, in the document. Returns how many moved. */
-function moveApart(doc: HarnessDoc, items: readonly SheetItem[], movable: ReadonlySet<string>): number {
+/** Moves the movable items off whatever they lie on, in the document. Returns the ids that moved. */
+function moveApart(doc: HarnessDoc, items: readonly SheetItem[], movable: ReadonlySet<string>): string[] {
   const moved = separate(items, movable);
   for (const [id, spot] of moved) {
     const item = items.find((i) => i.id === id);
     if (item) moveSheetObject(doc, item, spot);
   }
-  return moved.size;
+  return [...moved.keys()];
 }
 
 /**
@@ -146,7 +154,93 @@ export function separateTables(
   tableIds: readonly string[],
 ): number {
   const items = sheetItems(doc, renderer, snap);
-  return moveApart(doc, items, new Set(tableIds.map((id) => keyOf("table", id))));
+  return moveApart(doc, items, new Set(tableIds.map((id) => keyOf("table", id)))).length;
+}
+
+/**
+ * Lets tables get wider without them lying on their neighbours: `widen` changes
+ * the document and returns the ids of the tables it made wider. A table that
+ * the wider one now lies on is pushed to the right, just far enough to clear it
+ * (and onto the grid), and pushes in turn whatever it now lies on, so the
+ * layout stays what it was and nothing travels farther than it has to; a table
+ * that was clear of the widened one does not move. What still lies on something
+ * afterwards, a connector or a table that was not to the right, gives way as in
+ * `separateTables`, but not farther than `MAX_WIDEN_NUDGE`: past that the table stays
+ * where it is, since the nearest free place is somewhere it was not drawn and
+ * the bundle is not something the search can see. Those are returned in `stuck`
+ * so the person can be told which tables still lie on something. Returns the
+ * tables that were widened, how many moved, and the ones left on something.
+ */
+export function widenTables(
+  doc: HarnessDoc,
+  renderer: RendererApi,
+  snap: boolean,
+  widen: () => string[],
+): { widened: string[]; moved: number; stuck: string[] } {
+  const widened = widen();
+  const rects = new Map<string, Rect>();
+  for (const i of sheetItems(doc, renderer, snap)) if (i.kind === "table") rects.set(i.ref, { ...i.rect });
+
+  const pushed = new Set<string>();
+  const pending = widened.filter((id) => rects.has(id));
+  while (pending.length) {
+    pending.sort((p, q) => rects.get(p)!.x - rects.get(q)!.x);
+    const id = pending.shift()!;
+    const wide = rects.get(id)!;
+    for (const [other, rect] of rects) {
+      if (other === id || rect.x < wide.x || !overlaps(wide, rect)) continue;
+      let by = wide.x + wide.w + OVERLAP_GAP - rect.x;
+      if (snap) by = Math.ceil(by / GRID) * GRID;
+      const table = findTable(doc, other);
+      if (!table) continue;
+      table.x += by;
+      rect.x += by;
+      pushed.add(other);
+      if (!pending.includes(other)) pending.push(other);
+    }
+  }
+
+  const items = sheetItems(doc, renderer, snap);
+  const movable = new Set([...widened, ...pushed].map((id) => keyOf("table", id)));
+  const { moved, stuck } = moveApartNear(doc, items, movable);
+  const clearedUp = moved.map((id) => id.slice("table:".length));
+  return {
+    widened,
+    moved: new Set([...pushed, ...clearedUp]).size,
+    stuck: stuck.map((id) => id.slice("table:".length)),
+  };
+}
+
+/**
+ * `moveApart`, except that an item whose free place is farther than
+ * `MAX_WIDEN_NUDGE` stays where it is. It then counts as something the others must
+ * go round, so the search runs again without it until nothing new is left.
+ */
+function moveApartNear(
+  doc: HarnessDoc,
+  items: readonly SheetItem[],
+  movable: ReadonlySet<string>,
+): { moved: string[]; stuck: string[] } {
+  const free = new Set(movable);
+  const stuck: string[] = [];
+  for (;;) {
+    const spots = separate(items, free);
+    const far = [...spots].filter(([id, spot]) => {
+      const rect = items.find((i) => i.id === id)?.rect;
+      return !!rect && Math.hypot(spot.x - rect.x, spot.y - rect.y) > MAX_WIDEN_NUDGE;
+    });
+    if (!far.length) {
+      for (const [id, spot] of spots) {
+        const item = items.find((i) => i.id === id);
+        if (item) moveSheetObject(doc, item, spot);
+      }
+      return { moved: [...spots.keys()], stuck };
+    }
+    for (const [id] of far) {
+      free.delete(id);
+      stuck.push(id);
+    }
+  }
 }
 
 /**

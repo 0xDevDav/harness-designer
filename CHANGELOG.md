@@ -126,9 +126,13 @@ All notable changes to this project are documented here. The format follows
   cell, with _Other type…_ and _Clear type_, and, like colour and size, is
   brought into step at the far end of the wire. Cavity tables have a _Wire type_
   column, and _Insert → Wire type column in every cavity table_ adds it to
-  existing drawings, moving apart any table the new column makes lie on another.
-  Only a column headed _Wire type_ (or _Tipo filo_) counts: a column called just
-  _Type_ is left alone, since older sheets use it for something else.
+  existing drawings; a table the wider one now lies on is pushed to the right
+  just far enough to clear it, so the layout stays as it was. What still lies on
+  a connector gives way only as far as 100 units; past that the table stays where
+  it is and the message names it, since the free place the search finds may lie
+  on the bundle. Only a column headed _Wire type_ (or _Tipo filo_) counts: a
+  column called just _Type_ is left alone, since older sheets use it for something
+  else.
 
 ### Changed
 
