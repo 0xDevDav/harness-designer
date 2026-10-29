@@ -251,6 +251,30 @@ function occupant(f: Found | null, other: End): string | null {
 }
 
 /**
+ * A cavity that some other cavity already sends its wire to, though its own row
+ * says nothing (a wire written on one side only). Returns that other cavity.
+ */
+function pointedAt(tables: readonly CavityTable[], end: End, besides: End): string | null {
+  if (!end.cavity) return null;
+  for (const ct of tables) {
+    for (const row of ct.table.rows) {
+      const dest = resolveDest(row, ct.cols);
+      if (dest?.connector !== end.connector || dest.cavity !== end.cavity) continue;
+      const from = `${ct.owner}.${cell(row, ct.cols.cavity)}`;
+      if (from !== endLabel(besides)) return from;
+    }
+  }
+  return null;
+}
+
+/** What stands in the way of a wire between two cavities: another wire at either end, written on either side. */
+const wireInTheWay = (tables: readonly CavityTable[], a: End, b: End): string | null =>
+  occupant(rowOf(tables, a), b) ??
+  occupant(rowOf(tables, b), a) ??
+  pointedAt(tables, a, b) ??
+  pointedAt(tables, b, a);
+
+/**
  * Makes a wire between two ends that have none. Mutates the document, so it has
  * to be called from inside a store edit.
  */
@@ -261,7 +285,7 @@ export function connectEnds(doc: HarnessDoc, from: string, to: string, prefer?: 
   if (a.connector === b.connector) return { ok: false, reason: "same-connector" };
 
   const tables = cavityTables(doc);
-  const busy = occupant(rowOf(tables, a), b) ?? occupant(rowOf(tables, b), a);
+  const busy = wireInTheWay(tables, a, b);
   if (busy) return { ok: false, reason: "occupied", other: busy };
   if (!hasTable(tables, a) && !hasTable(tables, b)) return { ok: false, reason: "no-table" };
 
@@ -341,7 +365,7 @@ export function moveWireEnd(
   if (target.connector === kept.connector) return { ok: false, reason: "same-connector" };
 
   const tables = cavityTables(doc);
-  const busy = occupant(rowOf(tables, target), kept);
+  const busy = occupant(rowOf(tables, target), kept) ?? pointedAt(tables, target, kept);
   if (busy) return { ok: false, reason: "occupied", other: busy };
 
   const fk = rowOf(tables, kept);
@@ -399,7 +423,8 @@ export function connectViaSplice(
   const ft = rowOf(tables, target);
   if (!fk || !ft) return { ok: false, reason: "no-table" };
   // the cavity that stays has its wire only when that wire is the one being moved
-  const taken = destText(ft) || (op.kind === "new" ? destText(fk) : "");
+  const taken =
+    destText(ft) || (op.kind === "new" ? destText(fk) : "") || (pointedAt(tables, target, kept) ?? "");
   if (taken) return { ok: false, reason: "occupied", other: taken };
 
   const fo = old ? rowOf(tables, old) : null;

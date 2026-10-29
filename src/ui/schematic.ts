@@ -220,6 +220,8 @@ export function attachSchematicInteraction(opts: SchematicInteractionOptions): (
     const target = targetAt(schematic.model(), schematic.screenToWorld(ev));
     if (!target) return;
     const to = targetLabel(target);
+    // let go on the cavity it started from: nothing was asked, so nothing is said
+    if (d.op.kind === "new" && to === d.op.from) return;
     const op: WireOp =
       d.op.kind === "move"
         ? { kind: "move", ends: endsOf(d.op.wire), moving: d.op.moving }
