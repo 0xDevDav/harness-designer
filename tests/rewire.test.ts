@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { normalizeDoc } from "@/core/doc";
 import { HEAD_H, PIN_H, buildSchematic, targetAt, targetLabel } from "@/core/schematic";
-import { connectEnds, disconnectWire, endLabel, moveWireEnd, parseEnd } from "@/core/rewire";
+import {
+  connectEnds,
+  connectViaSplice,
+  detailsConflict,
+  disconnectWire,
+  endLabel,
+  moveWireEnd,
+  parseEnd,
+} from "@/core/rewire";
+import { routeWires } from "@/core/routing";
 import type { HarnessDoc } from "@/core/types";
 
 const HEAD = ["Cavity", "To", "Function", "Colour", "Section", "Wire type"];
@@ -290,11 +299,11 @@ describe("targetAt", () => {
 });
 
 describe("disconnectWire", () => {
-  it("lets go of the wire at both ends, taking its colour, size and type", () => {
+  it("lets go of the wire at both ends and keeps what each cavity says about it", () => {
     const doc = harness();
     expect(disconnectWire(doc, ["A.1", "B.1"])).toBe(2);
-    expect(rowOf(doc, "ta", "1")).toEqual(["1", "", "Power", "", "", ""]);
-    expect(rowOf(doc, "tb", "1")).toEqual(["1", "", "Power", "", "", ""]);
+    expect(rowOf(doc, "ta", "1").slice(0, 5)).toEqual(["1", "", "Power", "Red", "1.5"]);
+    expect(rowOf(doc, "tb", "1").slice(0, 5)).toEqual(["1", "", "Power", "Red", "1.5"]);
   });
 
   it("is gone from the schematic afterwards", () => {
@@ -322,5 +331,97 @@ describe("disconnectWire", () => {
     disconnectWire(doc, ["A.1", "B.1"]);
     expect(connectEnds(doc, "A.1", "B.1")).toEqual({ ok: true });
     expect(rowOf(doc, "tb", "1")[1]).toBe("A.1");
+  });
+});
+
+/** A.2 is a blue 2.5 wire's cavity and C.1 a red 1.5 one's, with nothing between them yet. */
+const unlike = (): HarnessDoc => {
+  const doc = harness();
+  Object.assign(rowOf(doc, "ta", "2"), { 3: "Blue", 4: "2.5" });
+  Object.assign(rowOf(doc, "tc", "1"), { 3: "Red", 4: "1.5" });
+  return doc;
+};
+
+describe("a wire joining cavities that disagree about it", () => {
+  const made = { kind: "new", from: "A.2" } as const;
+
+  it("names what they disagree about", () => {
+    expect(detailsConflict(unlike(), made, "C.1")).toEqual({
+      start: "A.2",
+      target: "C.1",
+      differences: [
+        { label: "Colour", start: "Blue", target: "Red" },
+        { label: "Section", start: "2.5", target: "1.5" },
+      ],
+    });
+  });
+
+  it("is not a disagreement when one has nothing to say, or the same in other words", () => {
+    const doc = unlike();
+    expect(detailsConflict(doc, { kind: "new", from: "A.3" }, "C.1")).toBeNull();
+    Object.assign(rowOf(doc, "tc", "1"), { 3: "blue", 4: "2,5" });
+    expect(detailsConflict(doc, made, "C.1")).toBeNull();
+  });
+
+  it("is asked about a wire that is moved too, with the wire's own details", () => {
+    const doc = unlike();
+    const move = { kind: "move", ends: ["A.1", "B.1"], moving: 1 } as const;
+    expect(detailsConflict(doc, move, "C.1")).toBeNull();
+    Object.assign(rowOf(doc, "tc", "1"), { 3: "Green" });
+    expect(detailsConflict(doc, move, "C.1")?.differences).toEqual([
+      { label: "Colour", start: "Red", target: "Green" },
+    ]);
+  });
+
+  it("gives both ends the details of the cavity the wire comes from", () => {
+    const doc = unlike();
+    expect(connectEnds(doc, "A.2", "C.1", "start")).toEqual({ ok: true });
+    expect(rowOf(doc, "ta", "2").slice(3, 5)).toEqual(["Blue", "2.5"]);
+    expect(rowOf(doc, "tc", "1").slice(3, 5)).toEqual(["Blue", "2.5"]);
+  });
+
+  it("gives both ends the details of the cavity it is dropped on", () => {
+    const doc = unlike();
+    expect(connectEnds(doc, "A.2", "C.1", "target")).toEqual({ ok: true });
+    expect(rowOf(doc, "ta", "2").slice(3, 5)).toEqual(["Red", "1.5"]);
+    expect(rowOf(doc, "tc", "1").slice(3, 5)).toEqual(["Red", "1.5"]);
+  });
+
+  it("does the same when an end is moved", () => {
+    const doc = unlike();
+    Object.assign(rowOf(doc, "tc", "1"), { 3: "Green", 4: "" });
+    expect(moveWireEnd(doc, ["A.1", "B.1"], 1, "C.1", "target")).toEqual({ ok: true });
+    expect(rowOf(doc, "ta", "1").slice(3, 5)).toEqual(["Green", "1.5"]);
+    expect(rowOf(doc, "tc", "1").slice(3, 5)).toEqual(["Green", "1.5"]);
+    expect(rowOf(doc, "tb", "1")[1]).toBe("");
+  });
+
+  it("joins them through a new splice that each keeps its own details at", () => {
+    const doc = unlike();
+    const result = connectViaSplice(doc, made, "C.1");
+    expect(result).toEqual({ ok: true, splice: "S2" });
+    expect(rowOf(doc, "ta", "2").slice(1, 5)).toEqual(["S2", "", "Blue", "2.5"]);
+    expect(rowOf(doc, "tc", "1").slice(1, 5)).toEqual(["S2", "", "Red", "1.5"]);
+    const node = doc.nodes.find((n) => n.name === "S2");
+    expect(node).toMatchObject({ kind: "connector", style: "splice" });
+    // it is on the way: on the junction between the two connectors, so both wires reach it
+    const routed = routeWires(doc).filter((w) => `${w.wire.from} ${w.wire.to}`.includes("S2"));
+    expect(routed.length).toBeGreaterThan(0);
+    expect(routed.every((w) => !w.unreachable)).toBe(true);
+  });
+
+  it("puts a junction in the first branch when there is none on the way", () => {
+    const doc = unlike();
+    doc.segments = [{ id: "direct", a: "a", b: "c", len: "500 mm", refs: "" }];
+    doc.nodes = doc.nodes.filter((n) => n.id !== "j" && n.id !== "s" && n.id !== "b");
+    expect(connectViaSplice(doc, made, "C.1")).toEqual({ ok: true, splice: "S1" });
+    expect(doc.nodes.filter((n) => n.kind === "junction")).toHaveLength(1);
+    expect(doc.segments).toHaveLength(3);
+  });
+
+  it("refuses when the cavity it is dropped on already has a wire", () => {
+    const doc = unlike();
+    Object.assign(rowOf(doc, "tc", "1"), { 1: "B.3" });
+    expect(connectViaSplice(doc, made, "C.1")).toEqual({ ok: false, reason: "occupied", other: "B.3" });
   });
 });

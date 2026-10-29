@@ -13,8 +13,8 @@
  */
 import { cloneDoc } from "@/core/doc";
 import { snapTo } from "@/core/geometry";
-import { connectEnds, disconnectWire, moveWireEnd } from "@/core/rewire";
-import type { RewireOutcome } from "@/core/rewire";
+import { connectEnds, connectViaSplice, detailsConflict, disconnectWire, moveWireEnd } from "@/core/rewire";
+import type { DetailsConflict, Prefer, RewireOutcome, WireOp } from "@/core/rewire";
 import type { Store } from "@/core/store";
 import type { Point, Selection } from "@/core/types";
 import { portOffset, targetAt, targetLabel } from "@/core/schematic";
@@ -78,6 +78,11 @@ export interface SchematicInteractionOptions {
   onReveal?(selection: Selection): void;
   /** something to tell the person: what was done, or why it could not be */
   notify?(message: string, kind: "info" | "error"): void;
+  /**
+   * The wire and the cavity it was dropped on describe it differently: which
+   * details it takes, or a splice between them, or null to leave it undone.
+   */
+  askDetails?(conflict: DetailsConflict): Promise<Prefer | "splice" | null>;
 }
 
 export function attachSchematicInteraction(opts: SchematicInteractionOptions): () => void {
@@ -215,13 +220,31 @@ export function attachSchematicInteraction(opts: SchematicInteractionOptions): (
     const target = targetAt(schematic.model(), schematic.screenToWorld(ev));
     if (!target) return;
     const to = targetLabel(target);
+    const op: WireOp =
+      d.op.kind === "move"
+        ? { kind: "move", ends: endsOf(d.op.wire), moving: d.op.moving }
+        : { kind: "new", from: d.op.from };
 
-    let outcome = { ok: false, reason: "no-end" } as RewireOutcome;
+    // the drawing is asked first, on a copy: a drop it would refuse is not worth a question
+    const outcome = outcomeOf(d.op, to);
+    const conflict = outcome.ok && opts.askDetails ? detailsConflict(store.doc, op, to) : null;
+    if (!conflict) {
+      commitWire(op, to);
+      return;
+    }
+    void opts.askDetails?.(conflict).then((choice) => {
+      if (choice) commitWire(op, to, choice);
+    });
+  };
+
+  /** Writes the wire into the tables, and says what came of it. */
+  const commitWire = (op: WireOp, to: string, choice?: Prefer | "splice"): void => {
+    let outcome = { ok: false, reason: "no-end" } as RewireOutcome & { splice?: string };
+    const prefer = choice === "splice" ? undefined : choice;
     store.edit((doc) => {
-      outcome =
-        d.op.kind === "move"
-          ? moveWireEnd(doc, endsOf(d.op.wire), d.op.moving, to)
-          : connectEnds(doc, d.op.from, to);
+      if (choice === "splice") outcome = connectViaSplice(doc, op, to);
+      else if (op.kind === "move") outcome = moveWireEnd(doc, op.ends, op.moving, to, prefer);
+      else outcome = connectEnds(doc, op.from, to, prefer);
     }, "rewire");
 
     if (!outcome.ok) {
@@ -230,7 +253,12 @@ export function attachSchematicInteraction(opts: SchematicInteractionOptions): (
       opts.notify?.(t(`toast.rewire.${outcome.reason}`, { to, other }), "error");
       return;
     }
-    const kept = d.op.kind === "move" ? endsOf(d.op.wire)[d.op.moving === 0 ? 1 : 0] : d.op.from;
+    const kept = op.kind === "move" ? op.ends[op.moving === 0 ? 1 : 0] : op.from;
+    if (outcome.splice) {
+      focusWire(null);
+      opts.notify?.(t("toast.rewire.splice", { from: kept, to, splice: outcome.splice }), "info");
+      return;
+    }
     const made = schematic
       .model()
       .wires.find(
@@ -238,7 +266,7 @@ export function attachSchematicInteraction(opts: SchematicInteractionOptions): (
       );
     focusWire(made?.id ?? null);
     opts.notify?.(
-      t(d.op.kind === "move" ? "toast.rewire.moved" : "toast.rewire.made", { from: kept, to }),
+      t(op.kind === "move" ? "toast.rewire.moved" : "toast.rewire.made", { from: kept, to }),
       "info",
     );
   };

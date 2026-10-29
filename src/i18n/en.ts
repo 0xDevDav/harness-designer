@@ -397,7 +397,7 @@ export const en = {
   "guide.views":
     "<b>V</b> switches between the sheet, the schematic and both side by side: what you pick in one lights up in the other, and picking a wire in the schematic shows the branches it runs through on the sheet.",
   "guide.rewire":
-    "<b>In the schematic</b>, drag the end of a wire onto another cavity or connector to move it there, or drag from a free cavity (its dot shows when the pointer is over the connector) onto another to make a new wire. A red outline means the cavity already has a wire. Pick a wire and press <b>Del</b>, or right-click it, to delete it.",
+    "<b>In the schematic</b>, drag the end of a wire onto another cavity or connector to move it there, or drag from a free cavity (its dot shows when the pointer is over the connector) onto another to make a new wire. A red outline means the cavity already has a wire. Pick a wire and press <b>Del</b>, or right-click it, to delete it. If the two cavities describe the wire differently you are asked whose details it takes, or whether to join them through a new splice.",
   "cmd.guide": "Quick guide",
   "dialog.deleteTable.body": "Delete table “{title}”?",
 
@@ -497,6 +497,13 @@ export const en = {
   "menu.sizeHeader": "Wire size",
   "menu.sizeOther": "Other size…",
   "menu.sizeClear": "Clear size",
+  "dialog.wireDetails.title": "These two cavities describe the wire differently",
+  "dialog.wireDetails.body":
+    "{start} and {target} do not agree on what the wire is. Pick the details it takes, or join them through a new splice so that each keeps its own.",
+  "dialog.wireDetails.start": "Use {name}'s details",
+  "dialog.wireDetails.target": "Use {name}'s details",
+  "dialog.wireDetails.splice": "Join through a new splice",
+  "toast.rewire.splice": "{from} and {to} joined through the new splice {splice}",
   "toast.rewire.moved": "Wire {from} moved to {to}",
   "toast.rewire.made": "Connected {from} to {to}",
   "toast.rewire.occupied": "{to} already has a wire, to {other}",
