@@ -481,7 +481,7 @@ export const en = {
   "toast.wireUnitSet": "Sizes are now in {unit}",
   "dialog.unit.title": "Convert the sizes to {unit}?",
   "dialog.unit.body":
-    "The two scales do not line up, so each size becomes the nearest standard size of the new one:\n\n{lines}\n\nA wire that comes out thinner carries less current. Ctrl+Z undoes the conversion.",
+    "The two scales do not line up. Sizes are rounded to the nearest standard size of the other scale, so converting back does not restore the earlier sizes:\n\n{lines}\n\nA wire that comes out thinner carries less current. Ctrl+Z undoes the conversion.",
   "dialog.unit.thinner": "{pct} % thinner",
   "dialog.unit.thicker": "{pct} % thicker",
   "dialog.unit.more": "• and {n} more sizes",
