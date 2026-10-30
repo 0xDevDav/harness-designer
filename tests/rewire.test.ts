@@ -398,6 +398,24 @@ describe("a wire joining cavities that disagree about it", () => {
     ]);
   });
 
+  it("lets a splice that stays take the details of the cavity being left", () => {
+    // A.2 -- S1, with its own details; its A.2 end is dropped on C.1, which says something else
+    const make = (): HarnessDoc => {
+      const doc = unlike();
+      Object.assign(rowOf(doc, "ta", "2"), { 1: "S1" });
+      return doc;
+    };
+    // "start" is the splice's side: what the cavity being left says
+    const start = make();
+    expect(moveWireEnd(start, ["A.2", "S1"], 0, "C.1", "start")).toEqual({ ok: true });
+    expect(rowOf(start, "tc", "1")[1]).toBe("S1");
+    expect(rowOf(start, "tc", "1").slice(3, 5)).toEqual(["Blue", "2.5"]);
+    expect(rowOf(start, "ta", "2")[1]).toBe("");
+    const target = make();
+    moveWireEnd(target, ["A.2", "S1"], 0, "C.1", "target");
+    expect(rowOf(target, "tc", "1").slice(3, 5)).toEqual(["Red", "1.5"]);
+  });
+
   it("gives both ends the details of the cavity the wire comes from", () => {
     const doc = unlike();
     expect(connectEnds(doc, "A.2", "C.1", "start")).toEqual({ ok: true });

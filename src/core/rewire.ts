@@ -242,6 +242,14 @@ function fill(f: Found, prop: Prop, value: string): void {
   f.row[col] = value;
 }
 
+/** Puts a wire property in a row, over whatever it said; a value with nothing in it changes nothing. */
+function overwrite(f: Found, prop: Prop, value: string): void {
+  const col = f.ct.cols[prop];
+  if (col === undefined || isBlank(value)) return;
+  while (f.row.length <= col) f.row.push("");
+  f.row[col] = value;
+}
+
 /** A row that already has a wire, to somewhere other than `other`. */
 function occupant(f: Found | null, other: End): string | null {
   if (!f) return null;
@@ -393,7 +401,12 @@ export function moveWireEnd(
     const row = rowOrNew(tables, target);
     if (!row) return { ok: false, reason: "no-table" };
     writeEnd(row, kept);
-    for (const prop of PROPS) fill(row, prop, props[prop]);
+    // the end that stays is a splice, which has no row: its side of the question is
+    // the wire's own details, those of the cavity being left, which the window showed
+    for (const prop of PROPS) {
+      if (prefer === "start") overwrite(row, prop, props[prop]);
+      else fill(row, prop, props[prop]);
+    }
   }
   if (prefer) settle(doc, kept, target, prefer);
   return { ok: true };
