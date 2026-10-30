@@ -10,7 +10,14 @@
 import type { AppContext, Command, CommandRegistry } from "@/app/context";
 import { deleteEntity, emptyDoc, findTable } from "@/core/doc";
 import { autoLinkAll } from "@/core/autolink";
-import { previewUnitChange, setWireUnit, unitLabel } from "@/core/wiresize";
+import {
+  previewUnitChange,
+  setWireUnit,
+  sizesAlreadyIn,
+  unitLabel,
+  wireUnitOf,
+  wouldChangeUnit,
+} from "@/core/wiresize";
 import type { UnitChange } from "@/core/wiresize";
 import { copySelection, countOf, isEmptyClipping } from "@/core/clipboard";
 import { heldClipping, hold, pasteHeldAt } from "@/ui/clipboard";
@@ -264,7 +271,26 @@ const UNIT_WARNING_LINES = 12;
  */
 async function switchWireUnit(app: AppContext, unit: WireUnit): Promise<void> {
   const { t } = app;
-  const changes = previewUnitChange(app.doc, unit);
+  // already in this unit, with nothing to tidy: no window, no undo step
+  if (!wouldChangeUnit(app.doc, unit)) return;
+  // an older drawing with gauges under a plain "Section": they may only need a label
+  let read: WireUnit | undefined;
+  const fits = sizesAlreadyIn(app.doc, unit);
+  if (fits.length) {
+    const label = unitLabel(unit);
+    const relabel = await app.dialogs.confirm({
+      title: t("dialog.unitFits.title", { unit: label }),
+      body: t("dialog.unitFits.body", {
+        sizes: fits.slice(0, 6).join(", "),
+        unit: label,
+        from: unitLabel(wireUnitOf(app.doc)),
+      }),
+      confirmLabel: t("dialog.unitFits.yes", { unit: label }),
+      cancelLabel: t("dialog.unitFits.no"),
+    });
+    if (relabel) read = unit;
+  }
+  const changes = read ? [] : previewUnitChange(app.doc, unit);
   if (changes.length) {
     const lines = changes.slice(0, UNIT_WARNING_LINES).map((c) => {
       const pct = Math.round(Math.abs(c.ratio - 1) * 100);
@@ -285,7 +311,7 @@ async function switchWireUnit(app: AppContext, unit: WireUnit): Promise<void> {
   }
   let change: UnitChange = { converted: 0, skipped: 0 };
   const changed = app.store.edit((doc) => {
-    change = setWireUnit(doc, unit);
+    change = setWireUnit(doc, unit, read);
   }, "wire-unit");
   if (!changed) return;
   app.store.emit("settings", {});
