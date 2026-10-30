@@ -10,10 +10,11 @@ import { detectLocale, getLocale, locales, onLocaleChange, setLocale, t } from "
 import { Renderer } from "./render/renderer";
 import { SchematicRenderer } from "./render/schematic";
 import { attachInteraction } from "./ui/interaction";
+import type { Prefer } from "./core/rewire";
 import { attachSchematicInteraction } from "./ui/schematic";
 import { initViewMode, onViewModeChange, setViewMode, showsBoard, showsSchematic } from "./ui/viewmode";
 import { closeMenu, openMenu } from "./ui/menu";
-import { contextMenuItems } from "./ui/contextmenu";
+import { contextMenuItems, schematicMenuItems } from "./ui/contextmenu";
 import { createCommandRegistry, registerBuiltinCommands } from "./ui/commands";
 import { attachKeyboard } from "./ui/keyboard";
 import { renderTopbar } from "./ui/topbar";
@@ -359,6 +360,22 @@ attachSchematicInteraction({
   schematic,
   svg: schematicSvg,
   onFocusChange: syncHighlight,
+  menuFor: (target) => schematicMenuItems(app, target),
+  notify: (message, kind) => (kind === "error" ? toast.error(message) : toast.show(message)),
+  askDetails: (conflict) =>
+    dialogs.choose<Prefer | "splice">({
+      title: t("dialog.wireDetails.title"),
+      body: t("dialog.wireDetails.body", { start: conflict.start, target: conflict.target }),
+      rows: [
+        ["", conflict.start, conflict.target],
+        ...conflict.differences.map((d) => [d.label, d.start, d.target]),
+      ],
+      choices: [
+        { label: t("dialog.wireDetails.start", { name: conflict.start }), value: "start" },
+        { label: t("dialog.wireDetails.target", { name: conflict.target }), value: "target" },
+        { label: t("dialog.wireDetails.splice"), value: "splice" },
+      ],
+    }),
   onReveal: (selection) => {
     // asking where a connector is on the sheet, from a view the sheet may not
     // even be next to: it is brought out first, then centred once it has a size
