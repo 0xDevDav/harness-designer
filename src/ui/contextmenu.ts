@@ -295,7 +295,7 @@ function createCavityTable(app: AppContext, id: string): void {
     (doc) => {
       const node = findNode(doc, id);
       if (!node) return;
-      const table = cavityTableFor(app.t, node);
+      const table = cavityTableFor(app.t, node, app.doc.wireUnit);
       table.x = snapTo(table.x, app.store.snapEnabled);
       table.y = snapTo(table.y, app.store.snapEnabled);
       doc.tables.push(table);
@@ -732,6 +732,7 @@ function backgroundItems(app: AppContext, world: Point): MenuItem[] {
     { label: t("menu.branchHere"), shortcut: "B", run: () => startBranchHere(app, world) },
     { separator: true },
     { label: t("menu.fitView"), shortcut: "F", run: () => app.renderer.fitView() },
+    { label: t("cmd.separate"), run: () => app.commands.run("arrange.separate") },
     { label: t("cmd.guide"), shortcut: "F1", run: () => app.showGuide() },
     { label: t("menu.addCavityTable"), run: () => addCavityTableAt(app, world) },
   ];
@@ -765,7 +766,7 @@ function addCavityTableAt(app: AppContext, world: Point): void {
   const changed = editDoc(
     app,
     (doc) => {
-      const table = cavityTable(app.t, snapTo(world.x, snap), snapTo(world.y, snap));
+      const table = cavityTable(app.t, snapTo(world.x, snap), snapTo(world.y, snap), undefined, doc.wireUnit);
       doc.tables.push(table);
       created = table.id;
     },

@@ -207,6 +207,13 @@ const crossReferences: ValidationRule = {
           color: cell(targetRow, target.cols.color),
           section: cell(targetRow, target.cols.section),
         };
+        // a dash stands for nothing written, as everywhere else in the tables
+        const typeOf = (r: string[], col: number | undefined): string => {
+          const written = cell(r, col);
+          return NOT_CONNECTED_RE.test(written) ? "" : written;
+        };
+        const hereType = typeOf(row, cols.type);
+        const thereType = typeOf(targetRow, target.cols.type);
         // the two ends may have been written in different languages or codes
         // ("bianco/giallo" and "WS/GE" are the same wire), so the comparison
         // runs on resolved colours and falls back to text only for non-colours
@@ -234,6 +241,14 @@ const crossReferences: ValidationRule = {
               rule: "cross-references",
               severity: "warning",
               message: t("validate.sectionMismatch", { from, dest, a: here.section, b: there.section }),
+              target: { type: "table", id: table.id },
+            });
+          }
+          if (hereType && thereType && !same(hereType, thereType)) {
+            issues.push({
+              rule: "cross-references",
+              severity: "warning",
+              message: t("validate.typeMismatch", { from, dest, a: hereType, b: thereType }),
               target: { type: "table", id: table.id },
             });
           }

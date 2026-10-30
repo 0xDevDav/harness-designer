@@ -1,5 +1,5 @@
 import type { AppContext } from "@/app/context";
-import { autoLinkRow, rowHasDestination } from "@/core/autolink";
+import { applyBirthDefaults, autoLinkRow, rowHasDestination } from "@/core/autolink";
 import {
   findInline,
   findNode,
@@ -14,8 +14,12 @@ import { lerpPoint } from "@/core/geometry";
 import type { HarnessDoc, Point, Rect, Selection, Table } from "@/core/types";
 import { HEAD_ROW, ROW_H, TITLE_ROW, cellAt, cellRect, titleBlockLayout } from "@/render/tables";
 import { textWidth } from "@/render/svg";
+import { nearestSize, parseSize, sizesFor, unitLabel, wireUnitOf } from "@/core/wiresize";
+import { WIRE_TYPES } from "@/core/wiretype";
 import { openColorPicker } from "./colorpicker";
 import { openInlineEditor } from "./inline-edit";
+import { openMenu } from "./menu";
+import type { MenuItem } from "./menu";
 
 /**
  * Editing straight on the sheet.
@@ -110,6 +114,24 @@ function editTable(app: AppContext, id: string, row?: number, col?: number): boo
     return true;
   }
 
+  // the section is picked from the sizes there are, with a way out for the
+  // odd one that is not on the list
+  const columns = tableColumns(table);
+  if (row >= 0 && col === columns.section) {
+    openSizeMenu(app, table, row, col, rect);
+    return true;
+  }
+  // and so is the wire type
+  if (row >= 0 && col === columns.type) {
+    openTypeMenu(app, table, row, col, rect);
+    return true;
+  }
+
+  return editCellText(app, table, row, col, rect);
+}
+
+function editCellText(app: AppContext, table: Table, row: number, col: number, rect: Rect): boolean {
+  const id = table.id;
   openInlineEditor({
     rect,
     value: readCell(table, row, col),
@@ -131,6 +153,9 @@ const readCell = (table: Table, row: number, col: number): string => {
 };
 
 function commitCell(app: AppContext, id: string, row: number, col: number, value: string): void {
+  // a destination written into a row that had none makes a new wire
+  const before = findTable(app.store.doc, id);
+  const hadWire = !!before && row >= 0 && rowHasDestination(before, row);
   const changed = app.store.edit((doc) => {
     const table = findTable(doc, id);
     if (!table) return;
@@ -150,11 +175,11 @@ function commitCell(app: AppContext, id: string, row: number, col: number, value
     cells[col] = value;
   }, "cell");
 
-  if (changed && row >= 0) runAutoLink(app, id, row);
+  if (changed && row >= 0) runAutoLink(app, id, row, !hadWire);
 }
 
 /** Mutual linking after a row is edited, along with its feedback. */
-export function runAutoLink(app: AppContext, tableId: string, rowIndex: number): void {
+export function runAutoLink(app: AppContext, tableId: string, rowIndex: number, newWire = false): void {
   const { t } = app;
   const table = findTable(app.store.doc, tableId);
   if (!table || table.kind !== "table" || !isAutoLinkEnabled(table)) return;
@@ -166,11 +191,15 @@ export function runAutoLink(app: AppContext, tableId: string, rowIndex: number):
   let fields: string[] = [];
   app.store.edit((doc) => {
     const result = autoLinkRow(doc, tableId, rowIndex);
+    // only a wire made by this edit starts from the defaults
+    if (newWire && (result.status === "linked" || result.status === "no-target-table")) {
+      applyBirthDefaults(doc, tableId, rowIndex);
+    }
     status = result.status;
     to = result.to ?? "";
     conflictWith = result.conflictWith ?? "";
     fields = (result.updatedFields ?? []).map((f) =>
-      t(f === "color" ? "table.head.color" : "table.head.section"),
+      t(f === "color" ? "table.head.color" : f === "type" ? "table.head.type" : "table.head.section"),
     );
   }, "autolink");
 
@@ -205,6 +234,99 @@ function nextCell(
   }
   if (col > 0) return { row, col: col - 1 };
   return row > 0 ? { row: row - 1, col: columns - 1 } : null;
+}
+
+/** One entry of a list picked from under a cell. */
+interface Choice {
+  value: string;
+  label: string;
+  /** what it comes to elsewhere, shown at the right of the entry */
+  note?: string;
+}
+
+/**
+ * A list of values under the cell, with a way out for the one that is not on
+ * it and a way to empty the cell. The one the cell already holds says so, because
+ * a list with no mark on it makes you pick one to find out which you had.
+ */
+function openChoiceMenu(
+  app: AppContext,
+  table: Table,
+  row: number,
+  col: number,
+  rect: Rect,
+  options: {
+    header: string;
+    choices: readonly Choice[];
+    other: string;
+    clear: string;
+    /** whether the cell already holds this choice, when spelling it differently is still the same */
+    holds?: (choice: Choice, written: string) => boolean;
+  },
+): void {
+  const now = readCell(table, row, col).trim();
+  const holds = options.holds ?? ((choice: Choice, written: string): boolean => written === choice.value);
+  const items: MenuItem[] = [{ header: options.header }];
+  for (const choice of options.choices) {
+    items.push({
+      label: `${holds(choice, now) ? "● " : "○ "}${choice.label}`,
+      ...(choice.note ? { shortcut: choice.note } : {}),
+      run: () => commitCell(app, table.id, row, col, choice.value),
+    });
+  }
+  items.push({ separator: true });
+  items.push({
+    label: options.other,
+    run: () => {
+      const fresh = findTable(app.store.doc, table.id);
+      if (fresh) editCellText(app, fresh, row, col, rect);
+    },
+  });
+  items.push({
+    label: options.clear,
+    disabled: now === "",
+    run: () => commitCell(app, table.id, row, col, ""),
+  });
+
+  const below = app.renderer.worldToScreen({ x: rect.x, y: rect.y + rect.h });
+  openMenu(below.x, below.y, items);
+}
+
+/**
+ * The sizes of the drawing's unit. Each one shows what it comes to in the other
+ * unit, because the point of having both is to read across.
+ */
+function openSizeMenu(app: AppContext, table: Table, row: number, col: number, rect: Rect): void {
+  const { t } = app;
+  const unit = wireUnitOf(app.store.doc);
+  const other = unit === "awg" ? "mm2" : "awg";
+  openChoiceMenu(app, table, row, col, rect, {
+    header: t("menu.sizeHeader"),
+    choices: sizesFor(unit).map((size) => ({
+      value: size.label,
+      label: `${size.label} ${unitLabel(unit)}`,
+      note: `≈ ${nearestSize(size.area, other).label} ${unitLabel(other)}`,
+    })),
+    other: t("menu.sizeOther"),
+    clear: t("menu.sizeClear"),
+    // "2.5 mm²", "0,75" and "18 AWG" are the sizes they say, however they are spelled
+    holds: (choice, written) => {
+      const here = parseSize(written, unit);
+      const size = sizesFor(unit).find((s) => s.label === choice.value);
+      return !!here && !!size && (here.unit ?? unit) === unit && Math.abs(here.area / size.area - 1) < 1e-6;
+    },
+  });
+}
+
+/** The wire types the catalogues name; anything else is typed in. */
+function openTypeMenu(app: AppContext, table: Table, row: number, col: number, rect: Rect): void {
+  const { t } = app;
+  openChoiceMenu(app, table, row, col, rect, {
+    header: t("menu.typeHeader"),
+    choices: WIRE_TYPES.map((type) => ({ value: type, label: type })),
+    other: t("menu.typeOther"),
+    clear: t("menu.typeClear"),
+  });
 }
 
 function openColorPickerOnSheet(app: AppContext, table: Table, row: number, col: number): void {

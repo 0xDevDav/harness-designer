@@ -658,6 +658,37 @@ body {
   }
 }
 
+/* the defaults panel: what a colour is, written next to the button that changes it */
+.defaults__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.defaults__swatch {
+  width: 22px;
+  height: 11px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  flex: none;
+}
+
+/* the cavities of a schematic box that have no wire: where one can be started */
+.sch-port {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+[data-sch="box"]:hover .sch-port {
+  opacity: 0.95;
+  pointer-events: auto;
+}
+
 /* ---------------- menus ---------------- */
 
 .menu {
@@ -832,11 +863,31 @@ body {
   color: var(--txt);
   line-height: 1.6;
   margin-bottom: 16px;
+  /* a message may be several lines, e.g. the list of sizes a conversion changes */
+  white-space: pre-line;
 }
 .dialog__actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+/* two things set side by side to be compared */
+.dialog__compare {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.dialog__compare th,
+.dialog__compare td {
+  padding: 5px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.dialog__compare th {
+  color: var(--txt-dim);
+  font-weight: 600;
 }
 
 /* ---------------- messages ---------------- */

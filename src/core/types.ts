@@ -144,7 +144,27 @@ export interface HarnessDoc {
    * rather than being squared off underneath the person who drew it.
    */
   square?: boolean;
+  /**
+   * The unit wire sizes are written in: the Section column is headed with it
+   * and holds bare numbers in it. Absent in a drawing that has never been given
+   * one, whose sizes are then read from how its column is headed.
+   */
+  wireUnit?: WireUnit;
+  /** Starting point for new wires. Absent when none has been set. */
+  defaults?: WireDefaults;
 }
+
+/** What a new wire starts with; filled into what is empty, never over what is written. */
+export interface WireDefaults {
+  /** colour as a cell writes it */
+  color: string;
+  /** wire size, a bare number in the drawing's unit */
+  size: string;
+  type: string;
+}
+
+/** Metric cross-section, or American Wire Gauge. */
+export type WireUnit = "mm2" | "awg";
 
 export type EntityType = "node" | "segment" | "inline" | "table";
 

@@ -1,4 +1,13 @@
-import { cavityTables, cell, isAutoLinkEnabled, resolveDest, tableColumns, writeDest } from "./doc";
+import { applyWireDefaults } from "./defaults";
+import {
+  NOT_CONNECTED_RE,
+  cavityTables,
+  cell,
+  isAutoLinkEnabled,
+  resolveDest,
+  tableColumns,
+  writeDest,
+} from "./doc";
 import type { CavityTable } from "./doc";
 import type { HarnessDoc, Table } from "./types";
 
@@ -6,7 +15,7 @@ import type { HarnessDoc, Table } from "./types";
  * Automatic mutual linking between cavity tables.
  *
  * Filling cavity 1 of C1 with destination C3 pin 3 fills cavity 3 of C3 with
- * destination C1 pin 1 and with the same wire properties (colour and section).
+ * destination C1 pin 1 and with the same wire properties (colour, section and type).
  * There is only one wire: the two tables describe its two ends, and keeping
  * them in step by hand is the work this function removes.
  *
@@ -23,7 +32,7 @@ export type AutoLinkStatus =
   | "linked"
   /** the link already existed: wire properties were brought in step */
   | "already"
-  /** the link already existed and colour or section were updated at the other end */
+  /** the link already existed and colour, section or type were updated at the other end */
   | "updated"
   /** the target cavity points at another connector: left untouched */
   | "conflict"
@@ -51,7 +60,7 @@ export interface AutoLinkResult {
   /** true if the target cavity had no row and one was added */
   rowCreated?: boolean;
   /** properties brought in step at the other end, to report back to the user */
-  updatedFields?: ("color" | "section")[];
+  updatedFields?: ("color" | "section" | "type")[];
 }
 
 const label = (connector: string, cavity: string): string => `${connector}.${cavity}`;
@@ -69,7 +78,7 @@ const tableWidth = (table: Table): number =>
  * Inserts a row for a missing cavity while keeping numeric order, so the table
  * does not fall out of sequence when pins are filled in at random.
  */
-function insertCavityRow(target: CavityTable, cavity: string): string[] {
+export function insertCavityRow(target: CavityTable, cavity: string): string[] {
   const row = padRow([], tableWidth(target.table));
   row[target.cols.cavity] = cavity;
 
@@ -109,7 +118,8 @@ function alignField(
   if (!value) return false;
   const current = cell(to, targetCol);
   if (current === value) return false;
-  if (current && !overwrite) return false;
+  // a dash is a cell with nothing in it: it does not hold the other end's value back
+  if (current && !overwrite && !NOT_CONNECTED_RE.test(current)) return false;
   padRow(to, targetCol + 1);
   to[targetCol] = value;
   return true;
@@ -136,7 +146,9 @@ export function autoLinkRow(doc: HarnessDoc, tableId: string, rowIndex: number):
   const to = label(dest.connector, dest.cavity);
 
   const target = tables.find((c) => c.owner === dest.connector);
-  if (!target) return { status: "no-target-table", from, to };
+  if (!target) {
+    return { status: "no-target-table", from, to };
+  }
   if (target.table.id === source.table.id) return { status: "no-destination", from, to };
   if (!isAutoLinkEnabled(target.table)) return { status: "target-disabled", from, to };
 
@@ -160,13 +172,16 @@ export function autoLinkRow(doc: HarnessDoc, tableId: string, rowIndex: number):
 
   // link confirmed by both ends: from here on they describe the same wire
   const already = !!existing;
-  if (!already) writeDest(targetRow, target.cols, { connector: source.owner, cavity });
+  if (!already) {
+    writeDest(targetRow, target.cols, { connector: source.owner, cavity });
+  }
 
-  const updatedFields: ("color" | "section")[] = [];
+  const updatedFields: ("color" | "section" | "type")[] = [];
   if (alignField(row, targetRow, source.cols.color, target.cols.color, already)) updatedFields.push("color");
   if (alignField(row, targetRow, source.cols.section, target.cols.section, already)) {
     updatedFields.push("section");
   }
+  if (alignField(row, targetRow, source.cols.type, target.cols.type, already)) updatedFields.push("type");
   // function is a description, not a physical property: never overwritten
   alignField(row, targetRow, source.cols.func, target.cols.func, false);
 
@@ -205,4 +220,27 @@ export function rowHasDestination(table: Table, rowIndex: number): boolean {
   const cols = tableColumns(table);
   const row = table.rows[rowIndex];
   return !!row && !!cell(row, cols.cavity) && !!resolveDest(row, cols);
+}
+
+/**
+ * Gives the wire a row has just been given its starting colour, size and type,
+ * from the drawing's defaults. Called where a wire is born, once the link is
+ * made: a destination typed into an empty cell. Never by the linking itself,
+ * which runs after every edit and would fill again a cell somebody emptied.
+ * Mutates the document, so it must be called from inside a store edit.
+ */
+export function applyBirthDefaults(doc: HarnessDoc, tableId: string, rowIndex: number): void {
+  if (!doc.defaults) return;
+  const tables = cavityTables(doc);
+  const source = tables.find((c) => c.table.id === tableId);
+  const row = source?.table.rows[rowIndex];
+  if (!source || !row) return;
+  const dest = resolveDest(row, source.cols);
+  const target = dest ? tables.find((c) => c.owner === dest.connector) : undefined;
+  const farRow = dest && target?.table.rows.find((r) => cell(r, target.cols.cavity) === dest.cavity);
+  applyWireDefaults(
+    { row, cols: source.cols },
+    target && farRow ? { row: farRow, cols: target.cols } : null,
+    doc.defaults,
+  );
 }
