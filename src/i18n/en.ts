@@ -345,6 +345,9 @@ export const en = {
   "validate.wireUnreachable":
     "Wire {from} → {to}: both connectors exist but no branch joins them, so the wire cannot be built",
   "validate.unnamedConnector": "Unnamed connector: it cannot appear in the wire list",
+  "validate.titleWithoutName":
+    "Table “{title}”: the title should start with the name of its connector, {name}",
+  "validate.duplicateTitle": "Two tables are called “{title}”",
   "validate.tableWithoutNode": "Table “{title}”: no matching connector in the drawing",
 
   /* ---------------- wire list ---------------- */
@@ -447,8 +450,33 @@ export const en = {
   "toast.storageFull": "Autosave failed: browser storage is full. Save to a file.",
   "toast.storageOff": "Autosave is not available in this browser. Save to a file.",
   "toast.otherTab": "This drawing is open in another tab as well: the last autosave wins.",
+
+  "find.title": "Find and replace",
+  "find.titleFind": "Find",
+  "find.find": "Find",
+  "find.replace": "Replace with",
+  "find.matchCase": "Match case",
+  "find.whole": "Whole cell or name",
+  "find.prev": "Previous match",
+  "find.next": "Next match",
+  "find.replaceOne": "Replace",
+  "find.replaceAll": "Replace all",
+  "find.status": "{n} of {total}",
+  "find.none": "No matches",
+  "find.idle": "Searches the tables, connector names, branch lengths, labels and the title block.",
+  "find.replaced": "Replaced in {n} places",
+  "find.replacedOne": "Replaced in 1 place",
+  "find.replacedHeld":
+    "Places replaced: {n}. Left as they were: {held}. A connector cannot take the name of another one, and what refers to it keeps its name. A table keeps a name of its own that starts with its connector's.",
+  "find.refused":
+    "Not replaced: a connector cannot be left without a name or take the name of another one, and a table cannot take the name of another table or lose the name of its connector.",
+  "cmd.find": "Find…",
+  "cmd.replace": "Find and replace…",
   "toast.pluginLoaded": "Plugin “{name}” loaded",
   "toast.pluginFailed": "Plugin “{name}” failed to load: {error}",
+  "toast.titleTaken": "Another table already has that name",
+  "toast.titleUnlinked":
+    "This is the table of {name}: its title has to start with that name. Rename the connector to rename both.",
   "toast.offlineReady": "Application available offline too",
   "toast.updateReady": "A newer version is ready",
   "toast.updateReload": "Reload",

@@ -25,6 +25,7 @@ import { getLocale, locales, setLocale } from "@/i18n";
 import { exportPngFile, exportSvgFile, exportWireCsv, printDrawing } from "@/io/exporters";
 import { saveDocToFile } from "@/io/file";
 import { tableSize } from "@/render/tables";
+import { openFind } from "@/ui/find";
 import { openCommandPalette } from "@/ui/palette";
 import { cycleViewMode, setViewMode, showsBoard, showsSchematic } from "@/ui/viewmode";
 
@@ -335,6 +336,18 @@ export function registerBuiltinCommands(app: AppContext): void {
       palette: false,
       enabled: (a) => a.store.canRedo,
       run: (a) => a.commands.run("edit.redo"),
+    },
+    {
+      id: "edit.find",
+      titleKey: "cmd.find",
+      shortcut: "Ctrl+F",
+      run: (a) => openFind(a, "find"),
+    },
+    {
+      id: "edit.replace",
+      titleKey: "cmd.replace",
+      shortcut: "Ctrl+H",
+      run: (a) => openFind(a, "replace"),
     },
     {
       id: "edit.copy",

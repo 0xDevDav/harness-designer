@@ -11,6 +11,16 @@ All notable changes to this project are documented here. The format follows
 - **Black wires show in the dark theme.** A wire that is black or nearly so gets
   a light edge, in the schematic and on the sheet, and no other colour is
   touched. Export and print are unchanged.
+- **Find and replace** (`Ctrl+F`, `Ctrl+H`) over the tables, connector names,
+  branch lengths, labels and title block. Matches are marked on the sheet,
+  match case and whole-cell options are offered, and Replace all is a single
+  undo step. Renaming a connector through it carries the new name into its table
+  and every reference to it.
+  Two tables never end up with one name: a title that would copy another, or
+  that stops starting with the name of its connector, is left as it was, on the
+  sheet as well as in Replace. The check reports both in drawings that already
+  have them. Previous and Next are the arrows beside the Find field, and the
+  panel is called Find until Replace is opened.
 
 ## [1.2.0]
 

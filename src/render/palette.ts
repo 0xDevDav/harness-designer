@@ -46,6 +46,9 @@ export interface DrawingPalette {
   errorStroke: string;
   /** selection highlight */
   selection: string;
+  /** cell marked by Find, and the edge of the current one: the same in both guises, they only have to be seen */
+  foundFill: string;
+  foundEdge: string;
   /** company mark in the title block */
   company: string;
 }
@@ -66,6 +69,8 @@ const PAPER: DrawingPalette = {
   errorFill: "#ffe3e3",
   errorStroke: "#c62828",
   selection: "#3d8bfd",
+  foundFill: "#f0a636",
+  foundEdge: "#b86f00",
   company: "#1d5fb8",
 };
 
@@ -86,6 +91,8 @@ const DARK: DrawingPalette = {
   errorFill: "#3a2126",
   errorStroke: "#ef5b6b",
   selection: "#6d5cff",
+  foundFill: "#f0a636",
+  foundEdge: "#b86f00",
   company: "#8b7bff",
 };
 

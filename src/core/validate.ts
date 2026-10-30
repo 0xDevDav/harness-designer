@@ -1,4 +1,12 @@
-import { cavityTables, cell, findNode, nodeForTable, resolveDest, NOT_CONNECTED_RE } from "./doc";
+import {
+  cavityTables,
+  cell,
+  findNode,
+  nodeForTable,
+  resolveDest,
+  titleMatchesName,
+  NOT_CONNECTED_RE,
+} from "./doc";
 import type { CavityTable } from "./doc";
 import { routeWires } from "./routing";
 import { checkWireEnds } from "./wireends";
@@ -244,10 +252,10 @@ const crossReferences: ValidationRule = {
   },
 };
 
-/** Drawing hygiene: unnamed connectors, tables with no connector. */
+/** Drawing hygiene: unnamed connectors, tables with no connector, tables that cannot be told apart. */
 const drawingHygiene: ValidationRule = {
   id: "drawing-hygiene",
-  run({ doc, t }) {
+  run({ doc, t, tables }) {
     const issues: Issue[] = [];
     for (const n of doc.nodes) {
       if (n.kind === "connector" && n.style !== "none" && !n.name.trim()) {
@@ -271,6 +279,33 @@ const drawingHygiene: ValidationRule = {
           target: { type: "table", id: table.id },
         });
       }
+    }
+    // a connector's table is known by the connector's name, and no two have one name
+    // (two cavity tables for a connector are reported as such, by the connector)
+    const cavityIds = new Set(tables.map((c) => c.table.id));
+    const titles = new Set<string>();
+    for (const table of doc.tables) {
+      if (table.kind !== "table") continue;
+      const title = (table.title ?? "").trim();
+      const owner = table.node ? findNode(doc, table.node) : undefined;
+      if (owner?.name.trim() && !titleMatchesName(title, owner.name.trim())) {
+        issues.push({
+          rule: "drawing-hygiene",
+          severity: "warning",
+          message: t("validate.titleWithoutName", { title, name: owner.name.trim() }),
+          target: { type: "table", id: table.id },
+        });
+      }
+      if (!title || cavityIds.has(table.id)) continue;
+      if (titles.has(title.toLowerCase())) {
+        issues.push({
+          rule: "drawing-hygiene",
+          severity: "warning",
+          message: t("validate.duplicateTitle", { title }),
+          target: { type: "table", id: table.id },
+        });
+      }
+      titles.add(title.toLowerCase());
     }
     return issues;
   },
