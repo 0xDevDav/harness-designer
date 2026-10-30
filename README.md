@@ -30,6 +30,7 @@ every branch it runs through lit along the harness._
 | **Wire colours**            | Multi-colour wires marked the way they really are: the first colour is the ground, the rest are bands across it, leaning as if wound round it                              |
 | **Schematic view**          | The same harness read as circuits: one box per connector, one line per connection. On its own, or beside the sheet, where what you pick in one view lights up in the other |
 | **Cavity tables**           | Pin-outs edited straight on the sheet, tied to their connector                                                                                                             |
+| **Housings, terminations**  | Housing and termination tables; a cavity table picks its housing, each cavity its contact, and the counts keep themselves                                                  |
 | **Automatic linking**       | Fill in a destination and the matching cavity at the far end fills itself, colour and section included                                                                     |
 | **Joints**                  | Two connectors mated: the wire ends there and another begins, so the colour may change and the checks allow it                                                             |
 | **Consistency check**       | Mismatched cross-references, missing cavities, one-way links and disagreeing wire properties, each clickable                                                               |

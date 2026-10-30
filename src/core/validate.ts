@@ -1,7 +1,9 @@
+import { contactGenders, housingCavities } from "./catalog";
 import {
   cavityTables,
   cell,
   findNode,
+  isOrphanTable,
   nodeForTable,
   resolveDest,
   titleMatchesName,
@@ -21,6 +23,8 @@ export interface ValidationContext {
   tables: CavityTable[];
   /** cavity tables indexed by connector name */
   byOwner: Map<string, CavityTable>;
+  /** the same, by the id of the table */
+  byTable: Map<string, CavityTable>;
   /**
    * Pairs of cavities the drawing joins through a mated pair, as `A.1|B.2` with
    * the two ends in the order they sort. What those two rows describe is two
@@ -270,6 +274,16 @@ const drawingHygiene: ValidationRule = {
     for (const table of doc.tables) {
       if (table.kind !== "table") continue;
       if (table.node && !findNode(doc, table.node)) continue;
+      if (isOrphanTable(doc, table)) {
+        issues.push({
+          rule: "drawing-hygiene",
+          // a pin-out whose connector became a splice describes wires that go nowhere
+          severity: "error",
+          message: t("validate.tableSpliced", { title: table.title ?? "", name: table.spliced ?? "" }),
+          target: { type: "table", id: table.id },
+        });
+        continue;
+      }
       const looksLikeCavityTable = /cavit|cavity|pin/i.test((table.head ?? []).join(" "));
       if (looksLikeCavityTable && !nodeForTable(doc, table)) {
         issues.push({
@@ -428,6 +442,50 @@ const jointCavities: ValidationRule = {
   },
 };
 
+/**
+ * What a cavity table says about its housing: that it has as many rows as the
+ * housing has cavities, when the housing says how many, and that its contacts
+ * are not a mixture of pins and sockets.
+ */
+const housings: ValidationRule = {
+  id: "housings",
+  run({ doc, t, byTable }) {
+    const issues: Issue[] = [];
+    for (const table of doc.tables) {
+      if (table.kind !== "table") continue;
+      const name = byTable.get(table.id)?.owner || table.title || t("validate.nodeUnnamed");
+      const target = { type: "table", id: table.id } as const;
+
+      const cavities = table.housing ? housingCavities(doc, table.housing) : undefined;
+      if (table.housing && cavities !== undefined && table.rows.length !== cavities) {
+        const over = table.rows.length > cavities;
+        issues.push({
+          rule: "housings",
+          severity: over ? "error" : "warning",
+          message: t(over ? "validate.cavitiesOver" : "validate.cavitiesUnder", {
+            name,
+            rows: table.rows.length,
+            housing: table.housing,
+            n: cavities,
+          }),
+          target,
+        });
+      }
+
+      const { pins, sockets } = contactGenders(doc, table);
+      if (pins && sockets) {
+        issues.push({
+          rule: "housings",
+          severity: "warning",
+          message: t("validate.pinsAndSockets", { name }),
+          target,
+        });
+      }
+    }
+    return issues;
+  },
+};
+
 export const builtinRules: ValidationRule[] = [
   noteReferences,
   duplicateTables,
@@ -436,6 +494,7 @@ export const builtinRules: ValidationRule[] = [
   wireEnds,
   wireRouting,
   jointCavities,
+  housings,
   drawingHygiene,
 ];
 
@@ -463,7 +522,8 @@ export function validateDoc(doc: HarnessDoc, t: Translate): Issue[] {
   for (const route of routeWires(doc)) {
     if (route.jointed) jointed.add([route.wire.from, route.wire.to].sort().join("|"));
   }
-  const ctx: ValidationContext = { doc, t, tables, byOwner, jointed };
+  const byTable = new Map(tables.map((ct) => [ct.table.id, ct]));
+  const ctx: ValidationContext = { doc, t, tables, byOwner, byTable, jointed };
 
   const issues: Issue[] = [];
   for (const rule of allRules()) {

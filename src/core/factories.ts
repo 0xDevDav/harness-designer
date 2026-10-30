@@ -1,3 +1,5 @@
+import { addEntry } from "./catalog";
+import type { CatalogKind } from "./catalog";
 import { uid } from "./ids";
 import type { HNode, Table } from "./types";
 import type { Translate } from "@/i18n";
@@ -16,13 +18,14 @@ export function cavityTable(t: Translate, x: number, y: number, title?: string):
       t("table.head.cavity"),
       t("table.head.color"),
       t("table.head.section"),
+      t("table.head.termination"),
       t("table.head.dest"),
       t("table.head.pin"),
       t("table.head.notes"),
     ],
     rows: [
-      ["1", "", "", "", "", ""],
-      ["2", "", "", "", "", ""],
+      ["1", "", "", "", "", "", ""],
+      ["2", "", "", "", "", "", ""],
     ],
   };
 }
@@ -74,3 +77,54 @@ export const wireListHeadings = (t: Translate): string[] => [
   t("table.head.section"),
   t("table.head.length"),
 ];
+
+/** One entry a catalogue starts with: what it is called, and the symbol it is drawn with. */
+export interface CatalogSeed {
+  name: string;
+  symbol: string;
+}
+
+/**
+ * The housing table or the termination table, with the entries it starts with.
+ * Which entries is up to the caller, because they are the symbols the program
+ * has registered, which plugins add to and which the core does not know of.
+ */
+export function catalogTable(
+  t: Translate,
+  kind: CatalogKind,
+  x: number,
+  y: number,
+  seeds: readonly CatalogSeed[] = [],
+): Table {
+  const table: Table = {
+    id: uid("t"),
+    x,
+    y,
+    kind,
+    title: t(kind === "housings" ? "table.title.housings" : "table.title.terminations"),
+    head:
+      kind === "housings"
+        ? [
+            t("catalog.head.name"),
+            t("catalog.head.cavities"),
+            t("meta.partNumber"),
+            t("catalog.head.manufacturer"),
+            t("catalog.head.series"),
+            t("catalog.head.form"),
+            t("table.head.description"),
+            t("catalog.head.quantity"),
+            t("catalog.head.whereUsed"),
+          ]
+        : [
+            t("catalog.head.termination"),
+            t("meta.partNumber"),
+            t("catalog.head.manufacturer"),
+            t("table.head.description"),
+            t("catalog.head.quantity"),
+            t("catalog.head.whereUsed"),
+          ],
+    rows: [],
+  };
+  for (const seed of seeds) addEntry(table, { name: seed.name }, seed.symbol);
+  return table;
+}

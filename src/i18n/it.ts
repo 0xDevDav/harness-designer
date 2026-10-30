@@ -147,7 +147,7 @@ export const it = {
   "menu.copy": "Copia",
   "menu.copyMany": "Copia i {n} elementi scelti",
   "menu.pasteHere": "Incolla qui",
-  "menu.terminalHeader": "Trasforma in terminale",
+  "menu.terminalHeader": "Estremità del ramo",
   "menu.junction": "Giunzione semplice",
   "menu.rename": "Rinomina…",
   "menu.createCavityTable": "Crea tabella cavità",
@@ -181,10 +181,11 @@ export const it = {
   "menu.selectLinkedNode": "Vai al connettore collegato",
 
   /* ---------------- stili terminale ---------------- */
-  "style.plug": "Spina multipolare",
+  "style.plug": "Multipolare",
   "style.ring": "Occhiello (ring)",
   "style.faston": "Faston",
   "style.pin": "Pin / terminale",
+  "style.socket": "Socket (femmina)",
   "style.splice": "Splice (giunzione saldata)",
   "style.none": "Estremità libera",
 
@@ -354,7 +355,11 @@ export const it = {
   "validate.titleWithoutName":
     "Tabella «{title}»: il titolo dovrebbe iniziare con il nome del suo connettore, {name}",
   "validate.duplicateTitle": "Due tabelle si chiamano «{title}»",
+  "table.noConnector":
+    "Nessun connettore sul foglio corrisponde a questa tabella. Dagliene uno, oppure elimina la tabella.",
   "validate.tableWithoutNode": "Tabella «{title}»: nessun connettore corrispondente nello schema",
+  "validate.tableSpliced":
+    "Tabella «{title}»: il connettore {name} è diventato una giunzione, nulla sul foglio corrisponde a questa tabella",
 
   /* ---------------- distinta fili ---------------- */
   "wirelist.empty": "Nessuna tabella cavità con colonne Cavità e Verso nel foglio.",
@@ -539,4 +544,79 @@ export const it = {
   "cmd.plugins": "Gestisci i plugin",
   "cmd.language": "Cambia lingua",
   "cmd.palette": "Cerca un comando",
+
+  /* ---------------- alloggiamenti e terminali ---------------- */
+  "menu.splice": "Splice",
+  "menu.connector": "Connettore",
+  "menu.housing": "Alloggiamento…",
+  "menu.housingIs": "Alloggiamento: {name}…",
+  "menu.termination": "Terminale…",
+  "menu.addTerminationColumn": "Aggiungi colonna terminazione",
+  "table.title.housings": "Alloggiamenti",
+  "table.title.terminations": "Terminali",
+  "table.head.termination": "Terminazione",
+  "catalog.head.name": "Nome",
+  "catalog.head.cavities": "N. di cavità",
+  "catalog.head.manufacturer": "Produttore",
+  "catalog.head.series": "Serie",
+  "catalog.head.form": "Spina/Presa",
+  "catalog.head.quantity": "Quantità",
+  "catalog.head.whereUsed": "Dove si usa",
+  "catalog.head.termination": "Tipo di terminale",
+  "catalog.form.none": "—",
+  "catalog.form.plug": "Spina",
+  "catalog.form.receptacle": "Presa",
+  "catalog.symbol": "Simbolo",
+  "catalog.choose": "Scegli",
+  "catalog.search": "Cerca…",
+  "catalog.none": "Nessuno",
+  "catalog.new": "+ Nuovo",
+  "catalog.newTable": "+ Nuova tabella cavità",
+  "catalog.new.housing": "Nuovo alloggiamento",
+  "catalog.new.termination": "Nuovo terminale",
+  "catalog.empty": "La tabella è ancora vuota. Aggiungi il primo con + Nuovo.",
+  "catalog.noMatch": "Nessun risultato.",
+  "catalog.nameRequired": "Serve un nome.",
+  "catalog.nameTaken": "«{name}» è già nella tabella.",
+  "catalog.pick.housing": "Alloggiamento di {name}",
+  "catalog.pick.termination": "Terminale di {name}, cavità {cavity}",
+  "catalog.pick.table": "Tabella cavità del connettore",
+  "catalog.cavityCount": "{n} righe",
+  "insert.housings": "+ Alloggiamenti",
+  "insert.terminations": "+ Terminali",
+  "cmd.insertHousings": "Inserisci tabella alloggiamenti",
+  "cmd.insertTerminations": "Inserisci tabella terminali",
+  "toast.housingsExist": "Il disegno ha già una tabella degli alloggiamenti",
+  "toast.terminationsExist": "Il disegno ha già una tabella dei terminali",
+  "toast.connectorNameTaken": "Un altro connettore si chiama già {name}",
+  "dialog.deleteEntry.title": "Eliminare {name}?",
+  "dialog.deleteCatalog.title": "Eliminare «{title}»?",
+  "dialog.makeSplice.title": "Trasformare {name} in uno splice?",
+  "dialog.makeSplice.body":
+    "Uno splice non ha tabella cavità. La tabella resta sul foglio come tabella a sé, sempre chiamata {name}, così i fili che vanno a lei continuano ad andarci, e lo splice riceve un nome nuovo.",
+  "dialog.deleteEntry.housing.one":
+    "{name} è l'alloggiamento di {owners}. Verrà tolto prima di essere eliminato.",
+  "dialog.deleteEntry.housing.other":
+    "{name} è l'alloggiamento di {n} connettori: {owners}. Verrà tolto a tutti prima di essere eliminato.",
+  "dialog.deleteEntry.termination.one":
+    "{name} è il terminale di 1 cavità, in {owners}. Verrà tolto prima di essere eliminato.",
+  "dialog.deleteEntry.termination.other":
+    "{name} è il terminale di {n} cavità, in {owners}. Verrà tolto a tutte prima di essere eliminato.",
+  "dialog.deleteCatalog.housings.one":
+    "1 connettore ha un alloggiamento di questa tabella: {owners}. Resterà senza alloggiamento prima che la tabella sia eliminata.",
+  "dialog.deleteCatalog.housings.other":
+    "{n} connettori hanno un alloggiamento di questa tabella: {owners}. Resteranno senza alloggiamento prima che la tabella sia eliminata.",
+  "dialog.deleteCatalog.terminations.one":
+    "1 cavità ha un terminale di questa tabella, in {owners}. Resterà senza terminale prima che la tabella sia eliminata.",
+  "dialog.deleteCatalog.terminations.other":
+    "{n} cavità hanno un terminale di questa tabella, in {owners}. Resteranno senza terminale prima che la tabella sia eliminata.",
+  "toast.cavitiesAdded": "Righe di cavità aggiunte per adeguarsi all'alloggiamento: {n}",
+  "toast.cavitiesRemoved": "Righe di cavità vuote tolte per adeguarsi all'alloggiamento: {n}",
+  "toast.cavitiesOver": "{name} ha {rows} righe in uso e l'alloggiamento ha {n} cavità",
+  "validate.cavitiesOver":
+    "{name} ha {rows} righe di cavità, ma il suo alloggiamento {housing} ha solo {n} cavità",
+  "validate.cavitiesUnder":
+    "{name} ha {rows} righe di cavità, ma il suo alloggiamento {housing} ha {n} cavità",
+  "validate.pinsAndSockets": "{name} usa pin e socket nello stesso alloggiamento",
+  "menu.drawnAs": "Disegnato come",
 } as const;

@@ -20,6 +20,7 @@ import {
   mateOf,
   mergeNodes,
   nextName,
+  tableColumns,
   removeBend,
   segmentPath,
   unmateConnector,
@@ -29,11 +30,23 @@ import {
   splitSegment,
   tableForNode,
   isAutoLinkEnabled,
+  isCavityTable,
+  spliceNode,
 } from "@/core/doc";
+import { catalogOf, isCatalog, isDerivedColumn, namesATermination } from "@/core/catalog";
 import { cavityTable, cavityTableFor } from "@/core/factories";
 import { projectT, snapTo } from "@/core/geometry";
 import { visibleConnectorSymbols } from "@/render/connectors";
 import { heldClipping, pasteHeldAt } from "./clipboard";
+import {
+  addTerminationColumn,
+  assignHousing,
+  assignTermination,
+  createEntry,
+  deleteCatalogFlow,
+  deleteEntryFlow,
+  pickFreeTable,
+} from "./catalog";
 import { pickFreeColor } from "./colorpicker";
 import { menuContributors, openMenu } from "./menu";
 import type { MenuItem } from "./menu";
@@ -72,7 +85,8 @@ function clipboardItems(app: AppContext, target: Selection | null, world: Point)
   const items: MenuItem[] = [];
   // the right click has already put what it hit into the selection, keeping any
   // group that was gathered around it, so the command copies exactly that
-  if (target && !(target.type === "table" && findTable(app.doc, target.id)?.kind === "title")) {
+  const table = target?.type === "table" ? findTable(app.doc, target.id) : undefined;
+  if (target && !(table && (table.kind === "title" || isCatalog(table)))) {
     const group = app.store.selected().length;
     items.push({
       label: group > 1 ? t("menu.copyMany", { n: group }) : t("menu.copy"),
@@ -139,24 +153,44 @@ function nodeItems(app: AppContext, id: string): MenuItem[] {
   items.push({ separator: true });
 
   if (isTerminalNode(app.doc, id)) {
+    const self = findNode(app.doc, id);
+    const what = self?.kind !== "connector" ? "junction" : self.style === "splice" ? "splice" : "connector";
+    // the one it is now says so, as the list of colours does
+    const mark = (here: boolean): string => (here ? "● " : "○ ");
+
     items.push({ header: t("menu.terminalHeader") });
-    for (const symbol of visibleConnectorSymbols()) {
-      items.push({ label: t(symbol.labelKey), run: () => setConnectorStyle(app, id, symbol.id) });
-    }
     items.push({
-      label: t("menu.junction"),
-      run: () =>
-        editDoc(
-          app,
-          (doc) => {
-            const node = findNode(doc, id);
-            if (node) node.kind = "junction";
-          },
-          "junction",
-        ),
+      label: mark(what === "junction") + t("menu.junction"),
+      run: () => void makeJunction(app, id),
+    });
+    items.push({ label: mark(what === "splice") + t("menu.splice"), run: () => void makeSplice(app, id) });
+    items.push({
+      label: mark(what === "connector") + t("menu.connector"),
+      run: () => void makeConnector(app, id),
     });
     items.push({ separator: true });
-    items.push({ label: t("menu.rename"), run: () => void renameFlow(app, id) });
+
+    // Where nothing says what the end is made of, how it is drawn is still a
+    // choice to make: a drawing with no housing or termination table (every
+    // file made before them) and a connector whose table names neither.
+    const linkedTable = what === "connector" ? tableForNode(app.doc, id) : undefined;
+    const named = !!linkedTable?.housing || (linkedTable ? namesATermination(linkedTable) : false);
+    const catalogs = !!(catalogOf(app.doc, "housings") || catalogOf(app.doc, "terminations"));
+    if (what !== "splice" && (!catalogs || (what === "connector" && !named))) {
+      items.push({ header: t("menu.drawnAs") });
+      for (const symbol of visibleConnectorSymbols()) {
+        if (symbol.id === "splice") continue;
+        const here = self?.kind === "connector" && self.style === symbol.id;
+        items.push({
+          label: mark(here) + t(symbol.labelKey),
+          run: () => setConnectorStyle(app, id, symbol.id),
+        });
+      }
+      items.push({ separator: true });
+    }
+
+    // a plain junction has no name; the others are known by theirs
+    if (what !== "junction") items.push({ label: t("menu.rename"), run: () => void renameFlow(app, id) });
     items.push({
       label: t("menu.noteRefs"),
       run: () =>
@@ -171,14 +205,18 @@ function nodeItems(app: AppContext, id: string): MenuItem[] {
         ),
     });
 
-    const linked = tableForNode(app.doc, id);
-    if (linked) {
-      items.push({
-        label: t("menu.selectLinkedTable"),
-        run: () => app.store.select({ type: "table", id: linked.id }),
-      });
-    } else {
-      items.push({ label: t("menu.createCavityTable"), run: () => createCavityTable(app, id) });
+    // only a connector has a cavity table; a splice and a junction take none
+    if (what === "connector") {
+      const linked = tableForNode(app.doc, id);
+      if (linked) {
+        items.push({ label: t("menu.housing"), run: () => void assignHousing(app, linked.id) });
+        items.push({
+          label: t("menu.selectLinkedTable"),
+          run: () => app.store.select({ type: "table", id: linked.id }),
+        });
+      } else {
+        items.push({ label: t("menu.createCavityTable"), run: () => createCavityTable(app, id) });
+      }
     }
     items.push({ separator: true });
   }
@@ -249,8 +287,9 @@ async function coordinatesFlow(app: AppContext, id: string): Promise<void> {
 }
 
 /**
- * The connector is auto-named only when it has no name yet: a draughtsman who
- * named the node must not see that name overwritten.
+ * Draws an end as one of the symbols, for an end that no housing or termination
+ * says anything about. It is auto-named only when it has no name yet: a
+ * draughtsman who named the node must not see that name overwritten.
  */
 function setConnectorStyle(app: AppContext, id: string, style: string): void {
   editDoc(
@@ -260,10 +299,105 @@ function setConnectorStyle(app: AppContext, id: string, style: string): void {
       if (!node) return;
       node.kind = "connector";
       node.style = style;
-      if (!node.name && style !== "none") node.name = nextName(doc, style === "splice" ? "S" : "C");
+      if (!node.name && style !== "none") node.name = nextName(doc, "C");
     },
     "connector-style",
   );
+}
+
+/** A plain junction: a point the bundle ends at, with no name and no table. */
+function makeJunction(app: AppContext, id: string): void {
+  editDoc(
+    app,
+    (doc) => {
+      const node = findNode(doc, id);
+      if (node) node.kind = "junction";
+    },
+    "junction",
+  );
+}
+
+/**
+ * A splice has a name and joins the wires that reach it, and takes no cavity
+ * table. A connector that had one stops owning it: the table stays on the
+ * sheet, as a table of its own, and the splice is named afresh, because the old
+ * name is what the table and the wires to it go by.
+ */
+async function makeSplice(app: AppContext, id: string): Promise<void> {
+  const node = findNode(app.doc, id);
+  if (!node) return;
+  const table = node.kind === "connector" && node.style !== "splice" ? tableForNode(app.doc, id) : undefined;
+  if (table) {
+    const ok = await app.dialogs.confirm({
+      title: app.t("dialog.makeSplice.title", { name: node.name }),
+      body: app.t("dialog.makeSplice.body", { name: node.name }),
+      confirmLabel: app.t("dialog.confirm"),
+    });
+    if (!ok) return;
+  }
+  editDoc(app, (doc) => void spliceNode(doc, id), "splice");
+}
+
+/**
+ * A connector is what its cavity table says it is: the table gives it its name
+ * and, through the housing and terminations it names, the way it is drawn. So
+ * making one means picking the table it is to have, from those that belong to
+ * nothing yet, or starting a new one. A new one asks for its housing straight
+ * away, because that is the next thing it needs.
+ */
+async function makeConnector(app: AppContext, id: string): Promise<void> {
+  const node = findNode(app.doc, id);
+  if (!node) return;
+  if (node.kind === "connector" && node.style !== "splice" && tableForNode(app.doc, id)) return;
+
+  const free = app.doc.tables.filter((tb) => isCavityTable(tb) && !nodeForTable(app.doc, tb));
+  const choice = free.length ? await pickFreeTable(app, free) : ({ type: "new" } as const);
+  if (!choice) return;
+
+  if (choice.type === "pick") {
+    const taken = (name: string): boolean => app.doc.nodes.some((n) => n.id !== id && n.name === name);
+    let refused = "";
+    editDoc(
+      app,
+      (doc) => {
+        const target = findNode(doc, id);
+        const table = findTable(doc, choice.key);
+        if (!target || !table) return;
+        target.kind = "connector";
+        if (target.style === "splice" || target.style === "none") target.style = "plug";
+        table.node = target.id;
+        const name = /^([A-Za-z0-9_+-]+)/.exec(table.title ?? "")?.[1] ?? "";
+        if (name && name !== target.name) {
+          if (taken(name)) refused = name;
+          else renameNode(doc, target, name);
+        }
+      },
+      "connector",
+    );
+    if (refused) app.toast.error(app.t("toast.connectorNameTaken", { name: refused }));
+    return;
+  }
+
+  let created = "";
+  const changed = editDoc(
+    app,
+    (doc) => {
+      const target = findNode(doc, id);
+      if (!target) return;
+      target.kind = "connector";
+      if (target.style === "splice" || target.style === "none") target.style = "plug";
+      if (!target.name) target.name = nextName(doc, "C");
+      const table = cavityTableFor(app.t, target);
+      table.x = snapTo(table.x, app.store.snapEnabled);
+      table.y = snapTo(table.y, app.store.snapEnabled);
+      doc.tables.push(table);
+      created = table.id;
+    },
+    "connector",
+  );
+  if (!changed || !created) return;
+  app.store.select({ type: "table", id: created });
+  await assignHousing(app, created);
 }
 
 async function renameFlow(app: AppContext, id: string): Promise<void> {
@@ -517,10 +651,63 @@ function inlineItems(app: AppContext, id: string): MenuItem[] {
 
 /* ============================ table ============================ */
 
+/**
+ * The housing and termination tables are lists of things, not grids: a row is
+ * an entry, added through the form and deleted with a question when anything
+ * uses it; there are no columns to add and no connector to tie them to.
+ */
+function catalogItems(app: AppContext, id: string, row?: number, col?: number): MenuItem[] {
+  const t = app.t;
+  const table = findTable(app.doc, id);
+  if (!table || !isCatalog(table)) return [];
+  const items: MenuItem[] = [];
+  const kind = table.kind;
+
+  if (row !== undefined && col !== undefined) {
+    if (row < 0 || !isDerivedColumn(kind, col)) {
+      items.push({
+        label: t("menu.editCell"),
+        run: () => editOnSheet(app, { selection: { type: "table", id }, row, col }),
+      });
+    }
+    if (row >= 0) {
+      items.push({ header: t("props.table.rowMenu", { n: row + 1 }) });
+      items.push({
+        label: t("props.table.moveUp"),
+        disabled: row === 0,
+        run: () => moveRow(app, id, row, -1),
+      });
+      items.push({
+        label: t("props.table.moveDown"),
+        disabled: row >= table.rows.length - 1,
+        run: () => moveRow(app, id, row, 1),
+      });
+      items.push({
+        label: t("props.table.deleteRow"),
+        danger: true,
+        run: () => void deleteEntryFlow(app, id, row),
+      });
+    }
+    items.push({ separator: true });
+  }
+  items.push({
+    label: t(kind === "housings" ? "catalog.new.housing" : "catalog.new.termination"),
+    run: () => void createEntry(app, kind),
+  });
+  items.push({
+    label: t("menu.renameTitle"),
+    run: () => editOnSheet(app, { selection: { type: "table", id }, row: TITLE_ROW, col: 0 }),
+  });
+  items.push({ separator: true });
+  items.push({ label: t("menu.deleteTable"), danger: true, run: () => void deleteCatalogFlow(app, id) });
+  return items;
+}
+
 function tableItems(app: AppContext, id: string, row?: number, col?: number): MenuItem[] {
   const t = app.t;
   const table = findTable(app.doc, id);
   const items: MenuItem[] = [];
+  if (table && isCatalog(table)) return catalogItems(app, id, row, col);
 
   if (table && table.kind !== "title") {
     // actions on the cell that was hit: these used to live in the side grid
@@ -552,6 +739,21 @@ function tableItems(app: AppContext, id: string, row?: number, col?: number): Me
         danger: true,
         run: () => deleteColumn(app, id, col),
       });
+      items.push({ separator: true });
+    }
+
+    // what a connector is made of is picked from the catalogues, not typed
+    if (isCavityTable(table)) {
+      items.push({
+        label: table.housing ? t("menu.housingIs", { name: table.housing }) : t("menu.housing"),
+        run: () => void assignHousing(app, id),
+      });
+      const termination = tableColumns(table).termination;
+      if (termination === undefined) {
+        items.push({ label: t("menu.addTerminationColumn"), run: () => addTerminationColumn(app, id) });
+      } else if (row !== undefined && row >= 0 && col === termination) {
+        items.push({ label: t("menu.termination"), run: () => void assignTermination(app, id, row) });
+      }
       items.push({ separator: true });
     }
 
@@ -666,7 +868,8 @@ async function importCsvFlow(app: AppContext, id: string): Promise<void> {
 /** Choosing the connector to tie the cavity table to. */
 function linkTableMenu(app: AppContext, id: string): void {
   const t = app.t;
-  const connectors = app.doc.nodes.filter((n) => n.kind === "connector");
+  // a splice takes no cavity table
+  const connectors = app.doc.nodes.filter((n) => n.kind === "connector" && n.style !== "splice");
   const items: MenuItem[] = [
     { header: t("props.field.linkedNode") },
     {
@@ -711,6 +914,10 @@ function addRow(app: AppContext, id: string): void {
 async function deleteTableFlow(app: AppContext, id: string): Promise<void> {
   const table = findTable(app.doc, id);
   if (!table) return;
+  if (isCatalog(table)) {
+    await deleteCatalogFlow(app, id);
+    return;
+  }
   const filled = table.rows.some((row) => row.some((c) => c.trim() !== ""));
   if (filled) {
     const ok = await app.dialogs.confirm({

@@ -1,5 +1,6 @@
 import { DOC_VERSION } from "./types";
 import type { DocMeta, HarnessDoc, HNode, Inline, Point, Segment, Table } from "./types";
+import { CATALOG_KINDS, catalogWidth, syncCatalogs } from "./catalog";
 import { seedIds, uid } from "./ids";
 import { T_MAX, T_MIN, alongPolyline, clamp, dist, polylineLength, projectPolyline } from "./geometry";
 
@@ -150,19 +151,33 @@ export function normalizeDoc(input: unknown): HarnessDoc {
   // --- tables: rectangular rows, a single title block, node links verified
   const seenTableIds = new Set<string>();
   let titleBlockSeen = false;
+  const catalogsSeen = new Set<Table["kind"]>();
   for (const t of asArray(raw.tables)) {
     const src = t as Partial<Table>;
     const id = str(src.id);
     if (!id || seenTableIds.has(id)) continue;
-    const kind: Table["kind"] = src.kind === "title" ? "title" : "table";
+    const kind: Table["kind"] =
+      src.kind === "title"
+        ? "title"
+        : (CATALOG_KINDS as readonly unknown[]).includes(src.kind)
+          ? (src.kind as Table["kind"])
+          : "table";
     if (kind === "title") {
       if (titleBlockSeen) continue; // there is only ever one title block
       titleBlockSeen = true;
     }
+    if (kind === "housings" || kind === "terminations") {
+      if (catalogsSeen.has(kind)) continue; // nor is there more than one of each catalogue
+      catalogsSeen.add(kind);
+    }
     seenTableIds.add(id);
     const head = asArray(src.head).map((h) => str(h));
     const rows = asArray(src.rows).map((r) => asArray(r).map((c) => str(c)));
-    const width = Math.max(head.length, ...rows.map((r) => r.length), 0);
+    const width = Math.max(
+      head.length,
+      ...rows.map((r) => r.length),
+      kind === "housings" || kind === "terminations" ? catalogWidth(kind) : 0,
+    );
     for (const r of rows) while (r.length < width) r.push("");
     const table: Table = { id, x: num(src.x), y: num(src.y), kind, rows };
     if (src.title !== undefined) table.title = str(src.title);
@@ -170,6 +185,11 @@ export function normalizeDoc(input: unknown): HarnessDoc {
     const node = str(src.node);
     if (node && seenNodeIds.has(node)) table.node = node;
     if (src.autoLink === false) table.autoLink = false;
+    if (kind === "table" && str(src.housing).trim()) table.housing = str(src.housing).trim();
+    if (kind === "table" && str(src.spliced).trim()) table.spliced = str(src.spliced).trim();
+    const symbols =
+      kind === "housings" || kind === "terminations" ? normalizeSymbols(src.symbols) : undefined;
+    if (symbols) table.symbols = symbols;
     doc.tables.push(table);
   }
 
@@ -179,12 +199,23 @@ export function normalizeDoc(input: unknown): HarnessDoc {
 
   doc.version = DOC_VERSION;
   normalizeConnectors(doc);
+  syncCatalogs(doc);
   seedIds(doc.nodes.length + doc.segments.length + doc.inlines.length + doc.tables.length);
   return doc;
 }
 
 function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
+}
+
+/** The symbol of each catalogue entry, with anything that is not a name and a symbol id left out. */
+function normalizeSymbols(raw: unknown): Record<string, string> | undefined {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return undefined;
+  const out: Record<string, string> = {};
+  for (const [name, symbol] of Object.entries(raw)) {
+    if (name.trim() && typeof symbol === "string" && symbol.trim()) out[name] = symbol.trim();
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /**
@@ -472,6 +503,16 @@ export function titleProblem(doc: HarnessDoc, table: Table, title: string): Titl
 const same = (a: string | undefined, b: string): boolean =>
   (a ?? "").trim().toLowerCase() === b.toLowerCase();
 
+/**
+ * A cavity table left behind when its connector was turned into a splice: the
+ * wires in its rows, and the cells of other tables that name the connector, go
+ * nowhere on the drawing until a connector answers to the table again. A table
+ * that was never given a connector is not this, and is only a warning.
+ */
+export function isOrphanTable(doc: HarnessDoc, table: Table): boolean {
+  return !!table.spliced && isCavityTable(table) && !nodeForTable(doc, table);
+}
+
 /* ============================ Cavity table columns ============================ */
 
 export interface TableColumns {
@@ -482,6 +523,8 @@ export interface TableColumns {
   color?: number;
   section?: number;
   func?: number;
+  /** the contact this cavity takes, picked from the termination table */
+  termination?: number;
 }
 
 /**
@@ -504,6 +547,7 @@ export function tableColumns(t: Table): TableColumns {
     if (idx.color === undefined && /^(colore|color|colour)$/.test(s)) idx.color = i;
     if (idx.section === undefined && /(sezione|section|gauge|awg|mm²|mm2)/.test(s)) idx.section = i;
     if (idx.func === undefined && /(funzione|function|circuito|circuit|signal)/.test(s)) idx.func = i;
+    if (idx.termination === undefined && /^(terminazione|termination)$/.test(s)) idx.termination = i;
   });
 
   if (idx.cavity === undefined) {
@@ -596,6 +640,40 @@ export function declaredColor(doc: HarnessDoc, endpoint: string): string {
     if (row) return cell(row, ct.cols.color);
   }
   return "";
+}
+
+/**
+ * A cavity table in the sense of the pin-outs: one with a Cavity column and a
+ * destination. The notes, the revisions and the wire list are ordinary tables
+ * too, and are not what a connector is made of or can be tied to.
+ */
+export function isCavityTable(t: Table): boolean {
+  if (t.kind !== "table") return false;
+  const cols = tableColumns(t);
+  return cols.cavity !== undefined && cols.dest !== undefined;
+}
+
+/**
+ * Makes a node a splice: named, joining the wires that reach it, with no cavity
+ * table. A connector that had one lets it go, and the table stays on the sheet
+ * as a table of its own, still called what the connector was, so every wire that
+ * went to it still does; the splice takes a new name, which nothing refers to.
+ */
+export function spliceNode(doc: HarnessDoc, nodeId: string): boolean {
+  const node = findNode(doc, nodeId);
+  if (!node) return false;
+  const owned = node.kind === "connector" && node.style !== "splice" ? tableForNode(doc, nodeId) : undefined;
+  if (owned) {
+    const old = node.name.trim();
+    delete owned.node;
+    if (old) owned.spliced = old;
+    // a table known by something else than the connector's name would stop answering to it
+    if (old && !titleMatchesName(owned.title, old)) owned.title = `${old} ${owned.title ?? ""}`.trim();
+  }
+  node.kind = "connector";
+  node.style = "splice";
+  if (!node.name || owned) node.name = nextName(doc, "S");
+  return true;
 }
 
 /** Tables usable by the check and the wire list: they have Cavity, Dest and an owner. */

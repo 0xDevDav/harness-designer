@@ -370,6 +370,8 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
   const insertMenu = (ev: MouseEvent): void =>
     dropdown(ev.currentTarget as HTMLElement, [
       { label: t("insert.cavity"), run: run(app, "insert.cavity") },
+      { label: t("insert.housings"), run: run(app, "insert.housings") },
+      { label: t("insert.terminations"), run: run(app, "insert.terminations") },
       { label: t("insert.notes"), run: run(app, "insert.notes") },
       { label: t("insert.revisions"), run: run(app, "insert.revisions") },
       { label: t("insert.wirelist"), run: run(app, "insert.wirelist") },

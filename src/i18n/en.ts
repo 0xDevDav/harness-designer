@@ -143,7 +143,7 @@ export const en = {
   "menu.copy": "Copy",
   "menu.copyMany": "Copy the {n} chosen items",
   "menu.pasteHere": "Paste here",
-  "menu.terminalHeader": "Turn into a termination",
+  "menu.terminalHeader": "End of the branch",
   "menu.junction": "Plain junction",
   "menu.rename": "Rename…",
   "menu.createCavityTable": "Create cavity table",
@@ -177,10 +177,11 @@ export const en = {
   "menu.selectLinkedNode": "Go to linked connector",
 
   /* ---------------- termination styles ---------------- */
-  "style.plug": "Multi-pin plug",
+  "style.plug": "Multi-pin",
   "style.ring": "Ring terminal",
   "style.faston": "Faston",
   "style.pin": "Pin / terminal",
+  "style.socket": "Socket",
   "style.splice": "Splice (welded joint)",
   "style.none": "Free end",
 
@@ -348,7 +349,10 @@ export const en = {
   "validate.titleWithoutName":
     "Table “{title}”: the title should start with the name of its connector, {name}",
   "validate.duplicateTitle": "Two tables are called “{title}”",
+  "table.noConnector": "No connector on the sheet answers to this table. Give it one, or delete the table.",
   "validate.tableWithoutNode": "Table “{title}”: no matching connector in the drawing",
+  "validate.tableSpliced":
+    "Table “{title}”: connector {name} was turned into a splice, nothing on the sheet answers to this table",
 
   /* ---------------- wire list ---------------- */
   "wirelist.empty": "No cavity table with Cavity and To columns on the sheet.",
@@ -533,4 +537,77 @@ export const en = {
   "cmd.plugins": "Manage plugins",
   "cmd.language": "Change language",
   "cmd.palette": "Search for a command",
+
+  /* ---------------- housings and terminations ---------------- */
+  "menu.splice": "Splice",
+  "menu.connector": "Connector",
+  "menu.housing": "Housing…",
+  "menu.housingIs": "Housing: {name}…",
+  "menu.termination": "Termination…",
+  "menu.addTerminationColumn": "Add termination column",
+  "table.title.housings": "Housings",
+  "table.title.terminations": "Terminations",
+  "table.head.termination": "Termination",
+  "catalog.head.name": "Name",
+  "catalog.head.cavities": "# of Cavities",
+  "catalog.head.manufacturer": "Manufacturer",
+  "catalog.head.series": "Series",
+  "catalog.head.form": "Plug/Receptacle",
+  "catalog.head.quantity": "Quantity",
+  "catalog.head.whereUsed": "Where Used",
+  "catalog.head.termination": "Termination Type",
+  "catalog.form.none": "—",
+  "catalog.form.plug": "Plug",
+  "catalog.form.receptacle": "Receptacle",
+  "catalog.symbol": "Symbol",
+  "catalog.choose": "Choose",
+  "catalog.search": "Search…",
+  "catalog.none": "None",
+  "catalog.new": "+ New",
+  "catalog.newTable": "+ New cavity table",
+  "catalog.new.housing": "New housing",
+  "catalog.new.termination": "New termination",
+  "catalog.empty": "Nothing in the table yet. Use + New to add the first.",
+  "catalog.noMatch": "Nothing matches.",
+  "catalog.nameRequired": "A name is required.",
+  "catalog.nameTaken": "“{name}” is already in the table.",
+  "catalog.pick.housing": "Housing of {name}",
+  "catalog.pick.termination": "Termination of {name}, cavity {cavity}",
+  "catalog.pick.table": "Cavity table of the connector",
+  "catalog.cavityCount": "{n} rows",
+  "insert.housings": "+ Housings",
+  "insert.terminations": "+ Terminations",
+  "cmd.insertHousings": "Insert housing table",
+  "cmd.insertTerminations": "Insert termination table",
+  "toast.housingsExist": "The drawing already has a housing table",
+  "toast.terminationsExist": "The drawing already has a termination table",
+  "toast.connectorNameTaken": "Another connector is already called {name}",
+  "dialog.deleteEntry.title": "Delete {name}?",
+  "dialog.deleteCatalog.title": "Delete “{title}”?",
+  "dialog.makeSplice.title": "Make {name} a splice?",
+  "dialog.makeSplice.body":
+    "A splice takes no cavity table. The table stays on the sheet as a table of its own, still called {name}, so the wires that go to it keep going to it, and the splice gets a new name.",
+  "dialog.deleteEntry.housing.one":
+    "{name} is the housing of {owners}. It will be unassigned from it before it is deleted.",
+  "dialog.deleteEntry.housing.other":
+    "{name} is the housing of {n} connectors: {owners}. It will be unassigned from all of them before it is deleted.",
+  "dialog.deleteEntry.termination.one":
+    "{name} is the termination of 1 cavity, in {owners}. It will be unassigned from it before it is deleted.",
+  "dialog.deleteEntry.termination.other":
+    "{name} is the termination of {n} cavities, in {owners}. It will be unassigned from all of them before it is deleted.",
+  "dialog.deleteCatalog.housings.one":
+    "1 connector has a housing from this table: {owners}. It will be left with no housing before the table is deleted.",
+  "dialog.deleteCatalog.housings.other":
+    "{n} connectors have a housing from this table: {owners}. They will be left with no housing before the table is deleted.",
+  "dialog.deleteCatalog.terminations.one":
+    "1 cavity has a termination from this table, in {owners}. It will be left with no termination before the table is deleted.",
+  "dialog.deleteCatalog.terminations.other":
+    "{n} cavities have a termination from this table, in {owners}. They will be left with no termination before the table is deleted.",
+  "toast.cavitiesAdded": "Cavity rows added to match the housing: {n}",
+  "toast.cavitiesRemoved": "Empty cavity rows removed to match the housing: {n}",
+  "toast.cavitiesOver": "{name} has {rows} rows in use, and the housing has {n} cavities",
+  "validate.cavitiesOver": "{name} has {rows} cavity rows, but its housing {housing} has only {n} cavities",
+  "validate.cavitiesUnder": "{name} has {rows} cavity rows, but its housing {housing} has {n} cavities",
+  "validate.pinsAndSockets": "{name} uses pins and sockets in the same housing",
+  "menu.drawnAs": "Drawn as",
 } as const;

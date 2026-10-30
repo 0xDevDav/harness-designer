@@ -19,7 +19,7 @@
  * with the drawing.
  */
 
-import { cavityTables, cell, nodeForTable, DEST_RE } from "./doc";
+import { cavityTables, cell, isOrphanTable, nodeForTable, DEST_RE } from "./doc";
 import { colorsOf } from "./colors";
 import { endpointConnector, routeWires } from "./routing";
 import type { RoutedWire } from "./routing";
@@ -120,6 +120,8 @@ export interface SchemBox {
    * instead of showing it.
    */
   unknown?: boolean;
+  /** its table is left behind by a connector that became a splice */
+  orphan?: boolean;
   /** true while the box sits where somebody put it */
   placed?: boolean;
 }
@@ -249,6 +251,7 @@ function buildBoxes(doc: HarnessDoc): SchemBox[] {
       box.pins = pins;
       box.tableId = table.id;
       box.nodeId = nodeForTable(doc, table)?.id;
+      if (isOrphanTable(doc, table)) box.orphan = true;
       box.title = table.title?.trim() || owner;
     }
     boxes.set(owner, box);

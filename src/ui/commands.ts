@@ -8,23 +8,23 @@
  * posto: `matchShortcut`.
  */
 import type { AppContext, Command, CommandRegistry } from "@/app/context";
+import { isCatalog } from "@/core/catalog";
 import { deleteEntity, emptyDoc, findTable } from "@/core/doc";
 import { autoLinkAll } from "@/core/autolink";
 import { copySelection, countOf, isEmptyClipping } from "@/core/clipboard";
 import { heldClipping, hold, pasteHeldAt } from "@/ui/clipboard";
 import { pointerAt } from "@/ui/pointer";
-import { snapTo } from "@/core/geometry";
 import { uid } from "@/core/ids";
 import { cavityTable, notesTable, revisionsTable, titleBlock, wireListHeadings } from "@/core/factories";
 import { sampleDoc } from "@/core/sample";
-import type { Point, Table } from "@/core/types";
 import { validateDoc } from "@/core/validate";
 import { wireRowsWithLength } from "@/core/routing";
 import { wireListRows } from "@/core/wirelist";
 import { getLocale, locales, setLocale } from "@/i18n";
 import { exportPngFile, exportSvgFile, exportWireCsv, printDrawing } from "@/io/exporters";
 import { saveDocToFile } from "@/io/file";
-import { tableSize } from "@/render/tables";
+import { deleteCatalogFlow, insertCatalog, startingCatalogs } from "@/ui/catalog";
+import { insertTable, viewCenter } from "@/ui/insert";
 import { openFind } from "@/ui/find";
 import { openCommandPalette } from "@/ui/palette";
 import { cycleViewMode, setViewMode, showsBoard, showsSchematic } from "@/ui/viewmode";
@@ -197,27 +197,6 @@ function copyingText(): boolean {
   return !!selection && !selection.isCollapsed && selection.toString().trim() !== "";
 }
 
-/** Centre of the drawing area in document coordinates: new items are born there. */
-function viewCenter(app: AppContext): Point {
-  const canvas = document.querySelector(".canvas");
-  const box = canvas?.getBoundingClientRect();
-  const cx = box && box.width > 0 ? box.left + box.width / 2 : window.innerWidth / 2;
-  const cy = box && box.height > 0 ? box.top + box.height / 2 : window.innerHeight / 2;
-  return app.renderer.screenToWorld({ clientX: cx, clientY: cy });
-}
-
-/** Inserts a table centred on the view and selects it. */
-function insertTable(app: AppContext, table: Table): void {
-  const center = viewCenter(app);
-  const size = tableSize(table, app.doc.meta, app.t);
-  table.x = snapTo(center.x - size.w / 2, app.store.snapEnabled);
-  table.y = snapTo(center.y - size.h / 2, app.store.snapEnabled);
-  app.store.edit((doc) => {
-    doc.tables.push(table);
-  }, "insert");
-  app.store.select({ type: "table", id: table.id });
-}
-
 /**
  * Rebuilds the wire list from the cavity tables: it refreshes the existing
  * table if there is one, otherwise it creates a new one centred on the view.
@@ -280,7 +259,11 @@ export function registerBuiltinCommands(app: AppContext): void {
     {
       id: "doc.new",
       titleKey: "cmd.new",
-      run: (a) => replaceDocument(a, "dialog.new.title", "dialog.new.body", () => a.store.load(emptyDoc())),
+      // a new drawing starts with the two catalogues its connectors are made from
+      run: (a) =>
+        replaceDocument(a, "dialog.new.title", "dialog.new.body", () =>
+          a.store.load({ ...emptyDoc(), tables: startingCatalogs(a) }),
+        ),
     },
     {
       id: "doc.sample",
@@ -383,6 +366,12 @@ export function registerBuiltinCommands(app: AppContext): void {
       run: (a) => {
         const sel = a.store.selection;
         if (!sel) return;
+        // a housing or termination table that is in use asks before it goes
+        const table = sel.type === "table" ? findTable(a.doc, sel.id) : undefined;
+        if (table && isCatalog(table)) {
+          void deleteCatalogFlow(a, sel.id);
+          return;
+        }
         a.store.edit((doc) => deleteEntity(doc, sel.type, sel.id), "delete");
         a.store.select(null);
       },
@@ -515,6 +504,16 @@ export function registerBuiltinCommands(app: AppContext): void {
       id: "insert.cavity",
       titleKey: "cmd.insertCavity",
       run: (a) => insertTable(a, cavityTable(a.t, 0, 0)),
+    },
+    {
+      id: "insert.housings",
+      titleKey: "cmd.insertHousings",
+      run: (a) => insertCatalog(a, "housings"),
+    },
+    {
+      id: "insert.terminations",
+      titleKey: "cmd.insertTerminations",
+      run: (a) => insertCatalog(a, "terminations"),
     },
     {
       id: "insert.notes",
