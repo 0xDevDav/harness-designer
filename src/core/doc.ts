@@ -186,6 +186,7 @@ export function normalizeDoc(input: unknown): HarnessDoc {
     if (node && seenNodeIds.has(node)) table.node = node;
     if (src.autoLink === false) table.autoLink = false;
     if (kind === "table" && str(src.housing).trim()) table.housing = str(src.housing).trim();
+    if (kind === "table" && str(src.spliced).trim()) table.spliced = str(src.spliced).trim();
     const symbols =
       kind === "housings" || kind === "terminations" ? normalizeSymbols(src.symbols) : undefined;
     if (symbols) table.symbols = symbols;
@@ -503,12 +504,13 @@ const same = (a: string | undefined, b: string): boolean =>
   (a ?? "").trim().toLowerCase() === b.toLowerCase();
 
 /**
- * A cavity table with no connector on the sheet: the connector was turned into
- * a splice, or taken off, and the table is still there describing it. The
- * wires in its rows go nowhere on the drawing until a connector answers to it.
+ * A cavity table left behind when its connector was turned into a splice: the
+ * wires in its rows, and the cells of other tables that name the connector, go
+ * nowhere on the drawing until a connector answers to the table again. A table
+ * that was never given a connector is not this, and is only a warning.
  */
 export function isOrphanTable(doc: HarnessDoc, table: Table): boolean {
-  return isCavityTable(table) && !nodeForTable(doc, table);
+  return !!table.spliced && isCavityTable(table) && !nodeForTable(doc, table);
 }
 
 /* ============================ Cavity table columns ============================ */
@@ -664,6 +666,7 @@ export function spliceNode(doc: HarnessDoc, nodeId: string): boolean {
   if (owned) {
     const old = node.name.trim();
     delete owned.node;
+    if (old) owned.spliced = old;
     // a table known by something else than the connector's name would stop answering to it
     if (old && !titleMatchesName(owned.title, old)) owned.title = `${old} ${owned.title ?? ""}`.trim();
   }

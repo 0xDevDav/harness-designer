@@ -274,12 +274,21 @@ const drawingHygiene: ValidationRule = {
     for (const table of doc.tables) {
       if (table.kind !== "table") continue;
       if (table.node && !findNode(doc, table.node)) continue;
-      const looksLikeCavityTable = /cavit|cavity|pin/i.test((table.head ?? []).join(" "));
-      if ((looksLikeCavityTable && !nodeForTable(doc, table)) || isOrphanTable(doc, table)) {
+      if (isOrphanTable(doc, table)) {
         issues.push({
           rule: "drawing-hygiene",
-          // a pin-out whose connector is gone describes wires that go nowhere
+          // a pin-out whose connector became a splice describes wires that go nowhere
           severity: "error",
+          message: t("validate.tableSpliced", { title: table.title ?? "", name: table.spliced ?? "" }),
+          target: { type: "table", id: table.id },
+        });
+        continue;
+      }
+      const looksLikeCavityTable = /cavit|cavity|pin/i.test((table.head ?? []).join(" "));
+      if (looksLikeCavityTable && !nodeForTable(doc, table)) {
+        issues.push({
+          rule: "drawing-hygiene",
+          severity: "warning",
           message: t("validate.tableWithoutNode", { title: table.title ?? "" }),
           target: { type: "table", id: table.id },
         });

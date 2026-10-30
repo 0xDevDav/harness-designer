@@ -350,8 +350,9 @@ export const en = {
     "Table “{title}”: the title should start with the name of its connector, {name}",
   "validate.duplicateTitle": "Two tables are called “{title}”",
   "table.noConnector": "No connector on the sheet answers to this table. Give it one, or delete the table.",
-  "validate.tableWithoutNode":
-    "Table “{title}”: its connector is missing, nothing on the sheet answers to it",
+  "validate.tableWithoutNode": "Table “{title}”: no matching connector in the drawing",
+  "validate.tableSpliced":
+    "Table “{title}”: connector {name} was turned into a splice, nothing on the sheet answers to this table",
 
   /* ---------------- wire list ---------------- */
   "wirelist.empty": "No cavity table with Cavity and To columns on the sheet.",

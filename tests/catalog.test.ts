@@ -637,8 +637,37 @@ describe("making a connector a splice", () => {
     expect(issues).toEqual([
       expect.objectContaining({
         severity: "error",
-        message: "Table “C5”: its connector is missing, nothing on the sheet answers to it",
+        message:
+          "Table “C5”: connector C5 was turned into a splice, nothing on the sheet answers to this table",
         target: { type: "table", id: "t5" },
+      }),
+    ]);
+  });
+
+  it("remembers the connector's name in the file, and is no orphan once a connector answers again", () => {
+    const doc = withTable("C5");
+    spliceNode(doc, "n5");
+    const table = doc.tables.find((tb) => tb.id === "t5") as Table;
+    expect(table.spliced).toBe("C5");
+    const again = normalizeDoc(JSON.parse(JSON.stringify(doc)));
+    expect(again.tables.find((tb) => tb.id === "t5")?.spliced).toBe("C5");
+    expect(isOrphanTable(again, again.tables.find((tb) => tb.id === "t5") as Table)).toBe(true);
+    // a connector with the table's name is on the sheet again
+    again.nodes.push({ id: "n9", x: 0, y: 0, kind: "connector", name: "C5", style: "plug", refs: "" });
+    expect(isOrphanTable(again, again.tables.find((tb) => tb.id === "t5") as Table)).toBe(false);
+  });
+
+  it("is only a warning for a cavity table that never had a connector, as it was", () => {
+    const doc = withTable("C5");
+    doc.nodes = doc.nodes.filter((n) => n.id !== "n5");
+    delete (doc.tables.find((tb) => tb.id === "t5") as Table).node;
+    const table = doc.tables.find((tb) => tb.id === "t5") as Table;
+    expect(isOrphanTable(doc, table)).toBe(false);
+    const issues = validateDoc(doc, t).filter((i) => i.rule === "drawing-hygiene");
+    expect(issues).toEqual([
+      expect.objectContaining({
+        severity: "warning",
+        message: "Table “C5”: no matching connector in the drawing",
       }),
     ]);
   });

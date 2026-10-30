@@ -357,7 +357,9 @@ export const it = {
   "validate.duplicateTitle": "Due tabelle si chiamano «{title}»",
   "table.noConnector":
     "Nessun connettore sul foglio corrisponde a questa tabella. Dagliene uno, oppure elimina la tabella.",
-  "validate.tableWithoutNode": "Tabella «{title}»: manca il suo connettore, nulla sul foglio le corrisponde",
+  "validate.tableWithoutNode": "Tabella «{title}»: nessun connettore corrispondente nello schema",
+  "validate.tableSpliced":
+    "Tabella «{title}»: il connettore {name} è diventato una giunzione, nulla sul foglio corrisponde a questa tabella",
 
   /* ---------------- distinta fili ---------------- */
   "wirelist.empty": "Nessuna tabella cavità con colonne Cavità e Verso nel foglio.",
@@ -549,7 +551,7 @@ export const it = {
   "menu.housing": "Alloggiamento…",
   "menu.housingIs": "Alloggiamento: {name}…",
   "menu.termination": "Terminale…",
-  "menu.addTerminationColumn": "Aggiungi colonna terminale",
+  "menu.addTerminationColumn": "Aggiungi colonna terminazione",
   "table.title.housings": "Alloggiamenti",
   "table.title.terminations": "Terminali",
   "table.head.termination": "Terminazione",
