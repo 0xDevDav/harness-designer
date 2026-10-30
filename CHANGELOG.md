@@ -28,7 +28,9 @@ All notable changes to this project are documented here. The format follows
   "No file" when they only reach the browser's own storage. New and Sample
   unlink the file first, so they can never overwrite it. Browsers without the
   API keep the download-based Save, and do not show the file name or Reload.
-  A Save that fails says so, and writes go one at a time, in order.
+  A Save that fails says so, in the language of the app, and writes go one at a
+  time, in order. The checks of the file wait their turn behind them, and a change
+  another program makes just after a write is not taken for the write's own.
 - **Reload**, next to Save: reads the file again from disk, as one undo step
   and without moving the view. The file is checked every two seconds and when
   the window gets focus back; when something else has changed it, Reload turns

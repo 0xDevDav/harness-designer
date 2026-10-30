@@ -16,7 +16,7 @@
 import type { DialogsApi, FileApi, ToastApi } from "@/app/context";
 import type { Store } from "@/core/store";
 import type { Translate } from "@/i18n";
-import { DiskFile } from "./diskfile";
+import { DiskFile, DiskFileError } from "./diskfile";
 import { documentFileName, saveDocToFile, serializeDoc } from "./file";
 import { ReloadGuard } from "./reloadguard";
 import { createWriteQueue } from "./writequeue";
@@ -43,6 +43,8 @@ export function createFileSession(options: FileSessionOptions): FileSession {
   const disk = new DiskFile();
   const guard = new ReloadGuard();
   const queue = createWriteQueue();
+  // what the file is asked at any other moment waits behind the writes
+  disk.serializeWith(queue);
   let timer: number | undefined;
   let failedOnce = false;
   let pausedTold = false;
@@ -110,10 +112,17 @@ export function createFileSession(options: FileSessionOptions): FileSession {
       body: t("dialog.invalidFile", { error: err instanceof Error ? err.message : String(err) }),
     });
 
+  /** What went wrong, in the person's language where it is a case we know. */
+  const describe = (err: unknown): string => {
+    if (err instanceof DiskFileError)
+      return t(err.problem === "permission" ? "file.error.permission" : "file.error.noFile");
+    return err instanceof Error ? err.message : String(err);
+  };
+
   /** A Save the person asked for did not happen: the file is not up to date, and they must know. */
   const reportSaveFailure = (err: unknown): void => {
     console.error("[harness] save to file failed", err);
-    toast.error(t("toast.saveFailed", { error: err instanceof Error ? err.message : String(err) }));
+    toast.error(t("toast.saveFailed", { error: describe(err) }));
   };
 
   // a tab that goes to the background is the last chance to write before it may be discarded

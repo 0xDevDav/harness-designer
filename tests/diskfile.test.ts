@@ -1,10 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DiskFile } from "@/io/diskfile";
+import { DiskFile, DiskFileError } from "@/io/diskfile";
 import type { FileHandleLike } from "@/io/diskfile";
 
 /** A file that lives in memory, with a clock the test winds forward by hand. */
 function memoryFile(initial: string, name = "harness.json") {
-  const state = { text: initial, modified: 1000, writes: 0, permission: "granted" as PermissionState };
+  const state = {
+    text: initial,
+    modified: 1000,
+    writes: 0,
+    permission: "granted" as PermissionState,
+    /** runs right after a write is closed: where another program can get in */
+    afterClose: null as (() => void) | null,
+  };
   const handle: FileHandleLike = {
     name,
     getFile: () => Promise.resolve(new File([state.text], name, { lastModified: state.modified })),
@@ -19,6 +26,7 @@ function memoryFile(initial: string, name = "harness.json") {
           state.text = buffer;
           state.modified += 10;
           state.writes++;
+          state.afterClose?.();
           return Promise.resolve();
         },
       });
@@ -158,5 +166,50 @@ describe("DiskFile", () => {
     expect(disk.attached).toBe(false);
     expect(disk.canAutosave).toBe(false);
     expect(await disk.check()).toBe(false);
+  });
+
+  it("does not take another program's write, made just after ours, for ours", async () => {
+    const disk = new DiskFile();
+    const file = memoryFile("old");
+    await disk.attach(file.handle);
+    file.state.afterClose = () => {
+      file.state.text = "theirs";
+      file.state.modified += 5;
+    };
+    await disk.write("mine");
+    file.state.afterClose = null;
+    expect(disk.isStale).toBe(true);
+    expect(disk.canAutosave).toBe(false);
+  });
+
+  it("makes the reads nobody asked for wait behind the writes", async () => {
+    const disk = new DiskFile();
+    const file = memoryFile("old");
+    await disk.attach(file.handle);
+    const order: string[] = [];
+    let release = (): void => undefined;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let tail: Promise<unknown> = Promise.resolve();
+    disk.serializeWith((job) => {
+      const run = tail.then(job);
+      tail = run.catch(() => undefined);
+      return run;
+    });
+    tail = gate.then(() => order.push("write finished"));
+    const checked = disk.check().then(() => order.push("checked"));
+    release();
+    await checked;
+    expect(order).toEqual(["write finished", "checked"]);
+  });
+
+  it("says why a write could not happen with an error a caller can translate", async () => {
+    const disk = new DiskFile();
+    const file = memoryFile("old");
+    await disk.attach(file.handle);
+    file.state.permission = "denied";
+    await expect(disk.write("new", true)).rejects.toMatchObject({ problem: "permission" });
+    await expect(disk.write("new", true)).rejects.toBeInstanceOf(DiskFileError);
+    disk.detach();
+    await expect(disk.write("new", true)).rejects.toMatchObject({ problem: "no-file" });
   });
 });

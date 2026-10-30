@@ -495,6 +495,8 @@ export const it = {
   "toast.reloaded": "Ricaricato {name} (Ctrl+Z annulla)",
   "toast.fileChanged":
     "Il file è cambiato sul disco. Il salvataggio automatico è in pausa: Ricarica per prendere le modifiche, oppure Salva per sovrascriverle.",
+  "file.error.permission": "il permesso di scrivere sul file non è stato dato",
+  "file.error.noFile": "nessun file è collegato a questo disegno",
   "toast.saveFailed": "Impossibile salvare sul file: {error}",
   "toast.undoReload":
     "Annulla ha riportato il disegno di prima di Ricarica. Il salvataggio automatico è in pausa per non sostituire il file: Ricarica per riprendere il file, oppure Salva per sovrascriverlo.",

@@ -488,6 +488,8 @@ export const en = {
   "toast.reloaded": "Reloaded {name} (Ctrl+Z undoes it)",
   "toast.fileChanged":
     "The file changed on disk. Autosave is paused: Reload to take the changes, or Save to overwrite them.",
+  "file.error.permission": "permission to write to the file was not given",
+  "file.error.noFile": "no file is linked to this drawing",
   "toast.saveFailed": "Could not save to the file: {error}",
   "toast.undoReload":
     "Undo brought back the drawing from before Reload. Autosave is paused so it does not replace the file: Reload to take the file again, or Save to overwrite it.",
