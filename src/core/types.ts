@@ -111,6 +111,13 @@ export interface Table {
    */
   autoLink?: boolean;
   /**
+   * The name the connector had when it was turned into a splice, kept while
+   * nothing on the sheet answers to the table: that is what tells a table left
+   * behind by a splice, whose wires now go nowhere, from one that was never
+   * given a connector.
+   */
+  spliced?: string;
+  /**
    * The housing this cavity table's connector is made of, by the name it has in
    * the housing table. Absent when none has been picked, which is also what it
    * goes back to when that housing is deleted from the table.

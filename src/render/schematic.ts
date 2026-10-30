@@ -297,8 +297,8 @@ export class SchematicRenderer {
     lit: boolean,
     wired: ReadonlySet<string>,
   ): void {
-    // a table that no connector on the sheet answers to
-    const orphan = !!box.tableId && !box.nodeId && !box.unknown;
+    // a table left behind by a connector that became a splice
+    const orphan = !!box.orphan;
     const g = el(
       "g",
       {
