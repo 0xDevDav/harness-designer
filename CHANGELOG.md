@@ -42,7 +42,8 @@ All notable changes to this project are documented here. The format follows
   existing drawings; a table the wider one now lies on is pushed to the right
   just far enough to clear it, so the layout stays as it was.
   Only a column headed _Wire type_ (or _Tipo filo_) counts: a column called just
-  _Type_ is left alone, since older sheets use it for something else.
+  _Type_ is left alone, since older sheets use it for something else. The check warns when the two ends of a wire
+  declare different wire types, as it does for colour and section.
 
 ## [1.2.0]
 

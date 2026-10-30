@@ -16,6 +16,8 @@ interface TableSpec {
   node: string;
   title: string;
   rows: string[][];
+  /** headings, when the table is not the usual four columns */
+  head?: string[];
 }
 
 /** Document with connectors and their cavity tables, and no branches. */
@@ -37,7 +39,7 @@ function docWith(names: string[], tables: TableSpec[]): HarnessDoc {
       y: 0,
       kind: "table",
       title: s.title,
-      head: CAV_HEAD,
+      head: s.head ?? CAV_HEAD,
       rows: s.rows,
     })),
   });
@@ -147,6 +149,37 @@ describe("cross-references between tables", () => {
     );
     const issues = validateDoc(doc, t);
     expect(messages(warnings(issues))).toContain("validate.sectionMismatch");
+  });
+
+  describe("the wire type", () => {
+    const HEAD = ["Cavity", "To", "Colour", "Section", "Wire type"];
+    const two = (a: string, b: string): HarnessDoc =>
+      docWith(
+        ["A", "B"],
+        [
+          { id: "ta", node: "a", title: "A", head: HEAD, rows: [["1", "B.1", "red", "1.5", a]] },
+          { id: "tb", node: "b", title: "B", head: HEAD, rows: [["1", "A.1", "red", "1.5", b]] },
+        ],
+      );
+
+    it("warns when the two ends declare different wire types", () => {
+      const issues = validateDoc(two("TXL", "GXL"), t);
+      expect(errors(issues)).toEqual([]);
+      const found = warnings(issues).filter((i) => i.message === "validate.typeMismatch");
+      // once per wire, from the alphabetically lower end
+      expect(found).toHaveLength(1);
+      expect(found[0]?.target).toEqual({ type: "table", id: "ta" });
+    });
+
+    it("says nothing when they agree, however it is spelled", () => {
+      expect(validateDoc(two("TXL", "txl"), t)).toEqual([]);
+      expect(validateDoc(two("Other  type", "other type"), t)).toEqual([]);
+    });
+
+    it("says nothing when one end has not written one, or has a dash", () => {
+      expect(validateDoc(two("TXL", ""), t)).toEqual([]);
+      expect(validateDoc(two("TXL", "-"), t)).toEqual([]);
+    });
   });
 
   it("tolerates differences of spacing and case between the two ends", () => {

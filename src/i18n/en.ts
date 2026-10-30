@@ -346,6 +346,7 @@ export const en = {
   "validate.oneWay": "{from} → {dest}, but {dest} states no destination",
   "validate.colorMismatch": "Wire {from} ↔ {dest}: colours disagree ({a} / {b})",
   "validate.sectionMismatch": "Wire {from} ↔ {dest}: sections disagree ({a} / {b})",
+  "validate.typeMismatch": "Wire {from} ↔ {dest}: wire types disagree ({a} / {b})",
   "validate.wireTooManyEnds": "Colour {color} appears in {n} connectors ({list}): a wire has only two ends",
   "validate.wireUnreachable":
     "Wire {from} → {to}: both connectors exist but no branch joins them, so the wire cannot be built",
