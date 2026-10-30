@@ -486,6 +486,11 @@ export const it = {
   "toast.wireUnitSkipped":
     "Le sezioni sono ora in {unit}: {n} convertite, {m} lasciate come scritte perché non sono sezioni",
   "toast.wireUnitSet": "Le sezioni sono ora in {unit}",
+  "dialog.unitFits.title": "Le sezioni sono già in {unit}?",
+  "dialog.unitFits.body":
+    "Queste sezioni ({sizes}) non sono sezioni {from} standard ma sono sezioni {unit} standard. Se sono già in {unit}, basta chiamare la colonna {unit} senza convertire nulla.",
+  "dialog.unitFits.yes": "Etichetta solo {unit}",
+  "dialog.unitFits.no": "No, convertile",
   "dialog.unit.title": "Convertire le sezioni in {unit}?",
   "dialog.unit.body":
     "Le due scale non coincidono. Le sezioni sono arrotondate alla misura standard più vicina dell'altra scala, quindi riconvertendo non si ritrovano le sezioni di prima:\n\n{lines}\n\nUn filo che risulta più sottile porta meno corrente. Ctrl+Z annulla la conversione.",

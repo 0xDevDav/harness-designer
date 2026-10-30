@@ -17,7 +17,7 @@ import { lerpPoint } from "@/core/geometry";
 import type { HarnessDoc, Point, Rect, Selection, Table } from "@/core/types";
 import { HEAD_ROW, ROW_H, TITLE_ROW, cellAt, cellRect, titleBlockLayout } from "@/render/tables";
 import { textWidth } from "@/render/svg";
-import { nearestSize, sizesFor, unitLabel, wireUnitOf } from "@/core/wiresize";
+import { nearestSize, parseSize, sizesFor, unitLabel, wireUnitOf } from "@/core/wiresize";
 import { openColorPicker } from "./colorpicker";
 import { openInlineEditor } from "./inline-edit";
 import { openMenu } from "./menu";
@@ -244,11 +244,15 @@ function openSizeMenu(app: AppContext, table: Table, row: number, col: number, r
   const unit = wireUnitOf(app.store.doc);
   const other = unit === "awg" ? "mm2" : "awg";
   const now = readCell(table, row, col).trim();
+  // "2.5 mm²", "0,75" and "18 AWG" are the sizes they say, however they are spelled
+  const written = parseSize(now, unit);
+  const isNow = (area: number): boolean =>
+    !!written && (written.unit ?? unit) === unit && Math.abs(written.area / area - 1) < 1e-6;
 
   const items: MenuItem[] = [{ header: t("menu.sizeHeader") }];
   for (const size of sizesFor(unit)) {
     items.push({
-      label: `${now === size.label ? "● " : "○ "}${size.label} ${unitLabel(unit)}`,
+      label: `${isNow(size.area) ? "● " : "○ "}${size.label} ${unitLabel(unit)}`,
       shortcut: `≈ ${nearestSize(size.area, other).label} ${unitLabel(other)}`,
       run: () => commitCell(app, table.id, row, col, size.label),
     });
