@@ -336,6 +336,7 @@ attachInteraction({
   svg,
   hint,
   t,
+  notify: (message: string) => toast.show(message),
   onContextMenu: (target: Selection | null, world_: Point, ev: MouseEvent) => {
     const hit = editTargetFrom(ev.target as Element | null);
     const cell = hit?.row !== undefined && hit.col !== undefined ? { row: hit.row, col: hit.col } : undefined;
