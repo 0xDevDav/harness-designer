@@ -44,6 +44,21 @@ const isCancel = (err: unknown): boolean => err instanceof DOMException && err.n
 
 const stampOf = (file: File): string => `${file.lastModified}:${file.size}`;
 
+/**
+ * The cases a person can be told about in their own language: the caller turns
+ * the code into a message, since this module knows no language.
+ */
+export type DiskFileProblem = "permission" | "no-file";
+
+export class DiskFileError extends Error {
+  constructor(readonly problem: DiskFileProblem) {
+    super(problem === "permission" ? "write permission was not granted" : "no file is attached");
+  }
+}
+
+/** Runs a job on its own turn: the caller's queue, so that reads do not overlap writes. */
+type Exclusive = <T>(job: () => Promise<T>) => Promise<T>;
+
 export class DiskFile {
   private handle: FileHandleLike | null = null;
   /** modification time and size as of the last time this tab read or wrote the file */
@@ -56,6 +71,16 @@ export class DiskFile {
   private canWrite = false;
   private timer: number | undefined;
   private listeners = new Set<() => void>();
+  private exclusive: Exclusive = (job) => job();
+
+  /**
+   * Makes the reads that nobody asked for at a given moment — the timer, the
+   * window getting focus, Reload — wait their turn behind the writes, and so
+   * never see the file half written. The caller's write queue goes here.
+   */
+  serializeWith(run: Exclusive): void {
+    this.exclusive = run;
+  }
 
   /** True where the browser can open and save files in place. */
   static supported(): boolean {
@@ -163,7 +188,11 @@ export class DiskFile {
   /* ---------------- reading ---------------- */
 
   /** Reads the file again. The tab now has everything the file has. */
-  async readText(): Promise<string> {
+  readText(): Promise<string> {
+    return this.exclusive(() => this.readNow());
+  }
+
+  private async readNow(): Promise<string> {
     const handle = this.requireHandle();
     const file = await handle.getFile();
     const text = await file.text();
@@ -210,12 +239,12 @@ export class DiskFile {
     if (!force) {
       if (!this.canWrite) return "skipped";
       if (text === this.docText) return "skipped";
-      if (await this.check()) return "stale";
+      if (await this.checkNow()) return "stale";
     }
     if (!(await this.askToWrite(handle))) {
       this.canWrite = false;
       this.emit();
-      throw new Error("write permission was not granted");
+      throw new DiskFileError("permission");
     }
     this.canWrite = true;
     const out = await handle.createWritable();
@@ -225,6 +254,13 @@ export class DiskFile {
       await out.close();
     }
     const file = await handle.getFile();
+    // another program may have written between our close and this read: its
+    // stamp is not ours to take, or the watcher would take its change for ours
+    if (file.size !== new TextEncoder().encode(text).length || (await file.text()) !== text) {
+      this.docText = text;
+      await this.checkNow();
+      return "written";
+    }
     this.stamp = stampOf(file);
     this.fileText = text;
     this.docText = text;
@@ -244,7 +280,12 @@ export class DiskFile {
    * files without altering them, and a button that lights up for nothing soon
    * stops meaning anything. The contents are compared before it does.
    */
-  async check(): Promise<boolean> {
+  check(): Promise<boolean> {
+    return this.exclusive(() => this.checkNow());
+  }
+
+  /** `check` for when the turn is already ours: a write looks first. */
+  private async checkNow(): Promise<boolean> {
     const handle = this.handle;
     if (!handle) return false;
     let file: File;
@@ -285,7 +326,7 @@ export class DiskFile {
   }
 
   private requireHandle(): FileHandleLike {
-    if (!this.handle) throw new Error("no file is attached");
+    if (!this.handle) throw new DiskFileError("no-file");
     return this.handle;
   }
 }
