@@ -132,7 +132,8 @@ All notable changes to this project are documented here. The format follows
   it is and the message names it, since the free place the search finds may lie
   on the bundle. Only a column headed _Wire type_ (or _Tipo filo_) counts: a
   column called just _Type_ is left alone, since older sheets use it for something
-  else.
+  else. The check warns when the two ends of a wire declare different wire types,
+  as it does for colour and section.
 
 ### Changed
 
