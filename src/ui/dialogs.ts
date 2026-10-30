@@ -7,7 +7,7 @@
  * and goes back to where it came from on close. Without that, anyone using a
  * keyboard or a screen reader would end up navigating the page underneath.
  */
-import type { ConfirmOptions, DialogsApi, PromptOptions } from "@/app/context";
+import type { ChooseOptions, ConfirmOptions, DialogsApi, PromptOptions } from "@/app/context";
 import type { Translate } from "@/i18n";
 
 const FOCUSABLE_SELECTOR = [
@@ -28,6 +28,8 @@ interface DialogConfig<T> {
   /** absent means a notice-only window, with the confirm button on its own */
   cancelLabel?: string;
   danger?: boolean;
+  /** more answers, as buttons between cancel and confirm */
+  extra?: { label: string; value: T }[];
   /** fills the body and returns the element to focus when it opens */
   fillBody(body: HTMLElement): HTMLElement | null;
   confirmValue(): T;
@@ -102,6 +104,15 @@ function openDialog<T>(config: DialogConfig<T>): Promise<T> {
       actions.append(cancelButton);
     }
 
+    for (const alternative of config.extra ?? []) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "btn";
+      button.textContent = alternative.label;
+      button.addEventListener("click", () => close(alternative.value));
+      actions.append(button);
+    }
+
     const confirmButton = document.createElement("button");
     confirmButton.type = "button";
     confirmButton.className = config.danger ? "btn btn--danger" : "btn btn--primary";
@@ -163,6 +174,21 @@ function openDialog<T>(config: DialogConfig<T>): Promise<T> {
   });
 }
 
+/** A small table of words, the first row being the heading. */
+function compareTable(rows: string[][]): HTMLTableElement {
+  const table = document.createElement("table");
+  table.className = "dialog__compare";
+  rows.forEach((cells, r) => {
+    const tr = table.insertRow();
+    for (const text of cells) {
+      const td = document.createElement(r === 0 ? "th" : "td");
+      td.textContent = text;
+      tr.append(td);
+    }
+  });
+  return table;
+}
+
 export function createDialogs(t: Translate): DialogsApi {
   return {
     confirm(options: ConfirmOptions): Promise<boolean> {
@@ -177,6 +203,26 @@ export function createDialogs(t: Translate): DialogsApi {
         },
         confirmValue: () => true,
         cancelValue: () => false,
+      });
+    },
+
+    choose<T>(options: ChooseOptions<T>): Promise<T | null> {
+      const [first, ...others] = options.choices;
+      if (!first) return Promise.resolve(null);
+      return openDialog<T | null>({
+        title: options.title,
+        confirmLabel: first.label,
+        cancelLabel: options.cancelLabel ?? t("dialog.cancel"),
+        extra: others,
+        fillBody: (body) => {
+          const text = document.createElement("p");
+          text.textContent = options.body;
+          body.append(text);
+          if (options.rows?.length) body.append(compareTable(options.rows));
+          return null;
+        },
+        confirmValue: () => first.value,
+        cancelValue: () => null,
       });
     },
 

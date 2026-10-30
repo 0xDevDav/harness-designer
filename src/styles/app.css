@@ -699,6 +699,17 @@ body {
   }
 }
 
+/* the cavities of a schematic box that have no wire: where one can be started */
+.sch-port {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+[data-sch="box"]:hover .sch-port {
+  opacity: 0.95;
+  pointer-events: auto;
+}
+
 /* ---------------- menus ---------------- */
 
 .menu {
@@ -876,8 +887,26 @@ body {
 }
 .dialog__actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+/* two things set side by side to be compared */
+.dialog__compare {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.dialog__compare th,
+.dialog__compare td {
+  padding: 5px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.dialog__compare th {
+  color: var(--txt-dim);
+  font-weight: 600;
 }
 
 /* ---------------- messages ---------------- */
