@@ -454,6 +454,11 @@ export const en = {
   "toast.wireUnitSkipped":
     "Sizes are now in {unit}: {n} converted, {m} left as typed because they are not sizes",
   "toast.wireUnitSet": "Sizes are now in {unit}",
+  "dialog.unitFits.title": "Are the sizes already in {unit}?",
+  "dialog.unitFits.body":
+    "These sizes ({sizes}) are not standard {from} sizes but are standard {unit} sizes. If they are already {unit}, the column can just be labelled {unit} and nothing is converted.",
+  "dialog.unitFits.yes": "Just label them {unit}",
+  "dialog.unitFits.no": "No, convert them",
   "dialog.unit.title": "Convert the sizes to {unit}?",
   "dialog.unit.body":
     "The two scales do not line up. Sizes are rounded to the nearest standard size of the other scale, so converting back does not restore the earlier sizes:\n\n{lines}\n\nA wire that comes out thinner carries less current. Ctrl+Z undoes the conversion.",

@@ -1,5 +1,5 @@
 import { tableColumns } from "./doc";
-import type { HarnessDoc, WireUnit } from "./types";
+import type { HarnessDoc, Table, WireUnit } from "./types";
 
 /**
  * Wire sizes, in metric cross-section or in American Wire Gauge, and the
@@ -132,12 +132,36 @@ export function parseSize(text: string, fallback: WireUnit): ParsedSize | null {
 export function wireUnitOf(doc: HarnessDoc): WireUnit {
   if (doc.wireUnit) return doc.wireUnit;
   for (const table of doc.tables) {
-    const col = tableColumns(table).section;
-    const heading = col === undefined ? "" : (table.head?.[col] ?? "").toLowerCase();
-    if (/awg|gauge/.test(heading)) return "awg";
-    if (/mm/.test(heading)) return "mm2";
+    const col = sizeColumn(table);
+    const unit = col === undefined ? undefined : headingUnit(table.head?.[col]);
+    if (unit) return unit;
   }
   return "mm2";
+}
+
+/** The unit a heading names ("AWG", "Gauge", "mm²"), or nothing when it is just "Section". */
+function headingUnit(heading: string | undefined): WireUnit | undefined {
+  const h = (heading ?? "").toLowerCase();
+  if (/awg|gauge/.test(h)) return "awg";
+  if (/mm/.test(h)) return "mm2";
+  return undefined;
+}
+
+/** The headings of a wire list, in the two languages the application is written in. */
+const WIRE_LIST_HEADS = [/^(from|da)$/i, /^(to|a)$/i, /^(length|lunghezza)$/i];
+
+/**
+ * The tables whose Section column is a wire size: the cavity tables and the
+ * wire list. Any other table that happens to have a column of that name is
+ * somebody's own, and is not renamed or converted.
+ */
+function sizeColumn(table: Table): number | undefined {
+  if (table.kind !== "table" || !table.head) return undefined;
+  const cols = tableColumns(table);
+  if (cols.section === undefined) return undefined;
+  const head = table.head;
+  const wireList = WIRE_LIST_HEADS.every((re) => head.some((h) => re.test(h.trim())));
+  return cols.cavity !== undefined || wireList ? cols.section : undefined;
 }
 
 export interface UnitChange {
@@ -152,19 +176,22 @@ export interface UnitChange {
  * the unit for its heading and every size in it is converted, so the sheet, the
  * wire list and the export all say the same thing.
  *
- * A bare number is taken to be in the unit the drawing is in now, and is only
- * rewritten when that differs from the new one — a size somebody typed that is
- * not a standard one (0.6) survives a switch to the unit it is already in.
+ * A bare number is taken to be in the unit the drawing is in now (or in `read`,
+ * when the sizes are known to be in another), and is only rewritten when that
+ * differs from the new one — a size somebody typed that is not a standard one
+ * (0.6) survives a switch to the unit it is already in. A table whose heading
+ * names a unit is read in that unit, whatever the drawing is in: a table pasted
+ * from another drawing headed "AWG" holds gauges.
  */
-export function setWireUnit(doc: HarnessDoc, unit: WireUnit): UnitChange {
-  const from = wireUnitOf(doc);
+export function setWireUnit(doc: HarnessDoc, unit: WireUnit, read?: WireUnit): UnitChange {
+  const current = read ?? wireUnitOf(doc);
   const change: UnitChange = { converted: 0, skipped: 0 };
 
   for (const table of doc.tables) {
-    if (table.kind !== "table" || !table.head) continue;
-    const col = tableColumns(table).section;
-    if (col === undefined) continue;
+    const col = sizeColumn(table);
+    if (!table.head || col === undefined) continue;
 
+    const from = headingUnit(table.head[col]) ?? current;
     table.head[col] = unitLabel(unit);
     for (const row of table.rows) {
       const text = row[col] ?? "";
@@ -213,12 +240,12 @@ const SAME_WIRE = 0.01;
  * they were are left out: they are the same wire.
  */
 export function previewUnitChange(doc: HarnessDoc, unit: WireUnit): SizeChange[] {
-  const from = wireUnitOf(doc);
+  const current = wireUnitOf(doc);
   const groups = new Map<string, SizeChange>();
   for (const table of doc.tables) {
-    if (table.kind !== "table" || !table.head) continue;
-    const col = tableColumns(table).section;
-    if (col === undefined) continue;
+    const col = sizeColumn(table);
+    if (!table.head || col === undefined) continue;
+    const from = headingUnit(table.head[col]) ?? current;
     for (const row of table.rows) {
       const size = parseSize(row[col] ?? "", from);
       if (!size || (size.unit ?? from) === unit) continue;
@@ -243,3 +270,36 @@ export function previewUnitChange(doc: HarnessDoc, unit: WireUnit): SizeChange[]
 /** The heading a new table's Section column gets: the unit if the drawing has one, else the plain word. */
 export const sectionHeading = (unit: WireUnit | undefined, fallback: string): string =>
   unit ? unitLabel(unit) : fallback;
+
+/** Whether switching to `unit` would write anything: the same switch made on a copy. */
+export function wouldChangeUnit(doc: HarnessDoc, unit: WireUnit): boolean {
+  const copy = structuredClone(doc);
+  setWireUnit(copy, unit);
+  return JSON.stringify(copy) !== JSON.stringify(doc);
+}
+
+/**
+ * Sizes written as bare numbers that are not standard in the unit the drawing
+ * is read in, but are standard in `unit`: an older drawing that keeps gauges
+ * under a plain "Section" says so by having an 18 or a 22 in it. Only for a
+ * drawing that has not been given a unit, and only under headings that name
+ * none, since a heading that names one already says what the numbers are.
+ */
+export function sizesAlreadyIn(doc: HarnessDoc, unit: WireUnit): string[] {
+  if (doc.wireUnit) return [];
+  const current = wireUnitOf(doc);
+  if (current === unit) return [];
+  const standard = (u: WireUnit, figure: string): boolean =>
+    SIZES[u].some((size) => size.label === figure.replace(",", "."));
+  const found = new Set<string>();
+  for (const table of doc.tables) {
+    const col = sizeColumn(table);
+    if (!table.head || col === undefined || headingUnit(table.head[col])) continue;
+    for (const row of table.rows) {
+      const size = parseSize(row[col] ?? "", current);
+      if (!size || size.unit) continue;
+      if (!standard(current, size.figure) && standard(unit, size.figure)) found.add(size.figure);
+    }
+  }
+  return [...found];
+}

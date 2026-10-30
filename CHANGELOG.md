@@ -21,7 +21,11 @@ All notable changes to this project are documented here. The format follows
   conversion rounds to the nearest standard size and going to AWG and back can
   land on a neighbouring size; when any size would change, a window lists each
   one, with how much thinner or thicker the wire becomes and in how many places,
-  and asks before anything is written.
+  and asks before anything is written. Only the cavity tables and the wire list
+  are touched, a table whose heading names a unit (AWG, mm²) is read in that unit,
+  and a drawing whose bare sizes are really gauges (an 18 or a 22 under a plain
+  _Section_) is asked whether to just label them. Choosing the unit the drawing
+  is already in does nothing.
 
 ## [1.2.0]
 

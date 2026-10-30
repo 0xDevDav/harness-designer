@@ -7,9 +7,11 @@ import {
   parseSize,
   previewUnitChange,
   setWireUnit,
+  sizesAlreadyIn,
   sizesFor,
   unitLabel,
   wireUnitOf,
+  wouldChangeUnit,
 } from "@/core/wiresize";
 import type { HarnessDoc, Table } from "@/core/types";
 
@@ -290,5 +292,105 @@ describe("previewUnitChange", () => {
       ]),
     );
     expect(previewUnitChange(doc, "awg").map((c) => c.from)).toEqual(["1.5 mm²"]);
+  });
+});
+
+describe("a table that names its own unit", () => {
+  const pasted = (): HarnessDoc =>
+    docWith(
+      table("mm", ["Cavity", "To", "Colour", "Section"], [["1", "B.1", "Red", "1.5"]]),
+      table("awg", ["Cavity", "To", "Colour", "AWG"], [["1", "C.1", "Blue", "18"]]),
+    );
+
+  it("is read in that unit, not the drawing's", () => {
+    const doc = pasted();
+    doc.wireUnit = "mm2";
+    // 18 under AWG is gauge 18, which is thinner than 1.5 mm², so not listed as a thicker "18 mm²"
+    expect(previewUnitChange(doc, "awg").map((c) => [c.from, c.to])).toEqual([["1.5 mm²", "16 AWG"]]);
+    setWireUnit(doc, "awg");
+    expect(doc.tables[1]?.rows[0]?.[3]).toBe("18");
+    expect(doc.tables[0]?.rows[0]?.[3]).toBe("16");
+    expect(doc.tables.map((t) => t.head?.[3])).toEqual(["AWG", "AWG"]);
+  });
+
+  it("converts the other way too", () => {
+    const doc = pasted();
+    doc.wireUnit = "mm2";
+    setWireUnit(doc, "mm2");
+    expect(doc.tables[0]?.rows[0]?.[3]).toBe("1.5");
+    expect(doc.tables[1]?.rows[0]?.[3]).toBe("0.75");
+  });
+});
+
+describe("which tables are sizes", () => {
+  it("leaves a table of somebody's own that has a column called Section", () => {
+    const doc = docWith(
+      table("t", HEAD, [["1", "B.1", "Red", "2.5"]]),
+      table("x", ["Part", "Section", "Notes"], [["bolt", "2.5", ""]]),
+    );
+    expect(previewUnitChange(doc, "awg").map((c) => c.count)).toEqual([1]);
+    setWireUnit(doc, "awg");
+    expect(doc.tables[1]?.head).toEqual(["Part", "Section", "Notes"]);
+    expect(doc.tables[1]?.rows[0]?.[1]).toBe("2.5");
+  });
+
+  it("converts the wire list, which has no Cavity column", () => {
+    const doc = docWith(
+      table(
+        "w",
+        ["#", "From", "To", "Function", "Colour", "Section", "Length"],
+        [["1", "A.1", "B.1", "", "Red", "2.5", "300"]],
+      ),
+    );
+    setWireUnit(doc, "awg");
+    expect(doc.tables[0]?.head?.[5]).toBe("AWG");
+    expect(doc.tables[0]?.rows[0]?.[5]).toBe("14");
+  });
+});
+
+describe("wouldChangeUnit", () => {
+  it("is false for a drawing already in the unit, with nothing to tidy", () => {
+    const doc = docWith(table("t", ["Cavity", "To", "Colour", "AWG"], [["1", "B.1", "Red", "16"]]));
+    doc.wireUnit = "awg";
+    expect(wouldChangeUnit(doc, "awg")).toBe(false);
+    expect(wouldChangeUnit(doc, "mm2")).toBe(true);
+  });
+
+  it("is true for a drawing that has not been given a unit yet", () => {
+    expect(wouldChangeUnit(docWith(table("t", HEAD, [["1", "B.1", "Red", "1.5"]])), "mm2")).toBe(true);
+  });
+});
+
+describe("sizesAlreadyIn", () => {
+  it("spots gauges kept under a plain Section heading", () => {
+    const doc = docWith(
+      table(
+        "t",
+        ["Cavity", "To", "Colour", "Section"],
+        [
+          ["1", "B.1", "Red", "18"],
+          ["2", "B.2", "Blue", "22"],
+          ["3", "B.3", "Green", "1.5"],
+        ],
+      ),
+    );
+    expect(sizesAlreadyIn(doc, "awg").sort()).toEqual(["18", "22"]);
+  });
+
+  it("says nothing when the sizes are plainly metric, the heading names a unit, or the unit is set", () => {
+    expect(sizesAlreadyIn(docWith(table("t", HEAD, [["1", "B.1", "Red", "1.5"]])), "awg")).toEqual([]);
+    const named = docWith(table("t", ["Cavity", "To", "Colour", "AWG"], [["1", "B.1", "Red", "18"]]));
+    expect(sizesAlreadyIn(named, "awg")).toEqual([]);
+    const set = docWith(table("t", HEAD, [["1", "B.1", "Red", "18"]]));
+    set.wireUnit = "mm2";
+    expect(sizesAlreadyIn(set, "awg")).toEqual([]);
+  });
+
+  it("lets the drawing be labelled without converting when the sizes are read in the new unit", () => {
+    const doc = docWith(table("t", HEAD, [["1", "B.1", "Red", "18"]]));
+    setWireUnit(doc, "awg", "awg");
+    expect(doc.tables[0]?.rows[0]?.[3]).toBe("18");
+    expect(doc.tables[0]?.head?.[3]).toBe("AWG");
+    expect(doc.wireUnit).toBe("awg");
   });
 });
