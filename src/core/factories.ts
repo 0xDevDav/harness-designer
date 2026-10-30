@@ -1,9 +1,11 @@
 import { uid } from "./ids";
-import type { HNode, Table } from "./types";
+import type { HNode, Table, WireUnit } from "./types";
+import { sectionHeading } from "./wiresize";
 import type { Translate } from "@/i18n";
 
 /** Generic cavity table, not yet tied to a connector. */
-export function cavityTable(t: Translate, x: number, y: number, title?: string): Table {
+/** `unit` is the drawing's wire size unit, if it has one: the Section column is headed with it. */
+export function cavityTable(t: Translate, x: number, y: number, title?: string, unit?: WireUnit): Table {
   return {
     id: uid("t"),
     x,
@@ -15,21 +17,22 @@ export function cavityTable(t: Translate, x: number, y: number, title?: string):
     head: [
       t("table.head.cavity"),
       t("table.head.color"),
-      t("table.head.section"),
+      sectionHeading(unit, t("table.head.section")),
+      t("table.head.type"),
       t("table.head.dest"),
       t("table.head.pin"),
       t("table.head.notes"),
     ],
     rows: [
-      ["1", "", "", "", "", ""],
-      ["2", "", "", "", "", ""],
+      ["1", "", "", "", "", "", ""],
+      ["2", "", "", "", "", "", ""],
     ],
   };
 }
 
 /** Cavity table tied to a connector: it is born next to its symbol. */
-export function cavityTableFor(t: Translate, node: HNode): Table {
-  const table = cavityTable(t, node.x + 60, node.y - 120, node.name || t("table.title.connector"));
+export function cavityTableFor(t: Translate, node: HNode, unit?: WireUnit): Table {
+  const table = cavityTable(t, node.x + 60, node.y - 120, node.name || t("table.title.connector"), unit);
   table.node = node.id;
   return table;
 }
@@ -65,12 +68,12 @@ export function titleBlock(x: number, y: number): Table {
   return { id: uid("t"), x, y, kind: "title", rows: [] };
 }
 
-export const wireListHeadings = (t: Translate): string[] => [
+export const wireListHeadings = (t: Translate, unit?: WireUnit): string[] => [
   t("table.head.num"),
   t("table.head.from"),
   t("table.head.to"),
   t("table.head.function"),
   t("table.head.color"),
-  t("table.head.section"),
+  sectionHeading(unit, t("table.head.section")),
   t("table.head.length"),
 ];

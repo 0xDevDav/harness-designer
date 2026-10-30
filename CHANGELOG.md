@@ -11,6 +11,39 @@ All notable changes to this project are documented here. The format follows
 - **Black wires show in the dark theme.** A wire that is black or nearly so gets
   a light edge, in the schematic and on the sheet, and no other colour is
   touched. Export and print are unchanged.
+- **Wire size unit**, **mm²** or **AWG**, as a button in the bar. Choosing the
+  other one converts every size in the drawing, as one undo step, to the nearest
+  standard size of the new scale, and heads the Section column of every table
+  (and the wire list) with the unit. Text that is not a size is left as typed.
+  The unit is saved with the drawing. Editing a Section cell opens the list of
+  standard sizes for the unit, each with its equivalent in the other, and
+  _Other size…_ for anything not on it. The scales do not line up, so a
+  conversion rounds to the nearest standard size and going to AWG and back can
+  land on a neighbouring size; when any size would change, a window lists each
+  one, with how much thinner or thicker the wire becomes and in how many places,
+  and asks before anything is written. Only the cavity tables and the wire list
+  are touched, a table whose heading names a unit (AWG, mm²) is read in that unit,
+  and a drawing whose bare sizes are really gauges (an 18 or a 22 under a plain
+  _Section_) is asked whether to just label them. Choosing the unit the drawing
+  is already in does nothing.
+- **Objects no longer lie on top of each other.** Drop a table or a connector on
+  the sheet, or a box in the schematic, on top of another and it goes to the
+  nearest free place instead, a little way off and on the grid, as part of the
+  same undo step. _Separate overlapping objects_ (in the command palette and the
+  sheet's background menu) clears up drawings that already have objects on top of
+  each other: tables give way to connectors, and only a box somebody placed by
+  hand moves in the schematic. It works on the views on screen only, and a drop
+  whose nearest free place is more than 240 units away stays where it was
+  dropped, with a message, rather than jumping across a long table.
+- **Wire type** (GPT, GXL, HDT, SXL, TWP, TXL) is picked from a list under the
+  cell, with _Other type…_ and _Clear type_, and, like colour and size, is
+  brought into step at the far end of the wire. Cavity tables have a _Wire type_
+  column, and _Insert → Wire type column in every cavity table_ adds it to
+  existing drawings; a table the wider one now lies on is pushed to the right
+  just far enough to clear it, so the layout stays as it was.
+  Only a column headed _Wire type_ (or _Tipo filo_) counts: a column called just
+  _Type_ is left alone, since older sheets use it for something else. The check warns when the two ends of a wire
+  declare different wire types, as it does for colour and section.
 
 ## [1.2.0]
 

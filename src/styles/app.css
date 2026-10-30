@@ -832,6 +832,8 @@ body {
   color: var(--txt);
   line-height: 1.6;
   margin-bottom: 16px;
+  /* a message may be several lines, e.g. the list of sizes a conversion changes */
+  white-space: pre-line;
 }
 .dialog__actions {
   display: flex;

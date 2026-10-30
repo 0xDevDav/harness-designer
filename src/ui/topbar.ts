@@ -14,6 +14,7 @@
  */
 import type { AppContext } from "@/app/context";
 import { validateDoc } from "@/core/validate";
+import { WIRE_UNITS, unitLabel, wireUnitOf } from "@/core/wiresize";
 import { getLocale, localeName, locales, setLocale } from "@/i18n";
 import type { Locale } from "@/i18n";
 import { closeMenu, openMenu } from "@/ui/menu";
@@ -370,12 +371,34 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
   const insertMenu = (ev: MouseEvent): void =>
     dropdown(ev.currentTarget as HTMLElement, [
       { label: t("insert.cavity"), run: run(app, "insert.cavity") },
+      { label: t("insert.typeColumn"), run: run(app, "insert.typeColumn") },
       { label: t("insert.notes"), run: run(app, "insert.notes") },
       { label: t("insert.revisions"), run: run(app, "insert.revisions") },
       { label: t("insert.wirelist"), run: run(app, "insert.wirelist") },
       { separator: true },
       { label: t("insert.titleblock"), run: run(app, "insert.titleblock") },
     ]);
+
+  /**
+   * The unit wire sizes are written in. It sits with the drawing tools because
+   * it changes what the tables say, and it shows the unit in force: pressing
+   * the other one converts every size in the drawing.
+   */
+  const unitMenu = (ev: MouseEvent): void =>
+    dropdown(
+      ev.currentTarget as HTMLElement,
+      WIRE_UNITS.map((unit) => ({
+        label: (wireUnitOf(store.doc) === unit ? "● " : "○ ") + unitLabel(unit),
+        run: run(app, unit === "awg" ? "doc.unitAwg" : "doc.unitMm2"),
+      })),
+    );
+  const unitButton = button({
+    label: unitLabel(wireUnitOf(store.doc)),
+    iconName: "wire",
+    tip: t("topbar.unit.tip"),
+    onClick: unitMenu,
+    menu: true,
+  });
 
   nav.append(
     group(
@@ -395,6 +418,7 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
         onClick: run(app, "tool.branch"),
         collapsible: true,
       }),
+      unitButton,
     ),
   );
 
@@ -564,9 +588,15 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
     checkButton.setAttribute("aria-label", state);
   };
 
+  const syncUnit = (): void => {
+    const label = unitButton.querySelector("span");
+    if (label) label.textContent = unitLabel(wireUnitOf(store.doc));
+  };
+
   syncEdit();
   syncSnap();
   syncCheck();
+  syncUnit();
 
   // the count costs a full scan of the tables, so it refreshes once a burst of
   // edits settles rather than on every keystroke
@@ -574,10 +604,12 @@ export function renderTopbar(app: AppContext, host: HTMLElement): void {
   disposers.push(
     store.on("doc", () => {
       syncEdit();
+      syncUnit();
       window.clearTimeout(pending);
       pending = window.setTimeout(syncCheck, 400);
     }),
     store.on("settings", syncSnap),
     store.on("load", syncCheck),
+    store.on("load", syncUnit),
   );
 }

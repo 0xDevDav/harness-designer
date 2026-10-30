@@ -6,7 +6,7 @@ import type { HarnessDoc, Table } from "./types";
  * Automatic mutual linking between cavity tables.
  *
  * Filling cavity 1 of C1 with destination C3 pin 3 fills cavity 3 of C3 with
- * destination C1 pin 1 and with the same wire properties (colour and section).
+ * destination C1 pin 1 and with the same wire properties (colour, section and type).
  * There is only one wire: the two tables describe its two ends, and keeping
  * them in step by hand is the work this function removes.
  *
@@ -23,7 +23,7 @@ export type AutoLinkStatus =
   | "linked"
   /** the link already existed: wire properties were brought in step */
   | "already"
-  /** the link already existed and colour or section were updated at the other end */
+  /** the link already existed and colour, section or type were updated at the other end */
   | "updated"
   /** the target cavity points at another connector: left untouched */
   | "conflict"
@@ -51,7 +51,7 @@ export interface AutoLinkResult {
   /** true if the target cavity had no row and one was added */
   rowCreated?: boolean;
   /** properties brought in step at the other end, to report back to the user */
-  updatedFields?: ("color" | "section")[];
+  updatedFields?: ("color" | "section" | "type")[];
 }
 
 const label = (connector: string, cavity: string): string => `${connector}.${cavity}`;
@@ -162,11 +162,12 @@ export function autoLinkRow(doc: HarnessDoc, tableId: string, rowIndex: number):
   const already = !!existing;
   if (!already) writeDest(targetRow, target.cols, { connector: source.owner, cavity });
 
-  const updatedFields: ("color" | "section")[] = [];
+  const updatedFields: ("color" | "section" | "type")[] = [];
   if (alignField(row, targetRow, source.cols.color, target.cols.color, already)) updatedFields.push("color");
   if (alignField(row, targetRow, source.cols.section, target.cols.section, already)) {
     updatedFields.push("section");
   }
+  if (alignField(row, targetRow, source.cols.type, target.cols.type, already)) updatedFields.push("type");
   // function is a description, not a physical property: never overwritten
   alignField(row, targetRow, source.cols.func, target.cols.func, false);
 
