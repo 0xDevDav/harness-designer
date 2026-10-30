@@ -9,10 +9,32 @@ describe("ReloadGuard", () => {
   });
 
   it("flags any position below the one a Reload left, and none at or above it", () => {
+    for (const [position, held] of [
+      [4, true],
+      [3, true],
+      [5, false],
+      [7, false],
+    ] as const) {
+      const guard = new ReloadGuard();
+      guard.arm("before", "after", 5);
+      expect(guard.wouldRevert(position)).toBe(held);
+    }
+  });
+
+  it("stays tripped once the position has been below, whatever it does next", () => {
     const guard = new ReloadGuard();
     guard.arm("before", "after", 5);
-    expect(guard.wouldRevert(4)).toBe(true);
-    expect(guard.wouldRevert(3)).toBe(true);
+    expect(guard.wouldRevert(4)).toBe(true); // Ctrl+Z after the Reload
+    // an edit made at once puts the position back on the floor, with the old drawing still on screen
+    expect(guard.wouldRevert(5)).toBe(true);
+    expect(guard.wouldRevert(6)).toBe(true);
+    guard.clear();
+    expect(guard.wouldRevert(6)).toBe(false);
+  });
+
+  it("is not tripped by a position nobody looked at below the floor, so it must be asked every time", () => {
+    const guard = new ReloadGuard();
+    guard.arm("before", "after", 5);
     expect(guard.wouldRevert(5)).toBe(false);
     expect(guard.wouldRevert(7)).toBe(false);
   });
@@ -28,9 +50,7 @@ describe("ReloadGuard", () => {
     guard.arm("before", "after", 5);
     expect(guard.wouldRevert(4)).toBe(true);
     expect(guard.wouldRevert(4)).toBe(true);
-    // a redo back to the Reload's own drawing is fine, and an undo again is not
-    expect(guard.wouldRevert(5)).toBe(false);
-    expect(guard.wouldRevert(4)).toBe(true);
+    expect(guard.wouldRevert(5)).toBe(true);
   });
 
   it("lets go when the person has settled it", () => {
@@ -44,8 +64,8 @@ describe("ReloadGuard", () => {
     const guard = new ReloadGuard();
     guard.arm("one", "two", 3);
     guard.arm("two", "three", 8);
-    expect(guard.wouldRevert(5)).toBe(true);
     expect(guard.wouldRevert(8)).toBe(false);
+    expect(guard.wouldRevert(5)).toBe(true);
   });
 
   it("works on the history the store keeps: Reload, an edit, then two undos reaches below", () => {
@@ -65,8 +85,26 @@ describe("ReloadGuard", () => {
     store.undo();
     expect(store.doc.meta.title).toBe("on screen");
     expect(guard.wouldRevert(store.historyPosition)).toBe(true);
+    // a redo puts the Reload's own drawing back, but the guard was tripped on the way and holds
     store.redo();
-    expect(guard.wouldRevert(store.historyPosition)).toBe(false);
+    expect(guard.wouldRevert(store.historyPosition)).toBe(true);
+  });
+
+  it("holds against the quick edit after an undo: Reload, Ctrl+Z, then an edit", () => {
+    const store = new Store();
+    store.load({ meta: { title: "on screen" } });
+    store.load({ meta: { title: "from the file" } }, { resetHistory: false, reason: "reload" });
+    const guard = new ReloadGuard();
+    guard.arm("on screen", "from the file", store.historyPosition);
+
+    store.undo();
+    expect(guard.wouldRevert(store.historyPosition)).toBe(true); // asked at the undo itself
+    store.edit((d) => {
+      d.meta.title = "the old drawing, edited";
+    });
+    // the edit brings the position back to the floor, but the drawing is the pre-Reload one
+    expect(store.historyPosition).toBeGreaterThanOrEqual(1);
+    expect(guard.wouldRevert(store.historyPosition)).toBe(true);
   });
 
   it("keeps counting when the oldest steps are dropped to make room", () => {

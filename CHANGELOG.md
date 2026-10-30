@@ -36,7 +36,8 @@ All notable changes to this project are documented here. The format follows
   the window gets focus back; when something else has changed it, Reload turns
   amber and autosave pauses rather than overwrite those changes. Save asks
   before overwriting a file changed from outside. Undoing a Reload does not
-  write the drawing it replaced back over the file: autosave pauses instead.
+  write the drawing it replaced back over the file: autosave pauses instead,
+  and stays paused even if an edit follows at once.
 - **Save as…** (`Ctrl+Shift+S`).
 
 ## [1.2.0]

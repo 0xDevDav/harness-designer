@@ -78,7 +78,10 @@ export function createFileSession(options: FileSessionOptions): FileSession {
    * any change from outside, and the person chooses: Reload, or Save to overwrite.
    */
   const holdForUndo = (): void => {
+    window.clearTimeout(timer);
+    timer = undefined;
     disk.flagChanged();
+    if (pausedTold) return;
     pausedTold = true;
     toast.show(t("toast.undoReload"), { duration: 8000 });
   };
@@ -150,6 +153,12 @@ export function createFileSession(options: FileSessionOptions): FileSession {
 
     queueAutosave(): void {
       if (!disk.attached) return;
+      // asked at every change, not when the write is due: an edit made after an
+      // undo past a Reload would otherwise bring the position back up in time
+      if (guard.wouldRevert(store.historyPosition)) {
+        holdForUndo();
+        return;
+      }
       if (disk.isStale) {
         tellPaused();
         return;
