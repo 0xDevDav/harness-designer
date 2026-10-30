@@ -295,7 +295,7 @@ function createCavityTable(app: AppContext, id: string): void {
     (doc) => {
       const node = findNode(doc, id);
       if (!node) return;
-      const table = cavityTableFor(app.t, node);
+      const table = cavityTableFor(app.t, node, app.doc.wireUnit);
       table.x = snapTo(table.x, app.store.snapEnabled);
       table.y = snapTo(table.y, app.store.snapEnabled);
       doc.tables.push(table);
@@ -765,7 +765,7 @@ function addCavityTableAt(app: AppContext, world: Point): void {
   const changed = editDoc(
     app,
     (doc) => {
-      const table = cavityTable(app.t, snapTo(world.x, snap), snapTo(world.y, snap));
+      const table = cavityTable(app.t, snapTo(world.x, snap), snapTo(world.y, snap), undefined, doc.wireUnit);
       doc.tables.push(table);
       created = table.id;
     },

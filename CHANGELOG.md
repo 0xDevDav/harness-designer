@@ -21,6 +21,21 @@ All notable changes to this project are documented here. The format follows
   sheet as well as in Replace. The check reports both in drawings that already
   have them. Previous and Next are the arrows beside the Find field, and the
   panel is called Find until Replace is opened.
+- **Wire size unit**, **mm²** or **AWG**, as a button in the bar. Choosing the
+  other one converts every size in the drawing, as one undo step, to the nearest
+  standard size of the new scale, and heads the Section column of every table
+  (and the wire list) with the unit. Text that is not a size is left as typed.
+  The unit is saved with the drawing. Editing a Section cell opens the list of
+  standard sizes for the unit, each with its equivalent in the other, and
+  _Other size…_ for anything not on it. The scales do not line up, so a
+  conversion rounds to the nearest standard size and going to AWG and back can
+  land on a neighbouring size; when any size would change, a window lists each
+  one, with how much thinner or thicker the wire becomes and in how many places,
+  and asks before anything is written. Only the cavity tables and the wire list
+  are touched, a table whose heading names a unit (AWG, mm²) is read in that unit,
+  and a drawing whose bare sizes are really gauges (an 18 or a 22 under a plain
+  _Section_) is asked whether to just label them. Choosing the unit the drawing
+  is already in does nothing.
 
 ## [1.2.0]
 

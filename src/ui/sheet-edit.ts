@@ -17,8 +17,11 @@ import { lerpPoint } from "@/core/geometry";
 import type { HarnessDoc, Point, Rect, Selection, Table } from "@/core/types";
 import { HEAD_ROW, ROW_H, TITLE_ROW, cellAt, cellRect, titleBlockLayout } from "@/render/tables";
 import { textWidth } from "@/render/svg";
+import { nearestSize, parseSize, sizesFor, unitLabel, wireUnitOf } from "@/core/wiresize";
 import { openColorPicker } from "./colorpicker";
 import { openInlineEditor } from "./inline-edit";
+import { openMenu } from "./menu";
+import type { MenuItem } from "./menu";
 
 /**
  * Editing straight on the sheet.
@@ -113,6 +116,18 @@ function editTable(app: AppContext, id: string, row?: number, col?: number): boo
     return true;
   }
 
+  // the section is picked from the sizes there are, with a way out for the
+  // odd one that is not on the list
+  if (row >= 0 && col === tableColumns(table).section) {
+    openSizeMenu(app, table, row, col, rect);
+    return true;
+  }
+
+  return editCellText(app, table, row, col, rect);
+}
+
+function editCellText(app: AppContext, table: Table, row: number, col: number, rect: Rect): boolean {
+  const id = table.id;
   openInlineEditor({
     rect,
     value: readCell(table, row, col),
@@ -217,6 +232,47 @@ function nextCell(
   }
   if (col > 0) return { row, col: col - 1 };
   return row > 0 ? { row: row - 1, col: columns - 1 } : null;
+}
+
+/**
+ * The sizes of the drawing's unit as a list under the cell. Each one shows what
+ * it comes to in the other unit, because the point of having both is to read
+ * across.
+ */
+function openSizeMenu(app: AppContext, table: Table, row: number, col: number, rect: Rect): void {
+  const { t } = app;
+  const unit = wireUnitOf(app.store.doc);
+  const other = unit === "awg" ? "mm2" : "awg";
+  const now = readCell(table, row, col).trim();
+  // "2.5 mm²", "0,75" and "18 AWG" are the sizes they say, however they are spelled
+  const written = parseSize(now, unit);
+  const isNow = (area: number): boolean =>
+    !!written && (written.unit ?? unit) === unit && Math.abs(written.area / area - 1) < 1e-6;
+
+  const items: MenuItem[] = [{ header: t("menu.sizeHeader") }];
+  for (const size of sizesFor(unit)) {
+    items.push({
+      label: `${isNow(size.area) ? "● " : "○ "}${size.label} ${unitLabel(unit)}`,
+      shortcut: `≈ ${nearestSize(size.area, other).label} ${unitLabel(other)}`,
+      run: () => commitCell(app, table.id, row, col, size.label),
+    });
+  }
+  items.push({ separator: true });
+  items.push({
+    label: t("menu.sizeOther"),
+    run: () => {
+      const fresh = findTable(app.store.doc, table.id);
+      if (fresh) editCellText(app, fresh, row, col, rect);
+    },
+  });
+  items.push({
+    label: t("menu.sizeClear"),
+    disabled: now === "",
+    run: () => commitCell(app, table.id, row, col, ""),
+  });
+
+  const below = app.renderer.worldToScreen({ x: rect.x, y: rect.y + rect.h });
+  openMenu(below.x, below.y, items);
 }
 
 function openColorPickerOnSheet(app: AppContext, table: Table, row: number, col: number): void {
