@@ -26,6 +26,7 @@ import { builtinExporters } from "./io/exporters";
 import { DOC_KEY, adoptAutosaveFrom, safeGet, safeSet } from "./io/storage";
 import { announceDocSaved, watchOtherTabs } from "./io/tabs";
 import { readDocFile } from "./io/file";
+import { createFileSession } from "./io/filesession";
 import { closeAllPanels, initPanels, isPanelOpen, openPanel, refreshPanels } from "./ui/panel";
 import { closeInlineEditor, initInlineEdit, isInlineEditing } from "./ui/inline-edit";
 import { editOnSheet, editTargetFrom } from "./ui/sheet-edit";
@@ -89,8 +90,17 @@ initViewMode(views);
 const PANEL = { report: "report", plugins: "plugins", guide: "guide", pluginGuide: "plugin-guide" } as const;
 let lastIssues: Issue[] | undefined;
 
+const file = createFileSession({
+  store,
+  toast,
+  dialogs,
+  t,
+  openWithoutLink: () => fileInput.click(),
+});
+
 const app: AppContext = {
   store,
+  file,
   renderer,
   schematic,
   t,
@@ -170,7 +180,7 @@ const app: AppContext = {
     });
   },
   openFilePicker(): void {
-    fileInput.click();
+    void file.open();
   },
   pickCsv(): Promise<string | null> {
     return new Promise((resolve) => {
@@ -220,6 +230,9 @@ let storageWarned = false;
 let saveTimer: number | undefined;
 
 store.setPersister((doc) => {
+  // the file on disk, when one is linked, is where the work really lives; the
+  // browser's own copy below stays as the safety net for a drawing with no file
+  file.queueAutosave();
   window.clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => {
     const result = safeSet(DOC_KEY, JSON.stringify(doc));
@@ -282,14 +295,17 @@ store.on("doc", ({ reason }) => {
   // the check report goes stale the moment the drawing changes
   if (isPanelOpen(PANEL.report)) lastIssues = undefined;
 });
-store.on("load", () => {
+store.on("load", ({ reason }) => {
   closeInlineEditor();
   schematic.invalidate();
   schematic.focusedWire = null;
   renderer.highlight = null;
-  boardToFit = true;
-  schematicToFit = true;
-  requestAnimationFrame(fitViewsIfNeeded);
+  // a reload is the same drawing, a little different: the view stays where it is
+  if (reason !== "reload") {
+    boardToFit = true;
+    schematicToFit = true;
+    requestAnimationFrame(fitViewsIfNeeded);
+  }
   refreshPanels();
 });
 // picking something on the sheet is a different question from the wire in hand:
@@ -371,11 +387,13 @@ attachSchematicInteraction({
 });
 
 fileInput.addEventListener("change", () => {
-  const file = fileInput.files?.[0];
+  const picked = fileInput.files?.[0];
   fileInput.value = "";
-  if (!file) return;
-  readDocFile(file)
+  if (!picked) return;
+  readDocFile(picked)
     .then((parsed) => {
+      // this route cannot give back a file to write to: nothing stays linked
+      file.detach();
       // normalizeDoc takes any structure, so an incomplete document can no
       // longer leave the application in an unrecoverable state
       // the fit is the business of the load listener, which knows which of the

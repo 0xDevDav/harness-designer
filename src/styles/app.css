@@ -391,6 +391,10 @@ body {
     border-color 0.12s ease,
     color 0.12s ease;
 }
+/* `display: inline-flex` above would otherwise win over the browser's own rule for the hidden attribute */
+.btn[hidden] {
+  display: none;
+}
 .btn:hover {
   background: var(--surface-3);
 }
@@ -481,6 +485,49 @@ body {
 }
 .find__status {
   margin-top: 10px;
+}
+/* Reload, while the file on disk has been changed from outside this window */
+.btn.is-stale {
+  background: var(--amber);
+  border-color: var(--amber);
+  /* dark text on the amber, worked out from it so a change of amber carries over */
+  color: color-mix(in srgb, var(--amber) 15%, #000);
+  animation: stale-pulse 1.8s ease-in-out infinite;
+}
+.btn.is-stale:hover {
+  background: color-mix(in srgb, var(--amber) 80%, #fff);
+}
+@keyframes stale-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--amber) 60%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--amber) 0%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn.is-stale {
+    animation: none;
+  }
+}
+/* name of the file the edits are written to */
+.filetag {
+  max-width: 190px;
+  padding: 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--txt-dim);
+}
+.filetag.is-off {
+  font-style: italic;
+  color: var(--txt-faint);
+}
+.filetag.is-stale {
+  font-style: normal;
+  color: var(--amber);
 }
 .btn.is-active {
   background: var(--accent-soft);

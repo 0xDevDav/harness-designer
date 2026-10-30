@@ -13,7 +13,7 @@ export interface StoreEvents {
   /** settings that are not part of the document (snap, language…) */
   settings: Record<string, never>;
   /** the document was replaced (file opened, new, sample) */
-  load: { doc: HarnessDoc };
+  load: { doc: HarnessDoc; reason?: string };
 }
 
 type Listener<K extends keyof StoreEvents> = (payload: StoreEvents[K]) => void;
@@ -43,6 +43,8 @@ export class Store {
   snapEnabled = true;
 
   private undoStack: string[] = [];
+  /** how many of the oldest states have been dropped, so a position in the history stays comparable */
+  private dropped = 0;
   private redoStack: string[] = [];
   private undoBytes = 0;
   private liveSnapshot: string | null = null;
@@ -126,9 +128,10 @@ export class Store {
     this.undoStack.push(snapshot);
     this.undoBytes += snapshot.length;
     while (this.undoStack.length > HISTORY_LIMIT || this.undoBytes > HISTORY_BYTES) {
-      const dropped = this.undoStack.shift();
-      if (dropped === undefined) break;
-      this.undoBytes -= dropped.length;
+      const oldest = this.undoStack.shift();
+      if (oldest === undefined) break;
+      this.undoBytes -= oldest.length;
+      this.dropped++;
     }
     this.redoStack = [];
   }
@@ -136,6 +139,15 @@ export class Store {
   private afterChange(reason: string): void {
     this.persist?.(this.doc);
     this.emit("doc", { reason });
+  }
+
+  /**
+   * Where the drawing is in its history: one more for every edit and redo, one
+   * less for every undo. It does not fall when the oldest states are dropped to
+   * make room, so two positions can always be compared.
+   */
+  get historyPosition(): number {
+    return this.dropped + this.undoStack.length;
   }
 
   get canUndo(): boolean {
@@ -199,6 +211,7 @@ export class Store {
       this.undoStack = [];
       this.redoStack = [];
       this.undoBytes = 0;
+      this.dropped = 0;
     } else {
       this.pushHistory(JSON.stringify(this.doc));
     }
@@ -207,7 +220,7 @@ export class Store {
     this.also = [];
     this.liveSnapshot = null;
     this.persist?.(this.doc);
-    this.emit("load", { doc: next });
+    this.emit("load", { doc: next, ...(options.reason ? { reason: options.reason } : {}) });
     this.emit("selection", { selection: null });
     this.emit("doc", { reason: options.reason ?? "load" });
   }

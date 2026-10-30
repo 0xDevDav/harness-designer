@@ -478,6 +478,35 @@ export const it = {
     "Non sostituito: un connettore non può restare senza nome né prendere il nome di un altro, e una tabella non può prendere il nome di un'altra tabella né perdere quello del suo connettore.",
   "cmd.find": "Trova…",
   "cmd.replace": "Trova e sostituisci…",
+  /* ---------------- file su disco ---------------- */
+  "topbar.saveAs": "Salva con nome…",
+  "topbar.reload": "Ricarica",
+  "topbar.reload.tip": "Rilegge il file dal disco (Ctrl+Z annulla)",
+  "topbar.reload.stale": "Il file è cambiato sul disco: clicca per caricare le modifiche",
+  "topbar.reload.none": "Ricaricare richiede un file: usa prima Apri o Salva",
+  "topbar.file.none": "Nessun file",
+  "topbar.file.none.tip":
+    "Il salvataggio automatico tiene solo una copia in questo browser. Apri o Salva per collegare un file su disco e ogni modifica vi verrà scritta.",
+  "topbar.file.linked.tip": "Ogni modifica viene salvata automaticamente su {name}",
+  "topbar.file.readonly.tip":
+    "L'accesso in scrittura a {name} è stato negato: le modifiche non vengono salvate",
+  "toast.openedFile": "Aperto {name}: le modifiche vi vengono salvate automaticamente",
+  "toast.savedFile": "Salvato su {name}: le modifiche vi vengono salvate automaticamente",
+  "toast.reloaded": "Ricaricato {name} (Ctrl+Z annulla)",
+  "toast.fileChanged":
+    "Il file è cambiato sul disco. Il salvataggio automatico è in pausa: Ricarica per prendere le modifiche, oppure Salva per sovrascriverle.",
+  "file.error.permission": "il permesso di scrivere sul file non è stato dato",
+  "file.error.noFile": "nessun file è collegato a questo disegno",
+  "toast.saveFailed": "Impossibile salvare sul file: {error}",
+  "toast.undoReload":
+    "Annulla ha riportato il disegno di prima di Ricarica. Il salvataggio automatico è in pausa per non sostituire il file: Ricarica per riprendere il file, oppure Salva per sovrascriverlo.",
+  "toast.autosaveFailed": "Impossibile scrivere sul file. Usa Salva per riprovare.",
+  "dialog.overwrite.title": "Sovrascrivere il file?",
+  "dialog.overwrite.body":
+    "{name} è stato modificato fuori da questa finestra dopo l'ultima lettura. Salvando, quelle modifiche vengono sostituite con ciò che è sullo schermo.",
+  "dialog.overwrite.confirm": "Sovrascrivi",
+  "cmd.saveAs": "Salva con nome…",
+  "cmd.reload": "Ricarica il file dal disco",
   "toast.pluginLoaded": "Plugin «{name}» caricato",
   "toast.pluginFailed": "Plugin «{name}» non caricato: {error}",
   "toast.titleTaken": "Un'altra tabella ha già questo nome",

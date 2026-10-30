@@ -21,6 +21,24 @@ All notable changes to this project are documented here. The format follows
   sheet as well as in Replace. The check reports both in drawings that already
   have them. Previous and Next are the arrows beside the Find field, and the
   panel is called Find until Replace is opened.
+- **Autosave to the file.** Where the browser can keep a link to a file (Chrome,
+  Edge), Open and Save link the drawing to the real file on disk and every edit
+  is written to it a moment after it is made, so nothing is lost by forgetting
+  to save or by closing the server. The bar names the file edits go to, or says
+  "No file" when they only reach the browser's own storage. New and Sample
+  unlink the file first, so they can never overwrite it. Browsers without the
+  API keep the download-based Save, and do not show the file name or Reload.
+  A Save that fails says so, in the language of the app, and writes go one at a
+  time, in order. The checks of the file wait their turn behind them, and a change
+  another program makes just after a write is not taken for the write's own.
+- **Reload**, next to Save: reads the file again from disk, as one undo step
+  and without moving the view. The file is checked every two seconds and when
+  the window gets focus back; when something else has changed it, Reload turns
+  amber and autosave pauses rather than overwrite those changes. Save asks
+  before overwriting a file changed from outside. Undoing a Reload does not
+  write the drawing it replaced back over the file: autosave pauses instead,
+  and stays paused even if an edit follows at once.
+- **Save as…** (`Ctrl+Shift+S`).
 
 ## [1.2.0]
 
