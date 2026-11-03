@@ -48,6 +48,8 @@ export function createFileSession(options: FileSessionOptions): FileSession {
   let timer: number | undefined;
   let failedOnce = false;
   let pausedTold = false;
+  /** the drawing is being replaced by what the file holds: the autosave that raises has nothing to write */
+  let loading = false;
 
   const base = (): string => disk.name ?? "";
 
@@ -101,7 +103,14 @@ export function createFileSession(options: FileSessionOptions): FileSession {
   const adopt = (text: string, reason: "open" | "reload"): void => {
     const parsed: unknown = JSON.parse(text);
     const before = serializeDoc(store.doc);
-    store.load(parsed, reason === "open" ? { reason } : { reason, resetHistory: false });
+    // `load` raises an autosave, which would find the guard still tripped by the undo
+    // that the Reload or Open is putting right, and put the file straight back on hold
+    loading = true;
+    try {
+      store.load(parsed, reason === "open" ? { reason } : { reason, resetHistory: false });
+    } finally {
+      loading = false;
+    }
     const after = serializeDoc(store.doc);
     // the drawing now is the file: the autosave that load queued has nothing to write
     disk.markLoaded(after);
@@ -152,7 +161,7 @@ export function createFileSession(options: FileSessionOptions): FileSession {
     onChange: (fn) => disk.onChange(fn),
 
     queueAutosave(): void {
-      if (!disk.attached) return;
+      if (!disk.attached || loading) return;
       // asked at every change, not when the write is due: an edit made after an
       // undo past a Reload would otherwise bring the position back up in time
       if (guard.wouldRevert(store.historyPosition)) {

@@ -27,11 +27,15 @@ export class ReloadGuard {
 
   /**
    * Called after a Reload with the text of the drawing before and after it, and
-   * the position in the history it left. When the file said the same as the
-   * screen there is nothing to protect.
+   * the position in the history it left. The drawing on screen is now the
+   * file's, so whatever tripped the guard before is over. A Reload that changed
+   * something moves the floor up to here, since every drawing below it is one
+   * the file must not be given. When the file said the same as the screen the
+   * floor stays where an earlier Reload put it: the drawings below that are
+   * still the ones that would take the file's changes away.
    */
   arm(before: string, after: string, position: number): void {
-    this.floor = before === after ? null : position;
+    if (before !== after) this.floor = position;
     this.tripped = false;
   }
 

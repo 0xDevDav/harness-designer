@@ -60,6 +60,24 @@ describe("ReloadGuard", () => {
     expect(guard.wouldRevert(0)).toBe(false);
   });
 
+  it("lets go of a trip when a Reload puts the file's drawing on screen", () => {
+    const guard = new ReloadGuard();
+    guard.arm("before", "after", 5);
+    expect(guard.wouldRevert(4)).toBe(true);
+    guard.arm("old drawing", "newer file", 5); // the Reload that follows the hold
+    expect(guard.wouldRevert(5)).toBe(false);
+    expect(guard.wouldRevert(7)).toBe(false);
+  });
+
+  it("keeps the floor of an earlier Reload when a later one finds nothing new", () => {
+    const guard = new ReloadGuard();
+    guard.arm("before", "after", 5);
+    guard.arm("after", "after", 6); // the file had not changed since
+    expect(guard.wouldRevert(6)).toBe(false);
+    expect(guard.wouldRevert(5)).toBe(false);
+    expect(guard.wouldRevert(4)).toBe(true); // still a drawing from before the first Reload
+  });
+
   it("follows the latest Reload", () => {
     const guard = new ReloadGuard();
     guard.arm("one", "two", 3);
