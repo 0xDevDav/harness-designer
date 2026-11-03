@@ -291,6 +291,10 @@ export function normalizeConnectors(doc: HarnessDoc): void {
   for (const n of doc.nodes) {
     if (n.kind === "connector" && (degree.get(n.id) ?? 0) > 1) n.kind = "junction";
   }
+  // a table that a connector answers to again is no longer one a splice left behind
+  for (const table of doc.tables) {
+    if (table.spliced && nodeForTable(doc, table)) delete table.spliced;
+  }
 }
 
 /* ============================ Queries ============================ */

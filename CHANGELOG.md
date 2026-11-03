@@ -110,7 +110,8 @@ All notable changes to this project are documented here. The format follows
   so: its title turns red with a warning mark on the sheet and in the schematic,
   and the check reports it as an error, since its wires go nowhere. The table
   remembers the connector's name for this (`spliced` in the file). A cavity table
-  that never had a connector stays a warning, as it was.
+  that never had a connector stays a warning, as it was. The
+  mark goes when a connector answers to the table again.
 - Files with the new tables open in an older version, which reads the housing
   and termination tables as ordinary tables, and drops what it does not know
   when it saves: the tables stop being housings and terminations, and the

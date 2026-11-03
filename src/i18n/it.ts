@@ -363,7 +363,7 @@ export const it = {
     "Nessun connettore sul foglio corrisponde a questa tabella. Dagliene uno, oppure elimina la tabella.",
   "validate.tableWithoutNode": "Tabella «{title}»: nessun connettore corrispondente nello schema",
   "validate.tableSpliced":
-    "Tabella «{title}»: il connettore {name} è diventato una giunzione, nulla sul foglio corrisponde a questa tabella",
+    "Tabella «{title}»: il connettore {name} è diventato uno splice, nulla sul foglio corrisponde a questa tabella",
 
   /* ---------------- distinta fili ---------------- */
   "wirelist.empty": "Nessuna tabella cavità con colonne Cavità e Verso nel foglio.",

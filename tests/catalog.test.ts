@@ -18,6 +18,7 @@ import {
   cavityTables,
   isCavityTable,
   isOrphanTable,
+  normalizeConnectors,
   normalizeDoc,
   ownerName,
   spliceNode,
@@ -655,6 +656,21 @@ describe("making a connector a splice", () => {
     // a connector with the table's name is on the sheet again
     again.nodes.push({ id: "n9", x: 0, y: 0, kind: "connector", name: "C5", style: "plug", refs: "" });
     expect(isOrphanTable(again, again.tables.find((tb) => tb.id === "t5") as Table)).toBe(false);
+  });
+
+  it("forgets the splice once a connector answers to the table again, so a later deletion is not blamed on it", () => {
+    const doc = withTable("C5");
+    spliceNode(doc, "n5");
+    const table = doc.tables.find((tb) => tb.id === "t5") as Table;
+    normalizeConnectors(doc);
+    expect(table.spliced).toBe("C5"); // nothing answers to it yet
+    doc.nodes.push({ id: "n9", x: 0, y: 0, kind: "connector", name: "C5", style: "plug", refs: "" });
+    normalizeConnectors(doc);
+    expect(table.spliced).toBeUndefined();
+    // the connector goes away, which is not a splice: the old, milder warning
+    doc.nodes = doc.nodes.filter((n) => n.id !== "n9");
+    const issues = validateDoc(doc, t).filter((i) => i.rule === "drawing-hygiene");
+    expect(issues.map((i) => i.severity)).toEqual(["warning"]);
   });
 
   it("is only a warning for a cavity table that never had a connector, as it was", () => {
