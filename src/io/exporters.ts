@@ -104,7 +104,7 @@ export function exportWireCsv(app: AppContext): void {
     app.toast.error(app.t("wirelist.empty"));
     return;
   }
-  const csv = wireListCsv(rows, wireListHeadings(app.t));
+  const csv = wireListCsv(rows, wireListHeadings(app.t, app.doc.wireUnit));
   downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), documentFileName(app.doc, "csv"));
   app.toast.show(app.t("toast.exported"));
 }
