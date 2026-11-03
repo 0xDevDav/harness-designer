@@ -24,6 +24,7 @@ import { t } from "@/i18n";
 import type { SchematicRenderer } from "@/render/schematic";
 import { openColorPicker } from "./colorpicker";
 import { openMenu } from "./menu";
+import { settleSchematicDrop } from "./separate";
 
 /** Below this the movement was a click, not a drag. */
 const DRAG_THRESHOLD_PX = 3;
@@ -371,7 +372,11 @@ export function attachSchematicInteraction(opts: SchematicInteractionOptions): (
     if (drag && drag.pointerId === ev.pointerId) {
       if (drag.live) {
         if (aborted) store.cancelLive();
-        else store.endLive("schematic");
+        else {
+          // dropped on another box: it goes to the nearest place that is free, in the same undo step
+          settleSchematicDrop({ store }, drag.name);
+          store.endLive("schematic");
+        }
       }
       drag = null;
     }

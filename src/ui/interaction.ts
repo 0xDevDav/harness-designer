@@ -28,6 +28,7 @@ import type { EntityType, Point, Selection } from "@/core/types";
 import { onLocaleChange } from "@/i18n";
 import type { Translate } from "@/i18n";
 import { notePointer } from "./pointer";
+import { settleSheetDrop } from "./separate";
 
 /** Node snap radius, in screen pixels, converted through the zoom. */
 const SNAP_RADIUS_PX = 14;
@@ -84,6 +85,8 @@ export function attachInteraction(opts: {
   onContextMenu: (target: Selection | null, world: Point, ev: MouseEvent) => void;
   /** double click on the sheet: opens in-place editing for the element hit */
   onEdit?: (ev: MouseEvent) => void;
+  /** a short message for the person: a drop that could not be nudged clear */
+  notify?: (message: string) => void;
 }): () => void {
   const { store, renderer, svg, hint, t } = opts;
 
@@ -465,7 +468,15 @@ export function attachInteraction(opts: {
     if (drag && drag.pointerId === ev.pointerId) {
       if (drag.live) {
         if (aborted) store.cancelLive();
-        else store.endLive("move");
+        else {
+          // a drop on top of something is nudged to the nearest free place, in the same undo step
+          if (
+            (drag.kind === "node" || drag.kind === "table") &&
+            settleSheetDrop({ store, renderer }, drag.kind, drag.id) === "far"
+          )
+            opts.notify?.(t("toast.dropFar"));
+          store.endLive("move");
+        }
       }
       drag = null;
     }
