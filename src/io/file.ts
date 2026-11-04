@@ -76,11 +76,14 @@ export function downloadBlob(blob: Blob, filename: string): void {
 }
 
 /**
- * Saves the document as `.json`. One-character indentation keeps the file
+ * The text a saved `.json` holds. One-character indentation keeps the file
  * readable and diffable in version control without bloating it.
  */
+export const serializeDoc = (doc: HarnessDoc): string => JSON.stringify(doc, null, 1);
+
+/** Saves the document as a `.json` download. */
 export function saveDocToFile(doc: HarnessDoc): void {
-  const blob = new Blob([JSON.stringify(doc, null, 1)], { type: "application/json;charset=utf-8" });
+  const blob = new Blob([serializeDoc(doc)], { type: "application/json;charset=utf-8" });
   downloadBlob(blob, documentFileName(doc, "json"));
 }
 
