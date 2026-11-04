@@ -1,12 +1,12 @@
 /**
  * Example plugin: "connettore-tondo" (round connector).
  *
- * It adds the "round" termination style, a DIN-style circular connector, a
- * right-click entry to apply it to terminal nodes, and the DIN 47002 colour
- * codes used on German-market drawings.
+ * It adds the "round" symbol, a DIN-style circular connector, listed with the
+ * housings so that a connector whose housing is the DIN one is drawn with it,
+ * and the DIN 47002 colour codes used on German-market drawings.
  *
- * Example plugin: a round (DIN-style) connector symbol, a context-menu entry to
- * apply it to terminal nodes, and the DIN 47002 wire-colour abbreviations.
+ * Example plugin: a round (DIN-style) connector symbol for the housing table,
+ * and the DIN 47002 wire-colour abbreviations.
  */
 
 const ID = "connettore-tondo";
@@ -19,13 +19,9 @@ const SVGNS = "http://www.w3.org/2000/svg";
 const MESSAGES = {
   it: {
     "plugin.connettore-tondo.style": "Connettore tondo (DIN)",
-    "plugin.connettore-tondo.menu.apply": "Applica connettore tondo",
-    "plugin.connettore-tondo.toast.applied": "Connettore tondo applicato",
   },
   en: {
     "plugin.connettore-tondo.style": "Round connector (DIN)",
-    "plugin.connettore-tondo.menu.apply": "Apply round connector",
-    "plugin.connettore-tondo.toast.applied": "Round connector applied",
   },
 };
 
@@ -100,55 +96,20 @@ export default {
   version: "1.0.0",
   author: "Harness Designer",
   description:
-    "Simbolo di connettore circolare, voce di menù per applicarlo e sigle colore DIN 47002. / Round connector symbol, context-menu action and DIN 47002 colour codes.",
+    "Simbolo di connettore circolare per la tabella degli alloggiamenti e sigle colore DIN 47002. / Round connector symbol for the housing table and DIN 47002 colour codes.",
 
   activate(api) {
-    // A menu entry already on screen can be pressed after deactivation, and the
-    // guard stops the plugin editing the document any further.
-    let disposed = false;
-    api.onDispose(() => {
-      disposed = true;
-    });
-
     api.i18n.add("it", MESSAGES.it);
     api.i18n.add("en", MESSAGES.en);
 
     api.symbols.registerConnector({
       id: STYLE_ID,
       labelKey: "plugin.connettore-tondo.style",
+      role: "housing", // listed with the housings, next to the multi-pin plug
       tip: -CX + R, // distanza dall'origine al bordo esterno della ghiera
       draw: drawRound,
     });
 
     for (const [name, hex] of Object.entries(DIN_COLORS)) api.colors.registerName(name, hex);
-
-    api.menu.contribute(({ target }) => {
-      if (disposed || !target || target.type !== "node") return [];
-      const doc = api.getDoc();
-      const node = doc.nodes.find((n) => n.id === target.id);
-      if (!node) return [];
-      // terminations only ever live at the end of a branch
-      const degree = doc.segments.filter((s) => s.a === node.id || s.b === node.id).length;
-      if (degree > 1) return [];
-
-      const alreadyRound = node.kind === "connector" && node.style === STYLE_ID;
-      return [
-        {
-          label: api.t("plugin.connettore-tondo.menu.apply"),
-          disabled: alreadyRound,
-          run() {
-            if (disposed) return;
-            api.edit((d) => {
-              const n = d.nodes.find((x) => x.id === target.id);
-              if (!n) return;
-              n.kind = "connector";
-              n.style = STYLE_ID;
-            }, "connettore-tondo.apply");
-            api.select({ type: "node", id: target.id });
-            api.ui.toast(api.t("plugin.connettore-tondo.toast.applied"));
-          },
-        },
-      ];
-    });
   },
 };

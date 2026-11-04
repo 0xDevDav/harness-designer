@@ -8,6 +8,7 @@ import {
   findNode,
   findSegment,
   findTable,
+  isOrphanTable,
   mateOf,
   nodeDegree,
   nodeForTable,
@@ -220,6 +221,7 @@ export class Renderer implements RendererApi {
         wireErrors.get(table.id),
         exporting ? undefined : this.found?.tables.get(table.id),
         current?.startsWith(table.id + "|") ? current.slice(table.id.length + 1) : undefined,
+        !exporting && isOrphanTable(doc, table),
       );
     }
     for (const seg of doc.segments) this.drawSegment(doc, seg, gSegOuter, gSegInner, gSegLabels);

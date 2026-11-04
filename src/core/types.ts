@@ -85,7 +85,13 @@ export interface Inline {
   color: string;
 }
 
-export type TableKind = "table" | "title";
+/**
+ * `table` is any ordinary table, a connector's cavity table among them; `title`
+ * is the title block. `housings` and `terminations` are the two catalogues a
+ * drawing keeps of what its connectors are made of: there is at most one of
+ * each, and the cavity tables point into them by name.
+ */
+export type TableKind = "table" | "title" | "housings" | "terminations";
 
 export interface Table {
   id: string;
@@ -104,6 +110,24 @@ export interface Table {
    * connector and no other connector writes to it.
    */
   autoLink?: boolean;
+  /**
+   * The name the connector had when it was turned into a splice, kept while
+   * nothing on the sheet answers to the table: that is what tells a table left
+   * behind by a splice, whose wires now go nowhere, from one that was never
+   * given a connector.
+   */
+  spliced?: string;
+  /**
+   * The housing this cavity table's connector is made of, by the name it has in
+   * the housing table. Absent when none has been picked, which is also what it
+   * goes back to when that housing is deleted from the table.
+   */
+  housing?: string;
+  /**
+   * In a housing or termination table: the symbol each entry is drawn with,
+   * keyed by its name. An entry with none is drawn with the generic one.
+   */
+  symbols?: Record<string, string>;
 }
 
 export interface DocMeta {
