@@ -127,7 +127,7 @@ export function schematicMenuItems(app: AppContext, target: SchematicMenuTarget)
     {
       label: t(splice ? "menu.deleteSplice" : "menu.deleteConnector"),
       danger: true,
-      run: () => void deleteConnectorFlow(app, target.name, target.nodeId, splice),
+      run: () => void deleteConnectorFlow(app, target.name, target.nodeId, splice, target.hasTable === true),
     },
   ];
 }
@@ -135,22 +135,30 @@ export function schematicMenuItems(app: AppContext, target: SchematicMenuTarget)
 /**
  * Deleting a connector disconnects its wires, deletes its table and takes it
  * off the sheet, so it is asked about first. One undo step brings it all back.
+ * A splice has no table, and the question does not say it goes with one.
  */
 async function deleteConnectorFlow(
   app: AppContext,
   name: string,
   nodeId: string | undefined,
   splice: boolean,
+  hasTable: boolean,
 ): Promise<void> {
   const wires = connectionCount(app.doc, name);
   const ok = await app.dialogs.confirm({
     title: app.t(splice ? "dialog.deleteSplice.title" : "dialog.deleteConnector.title", { name }),
     body: app.t(
-      wires === 0
-        ? "dialog.deleteConnector.body"
-        : wires === 1
-          ? "dialog.deleteConnector.bodyWire"
-          : "dialog.deleteConnector.bodyWires",
+      hasTable
+        ? wires === 0
+          ? "dialog.deleteConnector.body"
+          : wires === 1
+            ? "dialog.deleteConnector.bodyWire"
+            : "dialog.deleteConnector.bodyWires"
+        : wires === 0
+          ? "dialog.deleteConnector.bodyNoTable"
+          : wires === 1
+            ? "dialog.deleteConnector.bodyNoTableWire"
+            : "dialog.deleteConnector.bodyNoTableWires",
       { name, n: wires },
     ),
     confirmLabel: app.t("props.delete"),
