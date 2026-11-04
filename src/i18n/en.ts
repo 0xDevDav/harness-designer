@@ -494,6 +494,20 @@ export const en = {
   "menu.wireDelete": "Delete wire",
   "toast.wireDeleted": "Wire {from} – {to} deleted",
   "toast.wireDeleteNone": "That wire is no longer in the tables",
+  "menu.zoomToFit": "Zoom to fit",
+  "menu.deleteConnector": "Delete connector",
+  "menu.deleteSplice": "Delete splice",
+  "dialog.deleteConnector.title": "Delete connector {name}?",
+  "dialog.deleteSplice.title": "Delete splice {name}?",
+  "dialog.deleteConnector.body": "{name} is taken off the sheet, with its table.",
+  "dialog.deleteConnector.bodyWire":
+    "{name} is taken off the sheet, with its table, and its wire is disconnected.",
+  "dialog.deleteConnector.bodyWires":
+    "{name} is taken off the sheet, with its table, and its {n} wires are disconnected.",
+  "dialog.deleteConnector.bodyNoTable": "{name} is taken off the sheet.",
+  "dialog.deleteConnector.bodyNoTableWire": "{name} is taken off the sheet, and its wire is disconnected.",
+  "dialog.deleteConnector.bodyNoTableWires":
+    "{name} is taken off the sheet, and its {n} wires are disconnected.",
   "menu.wireColor": "Wire colour…",
   "menu.wireColorClear": "Clear colour",
   "toast.wireColorNone": "This wire has no Colour column to write to: add one to the cavity table.",
