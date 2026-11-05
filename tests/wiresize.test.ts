@@ -498,8 +498,9 @@ describe("a size carried to the other end of a wire", () => {
     expect(sizeAcross("1,5 mm²", "Section", "Section (mm²)", "mm2")).toBe("1.5");
   });
 
-  it("goes as it is between two columns headed alike", () => {
-    expect(sizeAcross("1,5", "Section", "Sezione", "mm2")).toBe("1,5");
-    expect(sizeAcross("1.5", "Section (mm²)", "mm²", "mm2")).toBe("1.5");
+  it("is written the way the column writes it between two columns headed alike too", () => {
+    expect(sizeAcross("1,5", "Section", "Sezione", "mm2")).toBe("1.5 mm²");
+    expect(sizeAcross("0,75", "Section (mm²)", "mm²", "mm2")).toBe("0.75");
+    expect(sizeAcross("2x0,5 shielded", "Section", "Section", "mm2")).toBe("2x0,5 shielded");
   });
 });

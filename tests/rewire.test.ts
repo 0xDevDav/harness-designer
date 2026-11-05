@@ -101,7 +101,7 @@ describe("connectEnds", () => {
     const doc = harness();
     rowOf(doc, "ta", "2").splice(3, 3, "Blue", "0.75", "TXL");
     connectEnds(doc, "A.2", "C.1");
-    expect(rowOf(doc, "tc", "1").slice(3)).toEqual(["Blue", "0.75", "TXL"]);
+    expect(rowOf(doc, "tc", "1").slice(3)).toEqual(["Blue", "0.75 mm²", "TXL"]);
   });
 
   it("is what the schematic draws afterwards", () => {
@@ -184,14 +184,14 @@ describe("moveWireEnd", () => {
     const doc = harness();
     moveWireEnd(doc, ["A.1", "B.1"], 1, "B.2");
     expect(rowOf(doc, "tb", "1")).toEqual(["1", "", "Power", "", "", ""]);
-    expect(rowOf(doc, "tb", "2")).toEqual(["2", "A.1", "Power", "Red", "1.5", "GXL"]);
+    expect(rowOf(doc, "tb", "2")).toEqual(["2", "A.1", "Power", "Red", "1.5 mm²", "GXL"]);
   });
 
   it("moves the end to a different connector", () => {
     const doc = harness();
     expect(moveWireEnd(doc, ["A.1", "B.1"], 1, "C.3")).toEqual({ ok: true });
     expect(rowOf(doc, "ta", "1")[1]).toBe("C.3");
-    expect(rowOf(doc, "tc", "3").slice(1)).toEqual(["A.1", "Power", "Red", "1.5", "GXL"]);
+    expect(rowOf(doc, "tc", "3").slice(1)).toEqual(["A.1", "Power", "Red", "1.5 mm²", "GXL"]);
     expect(rowOf(doc, "tb", "1")[1]).toBe("");
   });
 
@@ -222,7 +222,7 @@ describe("moveWireEnd", () => {
     const doc = harness();
     rowOf(doc, "tb", "2").splice(1, 5, "S1", "", "Green", "1", "GPT");
     expect(moveWireEnd(doc, ["B.2", "S1"], 0, "C.2")).toEqual({ ok: true });
-    expect(rowOf(doc, "tc", "2").slice(1)).toEqual(["S1", "", "Green", "1", "GPT"]);
+    expect(rowOf(doc, "tc", "2").slice(1)).toEqual(["S1", "", "Green", "1 mm²", "GPT"]);
     expect(rowOf(doc, "tb", "2").slice(1)).toEqual(["", "", "", "", ""]);
   });
 
@@ -230,7 +230,7 @@ describe("moveWireEnd", () => {
     const doc = harness();
     rowOf(doc, "tc", "2").splice(3, 3, "-", "–", "-");
     expect(moveWireEnd(doc, ["A.1", "B.1"], 1, "C.2")).toEqual({ ok: true });
-    expect(rowOf(doc, "tc", "2").slice(1)).toEqual(["A.1", "Power", "Red", "1.5", "GXL"]);
+    expect(rowOf(doc, "tc", "2").slice(1)).toEqual(["A.1", "Power", "Red", "1.5 mm²", "GXL"]);
     expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["Red", "1.5", "GXL"]);
   });
 
@@ -238,8 +238,8 @@ describe("moveWireEnd", () => {
     const doc = harness();
     rowOf(doc, "ta", "1").splice(3, 3, "-", "-", "-");
     expect(moveWireEnd(doc, ["A.1", "B.1"], 1, "B.2")).toEqual({ ok: true });
-    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["Red", "1.5", "GXL"]);
-    expect(rowOf(doc, "tb", "2").slice(3)).toEqual(["Red", "1.5", "GXL"]);
+    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["Red", "1.5 mm²", "GXL"]);
+    expect(rowOf(doc, "tb", "2").slice(3)).toEqual(["Red", "1.5 mm²", "GXL"]);
   });
 
   it("puts the properties of a wire on a cavity with dashes when the end that stays is a splice", () => {
@@ -247,14 +247,14 @@ describe("moveWireEnd", () => {
     rowOf(doc, "tb", "2").splice(1, 5, "S1", "", "Green", "1", "GPT");
     rowOf(doc, "tc", "2").splice(3, 3, "-", "-", "-");
     expect(moveWireEnd(doc, ["B.2", "S1"], 0, "C.2")).toEqual({ ok: true });
-    expect(rowOf(doc, "tc", "2").slice(1)).toEqual(["S1", "", "Green", "1", "GPT"]);
+    expect(rowOf(doc, "tc", "2").slice(1)).toEqual(["S1", "", "Green", "1 mm²", "GPT"]);
   });
 
   it("does not replace a real value on the cavity it lands on with the wire's own", () => {
     const doc = harness();
     rowOf(doc, "tc", "2").splice(3, 2, "Blue", "-");
     expect(moveWireEnd(doc, ["A.1", "B.1"], 1, "C.2")).toEqual({ ok: true });
-    expect(rowOf(doc, "tc", "2").slice(3)).toEqual(["Blue", "1.5", "GXL"]);
+    expect(rowOf(doc, "tc", "2").slice(3)).toEqual(["Blue", "1.5 mm²", "GXL"]);
   });
 
   it("refuses a cavity that already has a wire, and changes nothing", () => {
@@ -378,7 +378,7 @@ describe("a wire joining cavities that disagree about it", () => {
       target: "C.1",
       differences: [
         { label: "Colour", start: "Blue", target: "Red" },
-        { label: "Section", start: "2.5", target: "1.5" },
+        { label: "Section", start: "2.5 mm²", target: "1.5 mm²" },
       ],
     });
   });
@@ -420,7 +420,7 @@ describe("a wire joining cavities that disagree about it", () => {
     const start = make();
     expect(moveWireEnd(start, ["A.2", "S1"], 0, "C.1", "start")).toEqual({ ok: true });
     expect(rowOf(start, "tc", "1")[1]).toBe("S1");
-    expect(rowOf(start, "tc", "1").slice(3)).toEqual(["Blue", "2.5", ""]);
+    expect(rowOf(start, "tc", "1").slice(3)).toEqual(["Blue", "2.5 mm²", ""]);
     expect(rowOf(start, "ta", "2")[1]).toBe("");
     const target = make();
     moveWireEnd(target, ["A.2", "S1"], 0, "C.1", "target");
@@ -431,13 +431,13 @@ describe("a wire joining cavities that disagree about it", () => {
     const doc = unlike();
     expect(connectEnds(doc, "A.2", "C.1", "start")).toEqual({ ok: true });
     expect(rowOf(doc, "ta", "2").slice(3)).toEqual(["Blue", "2.5", ""]);
-    expect(rowOf(doc, "tc", "1").slice(3)).toEqual(["Blue", "2.5", ""]);
+    expect(rowOf(doc, "tc", "1").slice(3)).toEqual(["Blue", "2.5 mm²", ""]);
   });
 
   it("gives both ends the details of the cavity it is dropped on", () => {
     const doc = unlike();
     expect(connectEnds(doc, "A.2", "C.1", "target")).toEqual({ ok: true });
-    expect(rowOf(doc, "ta", "2").slice(3)).toEqual(["Red", "1.5", ""]);
+    expect(rowOf(doc, "ta", "2").slice(3)).toEqual(["Red", "1.5 mm²", ""]);
     expect(rowOf(doc, "tc", "1").slice(3)).toEqual(["Red", "1.5", ""]);
   });
 
@@ -445,8 +445,8 @@ describe("a wire joining cavities that disagree about it", () => {
     const doc = unlike();
     Object.assign(rowOf(doc, "tc", "1"), { 3: "Green", 4: "" });
     expect(moveWireEnd(doc, ["A.1", "B.1"], 1, "C.1", "target")).toEqual({ ok: true });
-    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["Green", "1.5", "GXL"]);
-    expect(rowOf(doc, "tc", "1").slice(3)).toEqual(["Green", "1.5", "GXL"]);
+    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["Green", "1.5 mm²", "GXL"]);
+    expect(rowOf(doc, "tc", "1").slice(3)).toEqual(["Green", "1.5 mm²", "GXL"]);
     expect(rowOf(doc, "tb", "1")[1]).toBe("");
   });
 

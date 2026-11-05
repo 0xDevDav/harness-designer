@@ -171,8 +171,10 @@ export function sizeForCell(text: string, unit: WireUnit, heading: string | unde
 /**
  * A size carried from one Section column to another, the other end of the same
  * wire: read in the unit of the column it comes from and written the way the
- * column it goes to writes its sizes. Between two columns headed alike it goes
- * as it is. `unit` is the drawing's.
+ * column it goes to writes its sizes, as anything else the application writes
+ * in a cell: "0,75" goes across as "0.75 mm²" under "Section", "0.75" under
+ * "Section (mm²)". The cell it comes from keeps what was typed in it. `unit`
+ * is the drawing's.
  */
 export function sizeAcross(
   text: string,
@@ -180,7 +182,6 @@ export function sizeAcross(
   to: string | undefined,
   unit: WireUnit,
 ): string {
-  if (headingUnit(from) === headingUnit(to)) return text;
   return sizeForCell(text, columnUnit(from, unit), to);
 }
 

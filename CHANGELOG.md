@@ -55,12 +55,15 @@ All notable changes to this project are documented here. The format follows
   _Section_. The wire list and its CSV follow the same rule for their own
   Section column, whatever the cavity tables the sizes come from are headed:
   bare under _mm²_ or _AWG_, with the unit under a plain _Section_, and a size
-  in the other unit keeps its unit. A size typed with a decimal comma (_1,5_)
-  comes out with a point there, in a default size written into a new wire, in
-  a size carried to a table headed otherwise and in the check's _sections
-  disagree_ warning, which names both sizes with their unit and does not fire
-  when they differ only by the separator; the cell itself keeps what was
-  typed. The scales do not line up, so a conversion rounds to the nearest standard size and going to AWG and back can
+  in the other unit keeps its unit. A wire whose one end leaves the size,
+  colour or function empty takes the other end's in the list. A size typed
+  with a decimal comma (_1,5_) comes out with a point there, in a default size
+  written into a new wire, in a size carried to the other end and in the
+  check's _sections disagree_ warning and the question asked when a wire is
+  dropped, which name both sizes with their unit; the warning does not fire
+  when they differ only by the separator, nor for a dash, and it also compares
+  a wire only one end of which names the other. The cell itself keeps what
+  was typed. The scales do not line up, so a conversion rounds to the nearest standard size and going to AWG and back can
   land on a neighbouring size; when any size would change, a window lists each
   one, with how much thinner or thicker the wire becomes and in how many places,
   and asks before anything is written. Only the cavity tables and the wire list

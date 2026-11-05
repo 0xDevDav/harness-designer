@@ -18,7 +18,7 @@ import type { CavityTable } from "./doc";
 import { uid } from "./ids";
 import { findPath, namedNodes, pathNodes } from "./routing";
 import type { HarnessDoc, HNode, WireUnit } from "./types";
-import { columnUnit, sameSize, sizeAcross, wireUnitOf } from "./wiresize";
+import { columnUnit, sameSize, sizeAcross, sizeForCell, wireUnitOf } from "./wiresize";
 
 /**
  * Connecting and re-connecting wires.
@@ -260,10 +260,13 @@ export function detailsConflict(doc: HarnessDoc, op: WireOp, to: string): Detail
         : sameDetail(prop, value, theirs);
     if (same) continue;
     const heading = fk?.ct.cols[prop] === undefined ? undefined : fk.ct.table.head?.[fk.ct.cols[prop]];
+    // two sizes are shown each with its unit and a point, as the check shows them
+    const shown = (text: string, f: Found | null): string =>
+      prop === "section" ? sizeForCell(text, sizeUnitOf(f, unit), undefined) : text;
     differences.push({
       label: heading ?? ft.ct.table.head?.[col ?? 0] ?? prop,
-      start: value,
-      target: theirs,
+      start: shown(value, from),
+      target: shown(theirs, ft),
     });
   }
   return differences.length ? { start: endLabel(kept), target: endLabel(target), differences } : null;
