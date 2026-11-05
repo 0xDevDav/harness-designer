@@ -244,10 +244,13 @@ const SAME_WIRE = 0.01;
  * line up (2.5 mm² is between 14 and 12 AWG), so a conversion is a rounding,
  * and a wire that comes out thinner than it was drawn is something to be told
  * about before it happens, not after. Sizes that come out within 1 % of what
- * they were are left out: they are the same wire.
+ * they were are left out: they are the same wire. `read` is the unit the bare
+ * numbers are taken to be in, as in `setWireUnit`: when the person says they
+ * are already in `unit`, only the tables whose heading names the other unit
+ * are left to round.
  */
-export function previewUnitChange(doc: HarnessDoc, unit: WireUnit): SizeChange[] {
-  const current = wireUnitOf(doc);
+export function previewUnitChange(doc: HarnessDoc, unit: WireUnit, read?: WireUnit): SizeChange[] {
+  const current = read ?? wireUnitOf(doc);
   const groups = new Map<string, SizeChange>();
   const note = (text: string, from: WireUnit): void => {
     const size = parseSize(text, from);

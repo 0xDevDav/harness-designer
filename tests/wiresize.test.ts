@@ -403,4 +403,22 @@ describe("sizesAlreadyIn", () => {
     expect(doc.tables[0]?.head?.[3]).toBe("AWG");
     expect(doc.wireUnit).toBe("awg");
   });
+
+  it("still lists a table headed in the other unit when the rest is only labelled", () => {
+    const doc = docWith(
+      table("mm", ["Cavity", "To", "Colour", "Section (mm²)"], [["1", "B.1", "Red", "2.5"]]),
+      table("plain", HEAD, [["1", "C.1", "Blue", "18"]]),
+    );
+    expect(sizesAlreadyIn(doc, "awg")).toEqual(["18"]);
+    // labelling reads the plain 18 as a gauge, but the 2.5 under mm² is still rounded
+    expect(previewUnitChange(doc, "awg", "awg").map((c) => [c.from, c.to])).toEqual([["2.5 mm²", "14 AWG"]]);
+    setWireUnit(doc, "awg", "awg");
+    expect(doc.tables[0]?.rows[0]?.[3]).toBe("14");
+    expect(doc.tables[1]?.rows[0]?.[3]).toBe("18");
+  });
+
+  it("lists nothing when labelling leaves every size as it is", () => {
+    const doc = docWith(table("t", HEAD, [["1", "B.1", "Red", "18"]]));
+    expect(previewUnitChange(doc, "awg", "awg")).toEqual([]);
+  });
 });

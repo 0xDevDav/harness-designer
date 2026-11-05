@@ -272,7 +272,8 @@ async function switchWireUnit(app: AppContext, unit: WireUnit): Promise<void> {
     });
     if (relabel) read = unit;
   }
-  const changes = read ? [] : previewUnitChange(app.doc, unit);
+  // labelling still rounds a table whose heading names the other unit, so that one is warned about
+  const changes = previewUnitChange(app.doc, unit, read);
   if (changes.length) {
     const lines = changes.slice(0, UNIT_WARNING_LINES).map((c) => {
       const pct = Math.round(Math.abs(c.ratio - 1) * 100);
