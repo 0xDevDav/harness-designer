@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0]
+
 ### Added
 
 - **Black wires show in the dark theme.** A wire that is black or nearly so gets
