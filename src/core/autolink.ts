@@ -1,4 +1,5 @@
 import { applyWireDefaults } from "./defaults";
+import { columnUnit, sameSize, sizeAcross, wireUnitOf } from "./wiresize";
 import {
   NOT_CONNECTED_RE,
   cavityTables,
@@ -9,7 +10,7 @@ import {
   writeDest,
 } from "./doc";
 import type { CavityTable } from "./doc";
-import type { HarnessDoc, Table } from "./types";
+import type { HarnessDoc, Table, WireUnit } from "./types";
 
 /**
  * Automatic mutual linking between cavity tables.
@@ -112,18 +113,27 @@ function alignField(
   sourceCol: number | undefined,
   targetCol: number | undefined,
   overwrite: boolean,
+  size?: { from: string | undefined; to: string | undefined; unit: WireUnit },
 ): boolean {
   if (sourceCol === undefined || targetCol === undefined) return false;
   const value = cell(from, sourceCol);
   if (!value) return false;
   const current = cell(to, targetCol);
-  if (current === value) return false;
+  // a size is the same one however each column writes it: "1.5" under
+  // "Section (mm²)" is "1.5 mm²" under "Section"
+  const same = size
+    ? sameSize(value, columnUnit(size.from, size.unit), current, columnUnit(size.to, size.unit))
+    : current === value;
+  if (same) return false;
   // a dash is a cell with nothing in it: it does not hold the other end's value back
   if (current && !overwrite && !NOT_CONNECTED_RE.test(current)) return false;
   padRow(to, targetCol + 1);
-  to[targetCol] = value;
+  to[targetCol] = size ? sizeAcross(value, size.from, size.to, size.unit) : value;
   return true;
 }
+
+const headingOf = (ct: CavityTable, col: number | undefined): string | undefined =>
+  col === undefined ? undefined : ct.table.head?.[col];
 
 /**
  * Applies mutual linking for one row. Mutates the document, so it must be
@@ -146,9 +156,7 @@ export function autoLinkRow(doc: HarnessDoc, tableId: string, rowIndex: number):
   const to = label(dest.connector, dest.cavity);
 
   const target = tables.find((c) => c.owner === dest.connector);
-  if (!target) {
-    return { status: "no-target-table", from, to };
-  }
+  if (!target) return { status: "no-target-table", from, to };
   if (target.table.id === source.table.id) return { status: "no-destination", from, to };
   if (!isAutoLinkEnabled(target.table)) return { status: "target-disabled", from, to };
 
@@ -172,13 +180,16 @@ export function autoLinkRow(doc: HarnessDoc, tableId: string, rowIndex: number):
 
   // link confirmed by both ends: from here on they describe the same wire
   const already = !!existing;
-  if (!already) {
-    writeDest(targetRow, target.cols, { connector: source.owner, cavity });
-  }
+  if (!already) writeDest(targetRow, target.cols, { connector: source.owner, cavity });
 
   const updatedFields: ("color" | "section" | "type")[] = [];
   if (alignField(row, targetRow, source.cols.color, target.cols.color, already)) updatedFields.push("color");
-  if (alignField(row, targetRow, source.cols.section, target.cols.section, already)) {
+  const sizes = {
+    from: headingOf(source, source.cols.section),
+    to: headingOf(target, target.cols.section),
+    unit: wireUnitOf(doc),
+  };
+  if (alignField(row, targetRow, source.cols.section, target.cols.section, already, sizes)) {
     updatedFields.push("section");
   }
   if (alignField(row, targetRow, source.cols.type, target.cols.type, already)) updatedFields.push("type");
@@ -239,8 +250,9 @@ export function applyBirthDefaults(doc: HarnessDoc, tableId: string, rowIndex: n
   const target = dest ? tables.find((c) => c.owner === dest.connector) : undefined;
   const farRow = dest && target?.table.rows.find((r) => cell(r, target.cols.cavity) === dest.cavity);
   applyWireDefaults(
-    { row, cols: source.cols },
-    target && farRow ? { row: farRow, cols: target.cols } : null,
+    { row, cols: source.cols, head: source.table.head },
+    target && farRow ? { row: farRow, cols: target.cols, head: target.table.head } : null,
     doc.defaults,
+    wireUnitOf(doc),
   );
 }

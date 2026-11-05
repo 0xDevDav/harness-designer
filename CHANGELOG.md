@@ -49,24 +49,42 @@ All notable changes to this project are documented here. The format follows
   (and the wire list) with the unit. Text that is not a size is left as typed.
   The unit is saved with the drawing. Editing a Section cell opens the list of
   standard sizes for the unit, each with its equivalent in the other, and
-  _Other size…_ for anything not on it. The scales do not line up, so a
-  conversion rounds to the nearest standard size and going to AWG and back can
+  _Other size…_ for anything not on it. A size picked there, or carried to the
+  other end of the wire, is written the way that table writes its sizes: bare
+  under a heading that names the unit, _1.5 mm²_ or _16 AWG_ under a plain
+  _Section_. The wire list and its CSV follow the same rule for their own
+  Section column, whatever the cavity tables the sizes come from are headed:
+  bare under _mm²_ or _AWG_, with the unit under a plain _Section_, and a size
+  in the other unit keeps its unit. A wire whose one end leaves the size,
+  colour or function empty takes the other end's in the list. A size typed
+  with a decimal comma (_1,5_) comes out with a point there, in a default size
+  written into a new wire, in a size carried to the other end and in the
+  check's _sections disagree_ warning and the question asked when a wire is
+  dropped, which name both sizes with their unit; the warning does not fire
+  when they differ only by the separator, nor for a dash, and it also compares
+  a wire only one end of which names the other. The cell itself keeps what
+  was typed. The scales do not line up, so a conversion rounds to the nearest standard size and going to AWG and back can
   land on a neighbouring size; when any size would change, a window lists each
   one, with how much thinner or thicker the wire becomes and in how many places,
   and asks before anything is written. Only the cavity tables and the wire list
   are touched, a table whose heading names a unit (AWG, mm²) is read in that unit,
   and a drawing whose bare sizes are really gauges (an 18 or a 22 under a plain
-  _Section_) is asked whether to just label them. Choosing the unit the drawing
-  is already in does nothing.
+  _Section_) is asked whether to just label them; a table whose heading names
+  the other unit is still converted then, and the window still lists it.
+  Choosing the unit the drawing is already in does nothing.
 - **Objects no longer lie on top of each other.** Drop a table or a connector on
   the sheet, or a box in the schematic, on top of another and it goes to the
   nearest free place instead, a little way off and on the grid, as part of the
-  same undo step. _Separate overlapping objects_ (in the command palette and the
-  sheet's background menu) clears up drawings that already have objects on top of
-  each other: tables give way to connectors, and only a box somebody placed by
+  same undo step. A table added from _Insert_ or a right-click menu goes to the
+  nearest free place in the same way. _Separate overlapping objects_ (in the
+  command palette and the sheet's background menu) clears up drawings that
+  already have objects on top of each other: tables give way to connectors, and only a box somebody placed by
   hand moves in the schematic. It works on the views on screen only, and a drop
-  whose nearest free place is more than 240 units away stays where it was
-  dropped, with a message, rather than jumping across a long table.
+  whose nearest free place is more than 240 units away stays where it was put,
+  with a message, rather than jumping across a long table. A table added keeps
+  off the branches too and is never left on top of anything: a tall one, such
+  as the wire list, goes to the nearest free place however far it is, with a
+  message, and the view moves to it.
 - **Autosave to the file.** Where the browser can keep a link to a file (Chrome,
   Edge), Open and Save link the drawing to the real file on disk and every edit
   is written to it a moment after it is made, so nothing is lost by forgetting
@@ -137,10 +155,16 @@ All notable changes to this project are documented here. The format follows
 - **Defaults** in the bar: wire size, wire type and wire colour. A wire starts
   from them when it is made, by connecting it in the schematic or by typing a
   destination into an empty cell, and only then: a wire that is already there,
-  or one that is moved, keeps the cells it has, empty ones included. They fill
+  or one that is moved, keeps the cells it has, empty ones included. Two
+  cavities joined through a new splice are two new wires and each starts from
+  them, except a wire that was moved there. They fill
   only what neither end of the wire says anything about, so the two ends never
   disagree, are saved with the drawing, and the size follows a change of unit
-  (the window that warns about rounding lists it).
+  (the window that warns about rounding lists it on a line of its own). The
+  size is written the way the table writes its sizes: the bare number under a
+  heading that names the unit, _1.5 mm²_ or _16 AWG_ under a plain _Section_.
+  The check and the question when a wire is dropped read the two ends' sizes
+  in the unit of each column, so _1.5_ and _1.5 mm²_ are one size.
 
 ### Changed
 
@@ -152,6 +176,11 @@ All notable changes to this project are documented here. The format follows
   _Drawn as_, for a drawing that has neither table and for a connector whose
   table names neither, so a ring or faston end can still be made.
 - The round-connector example plugin no longer adds its own menu entry.
+- Splitting a branch, with _Split branch here_ or for the junction a new splice
+  needs, no longer leaves the whole length on the first piece. The junction is
+  put where it is easy to draw, not where it is on the harness, so both pieces
+  are left without a length and a message gives the one the branch had, to be
+  written again on each.
 
 ## [1.2.0]
 

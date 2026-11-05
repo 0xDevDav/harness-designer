@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isVeryDark } from "@/core/colors";
-import { setDrawingTheme, wireHalo } from "@/render/palette";
+import { setDrawingTheme, wireHalo, withPaper } from "@/render/palette";
 
 describe("black wires on the dark sheet", () => {
   it("tells black and near black from the colours that show up by themselves", () => {
@@ -16,5 +16,12 @@ describe("black wires on the dark sheet", () => {
     expect(wireHalo("red")).toBeNull();
     setDrawingTheme("light");
     expect(wireHalo("#111111")).toBeNull();
+  });
+
+  it("leaves export and print without the outline, even in the dark theme", () => {
+    setDrawingTheme("dark");
+    expect(withPaper(() => wireHalo("#111111"))).toBeNull();
+    expect(wireHalo("#111111")).not.toBeNull();
+    setDrawingTheme("light");
   });
 });

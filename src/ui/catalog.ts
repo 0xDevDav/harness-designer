@@ -26,11 +26,11 @@ import type { CatalogField, CatalogKind, EntryValues, Fitted } from "@/core/cata
 import { cell, deleteEntity, findTable, isCavityTable, ownerName, tableColumns } from "@/core/doc";
 import { catalogTable } from "@/core/factories";
 import { snapTo } from "@/core/geometry";
-import type { Table } from "@/core/types";
+import type { HarnessDoc, Table } from "@/core/types";
 import { symbolsWithRole } from "@/render/connectors";
 import { tableSize } from "@/render/tables";
 import { openDialog } from "./dialogs";
-import { insertTable, viewCenter } from "./insert";
+import { insertTable, placeTable, tellPlacedFar, viewCenter } from "./insert";
 
 /* ============================ the tables themselves ============================ */
 
@@ -320,12 +320,20 @@ function entryForm(
   });
 }
 
+/** A new entry the person has filled in, not yet written into the drawing. */
+interface NewEntry {
+  name: string;
+  values: EntryValues;
+  symbol: string;
+}
+
 /**
- * Asks for a new entry and adds it, creating the catalogue first if the drawing
- * has none. Asks again, with what was typed still in it, until the name is one
- * the table can take. Returns the name, or null if it was given up.
+ * Asks for a new entry, again with what was typed still in it until the name
+ * is one the table can take. Writes nothing, so that the caller can add it in
+ * the same undo step as whatever it was asked for. Returns null if it was given
+ * up.
  */
-export async function createEntry(app: AppContext, kind: CatalogKind): Promise<string | null> {
+async function askEntry(app: AppContext, kind: CatalogKind): Promise<NewEntry | null> {
   let initial: Record<string, string> = {};
   for (;;) {
     const result = await entryForm(app, kind, initial);
@@ -337,21 +345,46 @@ export async function createEntry(app: AppContext, kind: CatalogKind): Promise<s
     } else if (existing && !nameIsFree(existing, name)) {
       app.toast.error(app.t("catalog.nameTaken", { name }));
     } else {
-      app.store.edit((doc) => {
-        let table = catalogOf(doc, kind);
-        if (!table) {
-          table = catalogTable(app.t, kind, 0, 0);
-          const centre = viewCenter(app);
-          table.x = snapTo(centre.x, app.store.snapEnabled);
-          table.y = snapTo(centre.y, app.store.snapEnabled);
-          doc.tables.push(table);
-        }
-        addEntry(table, result.values, result.symbol);
-      }, "catalog-add");
-      return name;
+      return { name, ...result };
     }
     initial = { ...result.values, symbol: result.symbol };
   }
+}
+
+/**
+ * Adds an entry, creating the catalogue first if the drawing has none. Inside a
+ * store edit. Returns true when the new catalogue had to go far off to find room.
+ */
+function putEntry(app: AppContext, doc: HarnessDoc, kind: CatalogKind, entry: NewEntry): boolean {
+  let table = catalogOf(doc, kind);
+  let far = false;
+  if (!table) {
+    table = catalogTable(app.t, kind, 0, 0);
+    const centre = viewCenter(app);
+    table.x = snapTo(centre.x, app.store.snapEnabled);
+    table.y = snapTo(centre.y, app.store.snapEnabled);
+    far = placeTable(app, doc, table);
+  }
+  addEntry(table, entry.values, entry.symbol);
+  return far;
+}
+
+// the view stays on the connector being given a housing or a termination
+const sayIfFar = (app: AppContext, far: boolean, kind: CatalogKind): void => {
+  const table = far ? catalogOf(app.doc, kind) : undefined;
+  if (table) tellPlacedFar(app, table.id, false);
+};
+
+/** Asks for a new entry and adds it. Returns the name, or null if it was given up. */
+export async function createEntry(app: AppContext, kind: CatalogKind): Promise<string | null> {
+  const entry = await askEntry(app, kind);
+  if (!entry) return null;
+  let far = false;
+  app.store.edit((doc) => {
+    far = putEntry(app, doc, kind, entry);
+  }, "catalog-add");
+  sayIfFar(app, far, kind);
+  return entry.name;
 }
 
 /* ============================ assigning ============================ */
@@ -372,18 +405,23 @@ export async function assignHousing(app: AppContext, tableId: string): Promise<v
   );
   if (!choice) return;
   let name: string | null = null;
+  let entry: NewEntry | null = null;
   if (choice.type === "pick") name = choice.key;
   if (choice.type === "new") {
-    name = await createEntry(app, "housings");
-    if (name === null) return;
+    // made and given in one undo step
+    entry = await askEntry(app, "housings");
+    if (!entry) return;
+    name = entry.name;
   }
   // The table is made as long as the housing has cavities: longer, it grows;
   // shorter, it loses only the empty rows at its end.
   let fitted: Fitted = { added: 0, removed: 0, over: 0 };
   let cavities = 0;
+  let far = false;
   app.store.edit((doc) => {
     const target = findTable(doc, tableId);
     if (!target) return;
+    if (entry) far = putEntry(app, doc, "housings", entry);
     if (name === null) {
       delete target.housing;
       return;
@@ -392,6 +430,7 @@ export async function assignHousing(app: AppContext, tableId: string): Promise<v
     cavities = housingCavities(doc, name) ?? 0;
     if (cavities) fitted = fitCavityRows(target, cavities);
   }, "housing");
+  sayIfFar(app, far, "housings");
   const who = nameOf(app, table);
   if (fitted.added) app.toast.show(app.t("toast.cavitiesAdded", { n: fitted.added }));
   else if (fitted.removed) app.toast.show(app.t("toast.cavitiesRemoved", { n: fitted.removed }));
@@ -416,19 +455,24 @@ export async function assignTermination(app: AppContext, tableId: string, row: n
   );
   if (!choice) return;
   let name = "";
+  let entry: NewEntry | null = null;
   if (choice.type === "pick") name = choice.key;
   if (choice.type === "new") {
-    const made = await createEntry(app, "terminations");
-    if (made === null) return;
-    name = made;
+    // made and given in one undo step
+    entry = await askEntry(app, "terminations");
+    if (!entry) return;
+    name = entry.name;
   }
+  let far = false;
   app.store.edit((doc) => {
+    if (entry) far = putEntry(app, doc, "terminations", entry);
     const target = findTable(doc, tableId);
     const cells = target?.rows[row];
     if (!cells) return;
     while (cells.length <= col) cells.push("");
     cells[col] = name;
   }, "termination");
+  sayIfFar(app, far, "terminations");
 }
 
 /** Gives a cavity table the column its terminations are picked in, after the wire's colour and size. */

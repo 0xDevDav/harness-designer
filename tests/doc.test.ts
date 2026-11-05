@@ -383,6 +383,14 @@ describe("splitSegment", () => {
     expect(inlineOf(doc, "sulTaglio").t).toBe(0.95);
   });
 
+  it("shares out no length: neither stretch keeps the one the branch had", () => {
+    const doc = twoNodeDoc();
+    const seg = findSegment(doc, "s1")!;
+    seg.len = "500 mm";
+    splitSegment(doc, seg, 0.5);
+    expect(doc.segments.map((s) => s.len)).toEqual(["", ""]);
+  });
+
   it("keeps the labels within the allowed bounds", () => {
     const doc = twoNodeDoc();
     addInline(doc, "s1", 0.9, "estrema");

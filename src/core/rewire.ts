@@ -17,7 +17,8 @@ import {
 import type { CavityTable } from "./doc";
 import { uid } from "./ids";
 import { findPath, namedNodes, pathNodes } from "./routing";
-import type { HarnessDoc, HNode } from "./types";
+import type { HarnessDoc, HNode, WireUnit } from "./types";
+import { columnUnit, sameSize, sizeAcross, sizeForCell, wireUnitOf } from "./wiresize";
 
 /**
  * Connecting and re-connecting wires.
@@ -140,14 +141,27 @@ function clearEnd(f: Found, keepDetails = false): void {
   }
 }
 
+/** The heading of a row's Section column, which says what unit a bare size there is in. */
+const sizeHeading = (f: Found | null): string | undefined => {
+  const col = f?.ct.cols.section;
+  return col === undefined ? undefined : f?.ct.table.head?.[col];
+};
+
+/**
+ * A wire detail as `f`'s table writes it, read from the row it comes from: a
+ * size goes from the way one column writes it to the way the other does.
+ */
+const carried = (f: Found, prop: Prop, { value, from }: Detail, unit: WireUnit): string =>
+  prop === "section" ? sizeAcross(value, sizeHeading(from), sizeHeading(f), unit) : value;
+
 /** Gives the loser the details the winner has, wherever the winner has one. */
-function adopt(winner: Found, loser: Found): void {
+function adopt(winner: Found, loser: Found, unit: WireUnit): void {
   for (const prop of PROPS) {
     const to = loser.ct.cols[prop];
     const value = cell(winner.row, winner.ct.cols[prop]);
     if (to === undefined || isBlank(value)) continue;
     while (loser.row.length <= to) loser.row.push("");
-    loser.row[to] = value;
+    loser.row[to] = carried(loser, prop, { value, from: winner }, unit);
   }
 }
 
@@ -193,18 +207,31 @@ function endsOfOp(op: WireOp): { kept: End | null; old: End | null } {
   return { kept: parseEnd(op.ends[op.moving === 0 ? 1 : 0]), old: parseEnd(op.ends[op.moving]) };
 }
 
+/** One of the wire's details, and the row it was read from. */
+interface Detail {
+  value: string;
+  from: Found | null;
+}
+
 /** The colour and size the wire has: those of the end that stays, or of the one it leaves if that has none. */
-function wireDetails(tables: readonly CavityTable[], kept: End, old: End | null): Record<Prop, string> {
+function wireDetails(tables: readonly CavityTable[], kept: End, old: End | null): Record<Prop, Detail> {
   const fk = rowOf(tables, kept);
   const fo = old ? rowOf(tables, old) : null;
-  const out = {} as Record<Prop, string>;
+  const out = {} as Record<Prop, Detail>;
   for (const prop of PROPS) {
     const own = fk ? cell(fk.row, fk.ct.cols[prop]) : "";
     const left = fo ? cell(fo.row, fo.ct.cols[prop]) : "";
-    out[prop] = isBlank(own) ? (isBlank(left) ? "" : left) : own;
+    out[prop] = !isBlank(own)
+      ? { value: own, from: fk }
+      : !isBlank(left)
+        ? { value: left, from: fo }
+        : { value: "", from: null };
   }
   return out;
 }
+
+/** The unit a bare size in a row's Section column is in. */
+const sizeUnitOf = (f: Found | null, unit: WireUnit): WireUnit => columnUnit(sizeHeading(f), unit);
 
 /**
  * What the wire and the cavity it is dropped on disagree about, or null when
@@ -220,35 +247,45 @@ export function detailsConflict(doc: HarnessDoc, op: WireOp, to: string): Detail
   if (!ft) return null;
   const mine = wireDetails(tables, kept, old);
   const fk = rowOf(tables, kept) ?? (old ? rowOf(tables, old) : null);
+  const unit = wireUnitOf(doc);
   const differences: DetailDifference[] = [];
   for (const prop of PROPS) {
     const col = ft.ct.cols[prop];
     const theirs = cell(ft.row, col);
-    if (isBlank(mine[prop]) || isBlank(theirs) || sameDetail(prop, mine[prop], theirs)) continue;
+    const { value, from } = mine[prop];
+    if (isBlank(value) || isBlank(theirs)) continue;
+    const same =
+      prop === "section"
+        ? sameSize(value, sizeUnitOf(from, unit), theirs, sizeUnitOf(ft, unit))
+        : sameDetail(prop, value, theirs);
+    if (same) continue;
     const heading = fk?.ct.cols[prop] === undefined ? undefined : fk.ct.table.head?.[fk.ct.cols[prop]];
+    // two sizes are shown each with its unit and a point, as the check shows them
+    const shown = (text: string, f: Found | null): string =>
+      prop === "section" ? sizeForCell(text, sizeUnitOf(f, unit), undefined) : text;
     differences.push({
       label: heading ?? ft.ct.table.head?.[col ?? 0] ?? prop,
-      start: mine[prop],
-      target: theirs,
+      start: shown(value, from),
+      target: shown(theirs, ft),
     });
   }
   return differences.length ? { start: endLabel(kept), target: endLabel(target), differences } : null;
 }
 
 /** Puts a wire property in a row that has nothing there yet, a dash included. */
-function fill(f: Found, prop: Prop, value: string): void {
+function fill(f: Found, prop: Prop, detail: Detail, unit: WireUnit): void {
   const col = f.ct.cols[prop];
-  if (col === undefined || !value || !isBlank(cell(f.row, col))) return;
+  if (col === undefined || !detail.value || !isBlank(cell(f.row, col))) return;
   while (f.row.length <= col) f.row.push("");
-  f.row[col] = value;
+  f.row[col] = carried(f, prop, detail, unit);
 }
 
 /** Puts a wire property in a row, over whatever it said; a value with nothing in it changes nothing. */
-function overwrite(f: Found, prop: Prop, value: string): void {
+function overwrite(f: Found, prop: Prop, detail: Detail, unit: WireUnit): void {
   const col = f.ct.cols[prop];
-  if (col === undefined || isBlank(value)) return;
+  if (col === undefined || isBlank(detail.value)) return;
   while (f.row.length <= col) f.row.push("");
-  f.row[col] = value;
+  f.row[col] = carried(f, prop, detail, unit);
 }
 
 /** A row that already has a wire, to somewhere other than `other`. */
@@ -303,8 +340,6 @@ export function connectEnds(doc: HarnessDoc, from: string, to: string, prefer?: 
   const row = rowOrNew(tables, near);
   if (!row) return { ok: false, reason: "no-table" };
   writeEnd(row, far);
-  // a new wire starts from the defaults, even when the far end is a splice
-  // with no table to take them from this row
   autoLinkRow(doc, row.ct.table.id, row.index);
   // a wire made here is a new wire: it starts from the defaults, at both ends
   applyBirthDefaults(doc, row.ct.table.id, row.index);
@@ -318,8 +353,9 @@ function settle(doc: HarnessDoc, start: End, target: End, prefer: Prefer): void 
   const fs = rowOf(tables, start);
   const ft = rowOf(tables, target);
   if (!fs || !ft) return;
-  if (prefer === "start") adopt(fs, ft);
-  else adopt(ft, fs);
+  const unit = wireUnitOf(doc);
+  if (prefer === "start") adopt(fs, ft, unit);
+  else adopt(ft, fs, unit);
 }
 
 /**
@@ -426,22 +462,18 @@ export function moveWireEnd(
   if (!fk && !hasTable(tables, target)) return { ok: false, reason: "no-table" };
 
   const fo = rowOf(tables, old);
-  const props = {} as Record<Prop, string>;
-  for (const prop of PROPS) {
-    const own = fk ? cell(fk.row, fk.ct.cols[prop]) : "";
-    const left = fo ? cell(fo.row, fo.ct.cols[prop]) : "";
-    props[prop] = isBlank(own) ? (isBlank(left) ? "" : left) : own;
-  }
+  const props = wireDetails(tables, kept, old);
+  const unit = wireUnitOf(doc);
 
   if (fo) clearEnd(fo);
 
   if (fk) {
     writeEnd(fk, target);
-    for (const prop of PROPS) fill(fk, prop, props[prop]);
+    for (const prop of PROPS) fill(fk, prop, props[prop], unit);
     autoLinkRow(doc, fk.ct.table.id, fk.index);
     // the far end fills in by linking, which leaves a dash where one was typed
     const far = rowOf(cavityTables(doc), target);
-    if (far) for (const prop of PROPS) fill(far, prop, props[prop]);
+    if (far) for (const prop of PROPS) fill(far, prop, props[prop], unit);
   } else {
     const row = rowOrNew(tables, target);
     if (!row) return { ok: false, reason: "no-table" };
@@ -449,8 +481,8 @@ export function moveWireEnd(
     // the end that stays is a splice, which has no row: its side of the question is
     // the wire's own details, those of the cavity being left, which the window showed
     for (const prop of PROPS) {
-      if (prefer === "start") overwrite(row, prop, props[prop]);
-      else fill(row, prop, props[prop]);
+      if (prefer === "start") overwrite(row, prop, props[prop], unit);
+      else fill(row, prop, props[prop], unit);
     }
   }
   if (prefer) settle(doc, kept, target, prefer);
@@ -462,13 +494,15 @@ export function moveWireEnd(
  * the two: the cavity that stays and the one the wire is dropped on each keep
  * their own colour and size and each send a wire to the splice. The splice is
  * put on the sheet where it is on the way, at the nearest junction between
- * the two connectors, so that both wires can be followed to it.
+ * the two connectors, so that both wires can be followed to it. When a branch
+ * had to be split for that junction, `split` is the length it had, which the
+ * split leaves for the person to write again on each half.
  */
 export function connectViaSplice(
   doc: HarnessDoc,
   op: WireOp,
   to: string,
-): RewireOutcome & { splice?: string } {
+): RewireOutcome & { splice?: string; split?: string } {
   const { kept, old } = endsOfOp(op);
   const target = parseEnd(to);
   if (!kept?.cavity || !target?.cavity || (op.kind === "move" && !old))
@@ -486,11 +520,15 @@ export function connectViaSplice(
   if (taken) return { ok: false, reason: "occupied", other: taken };
 
   const fo = old ? rowOf(tables, old) : null;
-  const splice = addSpliceBetween(doc, kept.connector, target.connector);
+  const { name: splice, split } = addSpliceBetween(doc, kept.connector, target.connector);
   if (fo) clearEnd(fo);
   writeEnd(fk, { connector: splice });
   writeEnd(ft, { connector: splice });
-  return { ok: true, splice };
+  // the wire to the cavity dropped on is new, and so is the other one unless it
+  // is a wire being moved, which keeps the cells it has as any moved wire does
+  applyBirthDefaults(doc, ft.ct.table.id, ft.index);
+  if (op.kind === "new") applyBirthDefaults(doc, fk.ct.table.id, fk.index);
+  return split ? { ok: true, splice, split } : { ok: true, splice };
 }
 
 /**
@@ -498,19 +536,25 @@ export function connectViaSplice(
  * leaf off the first junction the bundle passes through, or off a junction put
  * in the middle of the first branch when it passes through none. When the two
  * connectors are not joined at all it is put by the first one and left for
- * the check to say that no branch reaches it.
+ * the check to say that no branch reaches it. Returns the splice's name, and
+ * the length of the branch it split, if it split one that had a length.
  */
-function addSpliceBetween(doc: HarnessDoc, from: string, to: string): string {
+function addSpliceBetween(doc: HarnessDoc, from: string, to: string): { name: string; split?: string } {
   const names = namedNodes(doc);
   const a = names.get(from);
   const b = names.get(to);
   let anchor: HNode | undefined;
+  let split = "";
   const path = a && b ? findPath(doc, a.id, b.id) : null;
   if (a && path?.length) {
     const along = pathNodes(doc, a.id, path).slice(1, -1);
     anchor = along.map((id) => findNode(doc, id)).find((n) => n?.kind === "junction");
     const first = findSegment(doc, path[0] ?? "");
-    if (!anchor && first) anchor = splitSegment(doc, first, 0.5) ?? undefined;
+    if (!anchor && first) {
+      const len = first.len.trim();
+      anchor = splitSegment(doc, first, 0.5) ?? undefined;
+      if (anchor) split = len;
+    }
   }
   const at = anchor ?? a;
   const name = nextName(doc, "S");
@@ -525,5 +569,5 @@ function addSpliceBetween(doc: HarnessDoc, from: string, to: string): string {
   };
   doc.nodes.push(node);
   if (anchor) connectNodes(doc, anchor.id, node.id);
-  return name;
+  return split ? { name, split } : { name };
 }

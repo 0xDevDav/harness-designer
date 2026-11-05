@@ -7,6 +7,8 @@ import {
   parseSize,
   previewUnitChange,
   setWireUnit,
+  sizeAcross,
+  sizeChoices,
   sizesAlreadyIn,
   sizesFor,
   unitLabel,
@@ -81,6 +83,12 @@ describe("parseSize", () => {
     expect(parseSize("1.5mm2", "awg")).toMatchObject({ unit: "mm2" });
     expect(parseSize("16 AWG", "mm2")).toMatchObject({ unit: "awg", figure: "16" });
     expect(parseSize("AWG 16", "mm2")).toMatchObject({ unit: "awg", figure: "16" });
+  });
+
+  it("gives the number back with a point for a decimal comma", () => {
+    expect(parseSize("1,5", "mm2")).toMatchObject({ figure: "1.5" });
+    expect(parseSize("0,75 mm²", "awg")).toMatchObject({ unit: "mm2", figure: "0.75" });
+    expect(parseSize("1,5", "mm2")?.area).toBe(parseSize("1.5", "mm2")?.area);
   });
 
   it("reads 1/0 as a gauge whatever the drawing is in", () => {
@@ -199,6 +207,17 @@ describe("setWireUnit", () => {
     expect(sections(doc)).toEqual(["18"]);
   });
 
+  it("writes a point when it tidies a unit away, and leaves a bare number with a comma as typed", () => {
+    const doc = docWith(
+      table("t", HEAD, [
+        ["1", "B.1", "Red", "1,5 mm²"],
+        ["2", "B.2", "Red", "2,5"],
+      ]),
+    );
+    setWireUnit(doc, "mm2");
+    expect(sections(doc)).toEqual(["1.5", "2,5"]);
+  });
+
   it("keeps the table readable by the rest of the application", () => {
     const doc = docWith(table("t", HEAD, [["1", "B.1", "Red", "1.5"]]));
     setWireUnit(doc, "awg");
@@ -267,6 +286,16 @@ describe("previewUnitChange", () => {
     expect(doc.wireUnit).toBeUndefined();
   });
 
+  it("counts a size typed with a comma together with the same size typed with a point", () => {
+    const doc = docWith(
+      table("t", HEAD, [
+        ["1", "B.1", "Red", "1,5"],
+        ["2", "B.2", "Red", "1.5"],
+      ]),
+    );
+    expect(previewUnitChange(doc, "awg").map((c) => [c.from, c.count])).toEqual([["1.5 mm²", 2]]);
+  });
+
   it("shows the rounding that a round trip would do", () => {
     const doc = docWith(table("t", HEAD, [["1", "B.1", "Red", "1"]]));
     const there = previewUnitChange(doc, "awg");
@@ -276,14 +305,23 @@ describe("previewUnitChange", () => {
     expect(back.map((c) => [c.from, c.to])).toEqual([["18 AWG", "0.75 mm²"]]);
   });
 
-  it("lists the size a new wire starts from, which is rounded with the rest", () => {
-    const doc = docWith(table("t", HEAD, [["1", "B.1", "Red", "2.5"]]));
+  it("lists the size a new wire starts from on a line of its own, first", () => {
+    const doc = docWith(
+      table("t", HEAD, [
+        ["1", "B.1", "Red", "2.5"],
+        ["2", "B.2", "Blue", "0.5"],
+      ]),
+    );
     doc.defaults = { color: "", size: "2.5", type: "" };
     const changes = previewUnitChange(doc, "awg");
-    expect(changes.map((c) => [c.from, c.to, c.count])).toEqual([["2.5 mm²", "14 AWG", 2]]);
+    expect(changes.map((c) => [c.from, c.to, c.count, c.isDefault ?? false])).toEqual([
+      ["2.5 mm²", "14 AWG", 1, true],
+      ["2.5 mm²", "14 AWG", 1, false],
+      ["0.5 mm²", "20 AWG", 1, false],
+    ]);
     // and a default alone is listed too
     doc.tables[0]!.rows = [];
-    expect(previewUnitChange(doc, "awg").map((c) => c.count)).toEqual([1]);
+    expect(previewUnitChange(doc, "awg").map((c) => [c.count, c.isDefault])).toEqual([[1, true]]);
   });
 
   it("is empty when there is nothing to change", () => {
@@ -402,5 +440,67 @@ describe("sizesAlreadyIn", () => {
     expect(doc.tables[0]?.rows[0]?.[3]).toBe("18");
     expect(doc.tables[0]?.head?.[3]).toBe("AWG");
     expect(doc.wireUnit).toBe("awg");
+  });
+
+  it("still lists a table headed in the other unit when the rest is only labelled", () => {
+    const doc = docWith(
+      table("mm", ["Cavity", "To", "Colour", "Section (mm²)"], [["1", "B.1", "Red", "2.5"]]),
+      table("plain", HEAD, [["1", "C.1", "Blue", "18"]]),
+    );
+    expect(sizesAlreadyIn(doc, "awg")).toEqual(["18"]);
+    // labelling reads the plain 18 as a gauge, but the 2.5 under mm² is still rounded
+    expect(previewUnitChange(doc, "awg", "awg").map((c) => [c.from, c.to])).toEqual([["2.5 mm²", "14 AWG"]]);
+    setWireUnit(doc, "awg", "awg");
+    expect(doc.tables[0]?.rows[0]?.[3]).toBe("14");
+    expect(doc.tables[1]?.rows[0]?.[3]).toBe("18");
+  });
+
+  it("lists nothing when labelling leaves every size as it is", () => {
+    const doc = docWith(table("t", HEAD, [["1", "B.1", "Red", "18"]]));
+    expect(previewUnitChange(doc, "awg", "awg")).toEqual([]);
+  });
+});
+
+describe("the sizes a Section cell is picked from", () => {
+  const value = (unit: "mm2" | "awg", heading: string, label: string): string | undefined =>
+    sizeChoices(unit, heading).find((c) => c.label.startsWith(`${label} `))?.value;
+
+  it("are written with the unit under a plain Section, as the other cells there are", () => {
+    expect(value("mm2", "Sezione", "1.5")).toBe("1.5 mm²");
+    expect(value("awg", "Section", "16")).toBe("16 AWG");
+  });
+
+  it("are written bare under a heading that names the unit, never with it twice", () => {
+    expect(value("mm2", "Sezione (mm²)", "1.5")).toBe("1.5");
+    expect(value("mm2", "mm²", "1.5")).toBe("1.5");
+    expect(value("awg", "AWG", "16")).toBe("16");
+  });
+
+  it("say their unit under a heading that names the other one", () => {
+    expect(value("mm2", "AWG", "1.5")).toBe("1.5 mm²");
+  });
+
+  it("still read in the drawing's unit and show the other one beside it", () => {
+    const choice = sizeChoices("mm2", "Sezione").find((c) => c.label === "1.5 mm²");
+    expect(choice?.note).toBe("≈ 16 AWG");
+  });
+});
+
+describe("a size carried to the other end of a wire", () => {
+  it("is written the way the column it goes to writes its sizes", () => {
+    expect(sizeAcross("1.5", "Section (mm²)", "Section", "mm2")).toBe("1.5 mm²");
+    expect(sizeAcross("1.5 mm²", "Section", "Section (mm²)", "mm2")).toBe("1.5");
+    expect(sizeAcross("16", "AWG", "Section", "mm2")).toBe("16 AWG");
+  });
+
+  it("is written with a point when it goes to a column headed otherwise", () => {
+    expect(sizeAcross("1,5", "Section (mm²)", "Section", "mm2")).toBe("1.5 mm²");
+    expect(sizeAcross("1,5 mm²", "Section", "Section (mm²)", "mm2")).toBe("1.5");
+  });
+
+  it("is written the way the column writes it between two columns headed alike too", () => {
+    expect(sizeAcross("1,5", "Section", "Sezione", "mm2")).toBe("1.5 mm²");
+    expect(sizeAcross("0,75", "Section (mm²)", "mm²", "mm2")).toBe("0.75");
+    expect(sizeAcross("2x0,5 shielded", "Section", "Section", "mm2")).toBe("2x0,5 shielded");
   });
 });

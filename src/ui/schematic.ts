@@ -250,7 +250,7 @@ export function attachSchematicInteraction(opts: SchematicInteractionOptions): (
 
   /** Writes the wire into the tables, and says what came of it. */
   const commitWire = (op: WireOp, to: string, choice?: Prefer | "splice"): void => {
-    let outcome = { ok: false, reason: "no-end" } as RewireOutcome & { splice?: string };
+    let outcome = { ok: false, reason: "no-end" } as RewireOutcome & { splice?: string; split?: string };
     const prefer = choice === "splice" ? undefined : choice;
     store.edit((doc) => {
       if (choice === "splice") outcome = connectViaSplice(doc, op, to);
@@ -268,6 +268,7 @@ export function attachSchematicInteraction(opts: SchematicInteractionOptions): (
     if (outcome.splice) {
       focusWire(null);
       opts.notify?.(t("toast.rewire.splice", { from: kept, to, splice: outcome.splice }), "info");
+      if (outcome.split) opts.notify?.(t("toast.branchSplit", { len: outcome.split }), "info");
       return;
     }
     const made = schematic

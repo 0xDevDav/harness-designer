@@ -272,11 +272,13 @@ async function switchWireUnit(app: AppContext, unit: WireUnit): Promise<void> {
     });
     if (relabel) read = unit;
   }
-  const changes = read ? [] : previewUnitChange(app.doc, unit);
+  // labelling still rounds a table whose heading names the other unit, so that one is warned about
+  const changes = previewUnitChange(app.doc, unit, read);
   if (changes.length) {
     const lines = changes.slice(0, UNIT_WARNING_LINES).map((c) => {
       const pct = Math.round(Math.abs(c.ratio - 1) * 100);
       const how = c.ratio < 1 ? t("dialog.unit.thinner", { pct }) : t("dialog.unit.thicker", { pct });
+      if (c.isDefault) return t("dialog.unit.default", { from: c.from, to: c.to, how });
       return `• ${c.from} → ${c.to}: ${how} (×${c.count})`;
     });
     if (changes.length > UNIT_WARNING_LINES) {
@@ -440,7 +442,7 @@ export function registerBuiltinCommands(app: AppContext): void {
       run: (a) => {
         const clip = copySelection(a.doc, a.store.selected());
         if (isEmptyClipping(clip)) {
-          // the only thing that refuses to be copied is the title block
+          // the title block and the two catalogues are one to a drawing: they are not copied
           a.toast.error(a.t("toast.copyRefused"));
           return;
         }

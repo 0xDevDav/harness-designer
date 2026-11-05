@@ -80,7 +80,7 @@ export function nearestSize(area: number, unit: WireUnit): WireSize {
 
 /** What a cell says, read as a wire size. */
 export interface ParsedSize {
-  /** the number as it was typed, without any unit */
+  /** the number without any unit, with a point for a decimal comma: "1,5" reads "1.5" */
   figure: string;
   /** the unit the cell names itself, if it does */
   unit?: WireUnit;
@@ -92,15 +92,18 @@ const AUGHT = /^(\d)\/0$/;
 /**
  * Reads "1.5", "0,75 mm²", "18 AWG", "AWG 16", "1/0". `fallback` is the unit a
  * bare number is in. Anything else ("2x0.5 shielded", "see note") is not a size
- * and gives null, so it is never rewritten.
+ * and gives null, so it is never rewritten. A decimal comma comes back as a
+ * point, so a size the application writes, lists or reports reads the same
+ * whichever of the two it was typed with.
  */
 export function parseSize(text: string, fallback: WireUnit): ParsedSize | null {
   const s = text.trim().toLowerCase().replace(/\s+/g, " ");
   const m =
     /^(?<n>\d+(?:[.,]\d+)?|\d\/0)(?: ?(?<u>mm ?[²2]|sq ?mm|awg|ga|gauge))?$/.exec(s) ??
     /^(?<u>awg|ga|gauge) ?(?<n>\d+|\d\/0)$/.exec(s);
-  const figure = m?.groups?.["n"];
-  if (!figure) return null;
+  const typed = m?.groups?.["n"];
+  if (!typed) return null;
+  const figure = typed.replace(",", ".");
 
   const named = m.groups?.["u"];
   // "1/0" only exists as a gauge, whatever unit the drawing is in
@@ -115,11 +118,11 @@ export function parseSize(text: string, fallback: WireUnit): ParsedSize | null {
   const withUnit = unit ? { unit } : {};
 
   if ((unit ?? fallback) === "awg") {
-    const n = aught ? 1 - Number(aught[1]) : Number(figure.replace(",", "."));
+    const n = aught ? 1 - Number(aught[1]) : Number(figure);
     if (!Number.isInteger(n) || n > 40) return null;
     return { figure, ...withUnit, area: awgArea(n) };
   }
-  const area = Number(figure.replace(",", "."));
+  const area = Number(figure);
   if (!(area > 0)) return null;
   return { figure, ...withUnit, area };
 }
@@ -145,6 +148,73 @@ function headingUnit(heading: string | undefined): WireUnit | undefined {
   if (/awg|gauge/.test(h)) return "awg";
   if (/mm/.test(h)) return "mm2";
   return undefined;
+}
+
+/** The unit a bare number in a Section column is in: the one its heading names, else the drawing's. */
+export const columnUnit = (heading: string | undefined, drawing: WireUnit): WireUnit =>
+  headingUnit(heading) ?? drawing;
+
+/**
+ * A size as it is written in a cell under `heading`. A heading that names the
+ * unit says it for the whole column, so the number goes in bare, the way
+ * `setWireUnit` leaves it; under a plain "Section" every cell names its own.
+ * `unit` is the drawing's, the one a bare `text` is in. Anything that is not a
+ * size goes in as it is.
+ */
+export function sizeForCell(text: string, unit: WireUnit, heading: string | undefined): string {
+  const size = parseSize(text, unit);
+  if (!size) return text;
+  const own = size.unit ?? unit;
+  return headingUnit(heading) === own ? size.figure : `${size.figure} ${unitLabel(own)}`;
+}
+
+/**
+ * A size carried from one Section column to another, the other end of the same
+ * wire: read in the unit of the column it comes from and written the way the
+ * column it goes to writes its sizes, as anything else the application writes
+ * in a cell: "0,75" goes across as "0.75 mm²" under "Section", "0.75" under
+ * "Section (mm²)". The cell it comes from keeps what was typed in it. `unit`
+ * is the drawing's.
+ */
+export function sizeAcross(
+  text: string,
+  from: string | undefined,
+  to: string | undefined,
+  unit: WireUnit,
+): string {
+  return sizeForCell(text, columnUnit(from, unit), to);
+}
+
+/**
+ * The sizes a Section cell is picked from, those of the drawing's unit, each
+ * written the way the cell's column writes its sizes and showing what it comes
+ * to in the other unit, because the point of having both is to read across.
+ */
+export function sizeChoices(
+  unit: WireUnit,
+  heading: string | undefined,
+): { value: string; label: string; note: string }[] {
+  const other = unit === "awg" ? "mm2" : "awg";
+  return sizesFor(unit).map((size) => ({
+    value: sizeForCell(size.label, unit, heading),
+    label: `${size.label} ${unitLabel(unit)}`,
+    note: `≈ ${nearestSize(size.area, other).label} ${unitLabel(other)}`,
+  }));
+}
+
+/**
+ * Whether two cells name the same size, each read in the unit of its own
+ * column: "1.5" under "Section (mm²)" and "1.5 mm²" under "Section" are one
+ * wire. Cells that are not sizes are compared as text.
+ */
+export function sameSize(a: string, aUnit: WireUnit, b: string, bUnit: WireUnit): boolean {
+  const sa = parseSize(a, aUnit);
+  const sb = parseSize(b, bUnit);
+  if (!sa || !sb) {
+    const plain = (v: string): string => v.toLowerCase().replace(/\s+/g, "").replace(/,/g, ".");
+    return plain(a) === plain(b);
+  }
+  return (sa.unit ?? aUnit) === (sb.unit ?? bUnit) && sa.area === sb.area;
 }
 
 /** The headings of a wire list, in the two languages the application is written in. */
@@ -233,6 +303,8 @@ export interface SizeChange {
   count: number;
   /** copper of the result over copper of the original: 0.83 is a wire 17 % thinner */
   ratio: number;
+  /** the size a new wire starts from, which is in no cell */
+  isDefault?: true;
 }
 
 /** A conversion that moves the copper by less than this is the same wire for anyone's purposes. */
@@ -244,23 +316,30 @@ const SAME_WIRE = 0.01;
  * line up (2.5 mm² is between 14 and 12 AWG), so a conversion is a rounding,
  * and a wire that comes out thinner than it was drawn is something to be told
  * about before it happens, not after. Sizes that come out within 1 % of what
- * they were are left out: they are the same wire.
+ * they were are left out: they are the same wire. `read` is the unit the bare
+ * numbers are taken to be in, as in `setWireUnit`: when the person says they
+ * are already in `unit`, only the tables whose heading names the other unit
+ * are left to round.
  */
-export function previewUnitChange(doc: HarnessDoc, unit: WireUnit): SizeChange[] {
-  const current = wireUnitOf(doc);
+export function previewUnitChange(doc: HarnessDoc, unit: WireUnit, read?: WireUnit): SizeChange[] {
+  const current = read ?? wireUnitOf(doc);
   const groups = new Map<string, SizeChange>();
-  const note = (text: string, from: WireUnit): void => {
+  const changeOf = (text: string, from: WireUnit): SizeChange | null => {
     const size = parseSize(text, from);
-    if (!size || (size.unit ?? from) === unit) return;
+    if (!size || (size.unit ?? from) === unit) return null;
     const target = nearestSize(size.area, unit);
     const ratio = target.area / size.area;
-    if (Math.abs(ratio - 1) < SAME_WIRE) return;
-    const change: SizeChange = {
+    if (Math.abs(ratio - 1) < SAME_WIRE) return null;
+    return {
       from: `${size.figure} ${unitLabel(size.unit ?? from)}`,
       to: `${target.label} ${unitLabel(unit)}`,
       count: 1,
       ratio,
     };
+  };
+  const note = (text: string, from: WireUnit): void => {
+    const change = changeOf(text, from);
+    if (!change) return;
     const key = `${change.from}>${change.to}`;
     const seen = groups.get(key);
     if (seen) seen.count++;
@@ -272,9 +351,11 @@ export function previewUnitChange(doc: HarnessDoc, unit: WireUnit): SizeChange[]
     const from = headingUnit(table.head[col]) ?? current;
     for (const row of table.rows) note(row[col] ?? "", from);
   }
-  // the size a new wire starts from is rounded like the others, so the window lists it too
-  if (doc.defaults?.size) note(doc.defaults.size, current);
-  return [...groups.values()].sort((a, b) => a.ratio - b.ratio || a.from.localeCompare(b.from));
+  const changes = [...groups.values()].sort((a, b) => a.ratio - b.ratio || a.from.localeCompare(b.from));
+  // the size a new wire starts from is rounded like the others; on a line of its own, first,
+  // since folded into the count of the cells that share it nobody would notice it
+  const kept = doc.defaults?.size ? changeOf(doc.defaults.size, current) : null;
+  return kept ? [{ ...kept, isDefault: true }, ...changes] : changes;
 }
 
 /** The heading a new table's Section column gets: the unit if the drawing has one, else the plain word. */
@@ -299,8 +380,7 @@ export function sizesAlreadyIn(doc: HarnessDoc, unit: WireUnit): string[] {
   if (doc.wireUnit) return [];
   const current = wireUnitOf(doc);
   if (current === unit) return [];
-  const standard = (u: WireUnit, figure: string): boolean =>
-    SIZES[u].some((size) => size.label === figure.replace(",", "."));
+  const standard = (u: WireUnit, figure: string): boolean => SIZES[u].some((size) => size.label === figure);
   const found = new Set<string>();
   for (const table of doc.tables) {
     const col = sizeColumn(table);
