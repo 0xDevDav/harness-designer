@@ -593,7 +593,7 @@ export const en = {
   "toast.pluginFailed": "Plugin “{name}” failed to load: {error}",
   "toast.titleTaken": "Another table already has that name",
   "toast.titleUnlinked":
-    "This is the table of {name}: its title has to start with that name. Rename the connector to rename both.",
+    "This is the table of {name}: its title has to start with that name. Rename the connector to rename both. If the table belongs to another connector, pick it with Link to a connector… in the table's right-click menu.",
   "toast.offlineReady": "Application available offline too",
   "toast.updateReady": "A newer version is ready",
   "toast.updateReload": "Reload",

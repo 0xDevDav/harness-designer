@@ -604,7 +604,7 @@ export const it = {
   "toast.pluginFailed": "Plugin «{name}» non caricato: {error}",
   "toast.titleTaken": "Un'altra tabella ha già questo nome",
   "toast.titleUnlinked":
-    "Questa è la tabella di {name}: il titolo deve iniziare con quel nome. Rinomina il connettore per rinominare entrambi.",
+    "Questa è la tabella di {name}: il titolo deve iniziare con quel nome. Rinomina il connettore per rinominare entrambi. Se la tabella è di un altro connettore, sceglilo con Collega a un connettore… nel menu del tasto destro della tabella.",
   "toast.offlineReady": "Applicazione disponibile anche offline",
   "toast.updateReady": "È pronta una versione più recente",
   "toast.updateReload": "Ricarica",
