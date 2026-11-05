@@ -6,7 +6,7 @@ verifica di coerenza e distinta fili.
 [![CI](https://github.com/0xDevDav/harness-designer/actions/workflows/ci.yml/badge.svg)](https://github.com/0xDevDav/harness-designer/actions/workflows/ci.yml)
 [![Licenza: MIT](https://img.shields.io/badge/Licenza-MIT-blue.svg)](LICENSE)
 
-**[Demo dal vivo](https://0xdevdav.github.io/harness-designer/)** — [English](README.md)
+**[Demo dal vivo](https://0xdevdav.github.io/harness-designer/)** · [English](README.md)
 
 È un sito statico: nessun backend, nessun account, nessuna registrazione, nessun dato che esce dal browser.
 Il disegno vive nel tuo computer e si archivia in un file `.json` che resta tuo.
@@ -14,7 +14,7 @@ Il disegno vive nel tuo computer e si archivia in un file `.json` che resta tuo.
 ![Il foglio e lo schema affiancati, con un cablaggio motore a quattro cilindri](docs/images/overview.png)
 
 _Lo schema di esempio incluso, nelle due viste: il foglio a sinistra, lo schema a destra. È il cablaggio
-motore di un 1.4 benzina a quattro cilindri — batteria e fusibile principale, scatola fusibili,
+motore di un 1.4 benzina a quattro cilindri: batteria e fusibile principale, scatola fusibili,
 alternatore, centralina su due connettori, quattro iniettori e quattro bobine, i sensori, due coppie
 accoppiate e il passaparete fino al quadro. Ventiquattro pin-out, oltre settanta fili, e nessun problema
 nella verifica. Un filo scelto in una vista si accende anche nell'altra: qui l'alimentazione dell'abitacolo,

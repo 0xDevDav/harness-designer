@@ -1,6 +1,6 @@
 # Pubblicazione / Deployment
 
-[Italiano](#italiano) — [English](#english)
+[Italiano](#italiano) · [English](#english)
 
 ---
 
@@ -67,13 +67,13 @@ Il nome dei file in `assets/` contiene un **hash del contenuto**: cambia a ogni 
 
 ## 4. HTTPS e funzionamento offline
 
-Il service worker — quello che permette all'applicazione di aprirsi anche senza rete e di essere installata come app — viene registrato dal browser **solo su HTTPS** (con l'unica eccezione di `http://localhost`, per lo sviluppo). Su un indirizzo `http://` non viene registrato affatto: l'applicazione continua a funzionare normalmente, ma perde la modalità offline e l'installabilità.
+Il service worker, quello che permette all'applicazione di aprirsi anche senza rete e di essere installata come app, viene registrato dal browser **solo su HTTPS** (con l'unica eccezione di `http://localhost`, per lo sviluppo). Su un indirizzo `http://` non viene registrato affatto: l'applicazione continua a funzionare normalmente, ma perde la modalità offline e l'installabilità.
 
 In pratica:
 
 - attiva il certificato **SSL/TLS gratuito** che il tuo hosting offre (su Hostinger e Altervista è un interruttore nel pannello) e forza il reindirizzamento da `http://` a `https://`;
 - verifica che l'indirizzo mostri il lucchetto;
-- il file `sw.js` deve stare **accanto a `index.html`**: un service worker può controllare solo i file della propria cartella e delle sottocartelle. Se pubblichi in `/schemi/`, `sw.js` va in `/schemi/sw.js` — è già così se hai caricato il contenuto di `dist/` senza spostare nulla.
+- il file `sw.js` deve stare **accanto a `index.html`**: un service worker può controllare solo i file della propria cartella e delle sottocartelle. Se pubblichi in `/schemi/`, `sw.js` va in `/schemi/sw.js`: è già così se hai caricato il contenuto di `dist/` senza spostare nulla.
 
 Al primo caricamento riuscito compare un messaggio che conferma la disponibilità offline.
 
@@ -92,7 +92,7 @@ Il codice in `assets/` non dà problemi di cache perché il nome cambia a ogni v
 
 ## 6. Variante «file unico» (offline, senza hosting)
 
-Se ti serve solo aprire il programma con un doppio clic — su una chiavetta, su un PC di officina senza rete, come allegato di posta:
+Se ti serve solo aprire il programma con un doppio clic (su una chiavetta, su un PC di officina senza rete, come allegato di posta):
 
 ```bash
 npm run build:standalone
@@ -104,13 +104,13 @@ Produce **`dist-standalone/index.html`**: un solo file, con CSS e JavaScript inc
 
 Differenze rispetto alla versione pubblicata:
 
-- **funziona**: disegno, modifica sul foglio, tabelle, collegamento reciproco, verifica, salvataggio e apertura dei `.json`, esportazione SVG/PNG/CSV, stampa, salvataggio automatico e i **due plugin di serie**, i cui sorgenti sono incorporati nel file (`src/plugins/bundled.standalone.ts`) e vengono valutati in memoria, senza `import()` — che dal protocollo `file://` sarebbe vietato;
+- **funziona**: disegno, modifica sul foglio, tabelle, collegamento reciproco, verifica, salvataggio e apertura dei `.json`, esportazione SVG/PNG/CSV, stampa, salvataggio automatico e i **due plugin di serie**, i cui sorgenti sono incorporati nel file (`src/plugins/bundled.standalone.ts`) e vengono valutati in memoria, senza `import()`, che dal protocollo `file://` sarebbe vietato;
 - **non funziona**: il service worker e il manifesto (inutili quando il file è già in locale: la build li esclude e il programma non li richiede nemmeno) e l'installazione di plugin **da URL**, perché il browser non carica moduli esterni da `file://`. L'installazione di un plugin da **file locale** funziona se il plugin è autonomo, cioè se espone una sola `export default` senza importare altri moduli.
 
 Due dettagli tecnici che rendono possibile l'apertura da disco, da non rimuovere per sbaglio:
 
 1. lo script è **classico e in fondo al corpo della pagina**, non un modulo ES nell'intestazione: i moduli sono bloccati su `file://`, e uno script classico nell'intestazione girerebbe prima che il documento esista;
-2. l'esportazione PNG prova prima un blob URL e, se il browser considera «sporca» la tela — succede proprio da `file://` — ricade su una data URI.
+2. l'esportazione PNG prova prima un blob URL e, se il browser considera «sporca» la tela (succede proprio da `file://`), ricade su una data URI.
 
 ## 7. Verifiche dopo la pubblicazione
 
@@ -203,13 +203,13 @@ File names inside `assets/` contain a **content hash**: it changes on every buil
 
 ## 4. HTTPS and offline use
 
-The service worker — the piece that lets the application open without a network connection and be installed as an app — is registered by the browser **only over HTTPS** (the single exception being `http://localhost`, for development). Over a plain `http://` address it is not registered at all: the application still works normally, but loses offline mode and installability.
+The service worker, the piece that lets the application open without a network connection and be installed as an app, is registered by the browser **only over HTTPS** (the single exception being `http://localhost`, for development). Over a plain `http://` address it is not registered at all: the application still works normally, but loses offline mode and installability.
 
 In practice:
 
 - turn on the **free SSL/TLS certificate** your host provides (on Hostinger and Altervista it is a switch in the panel) and force the redirect from `http://` to `https://`;
 - check that the address bar shows the padlock;
-- `sw.js` must sit **next to `index.html`**: a service worker can only control files in its own folder and subfolders. If you publish under `/harness/`, then `sw.js` goes to `/harness/sw.js` — which is already the case if you uploaded the contents of `dist/` without moving anything around.
+- `sw.js` must sit **next to `index.html`**: a service worker can only control files in its own folder and subfolders. If you publish under `/harness/`, then `sw.js` goes to `/harness/sw.js`, which is already the case if you uploaded the contents of `dist/` without moving anything around.
 
 On the first successful load a message confirms that offline use is available.
 
@@ -228,7 +228,7 @@ The code in `assets/` never causes cache trouble because its name changes with e
 
 ## 6. The "single file" variant (offline, no hosting)
 
-If all you need is to open the program with a double click — from a USB stick, on a workshop PC with no network, as an e-mail attachment:
+If all you need is to open the program with a double click (from a USB stick, on a workshop PC with no network, as an e-mail attachment):
 
 ```bash
 npm run build:standalone
@@ -239,7 +239,7 @@ This produces **`dist-standalone/index.html`**: one single file with CSS and Jav
 Differences from the published version:
 
 - **works**: drawing, tables, checking, saving and opening `.json` files, SVG/PNG/CSV export, printing, autosave;
-- **does not work**: the service worker (irrelevant — the file is already local) and installing plugins from a URL, because browsers refuse to load external modules over `file://`. Plugins bundled into the build remain available.
+- **does not work**: the service worker (irrelevant: the file is already local) and installing plugins from a URL, because browsers refuse to load external modules over `file://`. Plugins bundled into the build remain available.
 
 ## 7. Post-publication checks
 

@@ -6,7 +6,7 @@ consistency checks and wire lists.
 [![CI](https://github.com/0xDevDav/harness-designer/actions/workflows/ci.yml/badge.svg)](https://github.com/0xDevDav/harness-designer/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**[Live demo](https://0xdevdav.github.io/harness-designer/)** — [Italiano](README.it.md)
+**[Live demo](https://0xdevdav.github.io/harness-designer/)** · [Italiano](README.it.md)
 
 A static site: no backend, no account, no sign-up, nothing leaving the browser. Your drawing lives on your
 own computer and is archived as a `.json` file you own.
@@ -14,7 +14,7 @@ own computer and is archived as a `.json` file you own.
 ![The sheet and the schematic side by side, showing a four-cylinder engine harness](docs/images/overview.png)
 
 _The sample drawing that ships with it, in both views: the sheet on the left, the schematic on the right.
-It is the engine harness of a 1.4 petrol four-cylinder — battery and main fuse, fuse box, alternator, an ECU
+It is the engine harness of a 1.4 petrol four-cylinder: battery and main fuse, fuse box, alternator, an ECU
 on two connectors, four injectors and four coils, the sensors, two mated pairs and the run through the
 bulkhead to the cluster. Twenty-four pin-outs, seventy-odd wires, and not one problem in the check. A wire
 picked in one view lights up in the other: here the cabin feed, from the fuse box to the bulkhead, with
