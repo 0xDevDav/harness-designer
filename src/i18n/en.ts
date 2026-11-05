@@ -491,6 +491,7 @@ export const en = {
   "dialog.wireDetails.target": "Use {name}'s details",
   "dialog.wireDetails.splice": "Join through a new splice",
   "toast.rewire.splice": "{from} and {to} joined through the new splice {splice}",
+  "toast.branchSplit": "The {len} branch was split: type the length of the two pieces",
   "toast.rewire.moved": "Wire {from} moved to {to}",
   "toast.rewire.made": "Connected {from} to {to}",
   "toast.rewire.occupied": "{to} already has a wire, to {other}",

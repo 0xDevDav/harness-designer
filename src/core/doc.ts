@@ -854,7 +854,14 @@ export function removeBend(seg: Segment, index: number): boolean {
   return true;
 }
 
-/** Splits a branch by inserting a junction at parametric position t. */
+/**
+ * Splits a branch by inserting a junction at parametric position t.
+ *
+ * The length written on the branch is cleared rather than shared out: the
+ * junction is put where it is easy to draw, not where it sits on the real
+ * harness, so neither half of the number would be true. Callers that want the
+ * person told read `seg.len` first.
+ */
 export function splitSegment(doc: HarnessDoc, seg: Segment, t: number): HNode | null {
   const path = segmentPath(doc, seg);
   if (!path) return null;
@@ -887,6 +894,7 @@ export function splitSegment(doc: HarnessDoc, seg: Segment, t: number): HNode | 
   }
 
   seg.b = mid.id;
+  seg.len = "";
   if (before.length) seg.points = before;
   else delete seg.points;
   normalizeConnectors(doc);

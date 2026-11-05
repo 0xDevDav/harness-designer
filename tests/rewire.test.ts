@@ -459,9 +459,18 @@ describe("a wire joining cavities that disagree about it", () => {
     const doc = unlike();
     doc.segments = [{ id: "direct", a: "a", b: "c", len: "500 mm", refs: "" }];
     doc.nodes = doc.nodes.filter((n) => n.id !== "j" && n.id !== "s" && n.id !== "b");
-    expect(connectViaSplice(doc, made, "C.1")).toEqual({ ok: true, splice: "S1" });
+    expect(connectViaSplice(doc, made, "C.1")).toEqual({ ok: true, splice: "S1", split: "500 mm" });
     expect(doc.nodes.filter((n) => n.kind === "junction")).toHaveLength(1);
     expect(doc.segments).toHaveLength(3);
+    // the junction is in the middle only on paper: the length is left to be written again
+    expect(doc.segments.map((s) => s.len)).toEqual(["", "", ""]);
+  });
+
+  it("says nothing of a length when the branch it splits has none", () => {
+    const doc = unlike();
+    doc.segments = [{ id: "direct", a: "a", b: "c", len: "", refs: "" }];
+    doc.nodes = doc.nodes.filter((n) => n.id !== "j" && n.id !== "s" && n.id !== "b");
+    expect(connectViaSplice(doc, made, "C.1")).toEqual({ ok: true, splice: "S1" });
   });
 
   it("refuses when the cavity it is dropped on already has a wire", () => {

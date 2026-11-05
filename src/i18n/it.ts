@@ -498,6 +498,7 @@ export const it = {
   "dialog.wireDetails.target": "Usa i dati di {name}",
   "dialog.wireDetails.splice": "Unisci con un nuovo splice",
   "toast.rewire.splice": "{from} e {to} unite con il nuovo splice {splice}",
+  "toast.branchSplit": "Il ramo da {len} è stato diviso: scrivi la lunghezza dei due pezzi",
   "toast.rewire.moved": "Filo {from} spostato su {to}",
   "toast.rewire.made": "{from} collegato a {to}",
   "toast.rewire.occupied": "{to} è già collegato a {other}",

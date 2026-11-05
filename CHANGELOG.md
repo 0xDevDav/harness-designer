@@ -153,6 +153,11 @@ All notable changes to this project are documented here. The format follows
   _Drawn as_, for a drawing that has neither table and for a connector whose
   table names neither, so a ring or faston end can still be made.
 - The round-connector example plugin no longer adds its own menu entry.
+- Splitting a branch, with _Split branch here_ or for the junction a new splice
+  needs, no longer leaves the whole length on the first piece. The junction is
+  put where it is easy to draw, not where it is on the harness, so both pieces
+  are left without a length and a message gives the one the branch had, to be
+  written again on each.
 
 ## [1.2.0]
 

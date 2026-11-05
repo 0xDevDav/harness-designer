@@ -643,16 +643,20 @@ function addInlineAt(app: AppContext, segmentId: string, world: Point): void {
 function splitAt(app: AppContext, segmentId: string, world: Point): void {
   const pos = positionOn(app, segmentId, world);
   let created = "";
+  let len = "";
   const changed = editDoc(
     app,
     (doc) => {
       const segment = findSegment(doc, segmentId);
       if (!segment) return;
+      len = segment.len.trim();
       created = splitSegment(doc, segment, pos)?.id ?? "";
     },
     "split",
   );
-  if (changed && created) app.store.select({ type: "node", id: created });
+  if (!changed || !created) return;
+  app.store.select({ type: "node", id: created });
+  if (len) app.toast.show(app.t("toast.branchSplit", { len }));
 }
 
 /* ============================ inline label ============================ */

@@ -460,13 +460,15 @@ export function moveWireEnd(
  * the two: the cavity that stays and the one the wire is dropped on each keep
  * their own colour and size and each send a wire to the splice. The splice is
  * put on the sheet where it is on the way, at the nearest junction between
- * the two connectors, so that both wires can be followed to it.
+ * the two connectors, so that both wires can be followed to it. When a branch
+ * had to be split for that junction, `split` is the length it had, which the
+ * split leaves for the person to write again on each half.
  */
 export function connectViaSplice(
   doc: HarnessDoc,
   op: WireOp,
   to: string,
-): RewireOutcome & { splice?: string } {
+): RewireOutcome & { splice?: string; split?: string } {
   const { kept, old } = endsOfOp(op);
   const target = parseEnd(to);
   if (!kept?.cavity || !target?.cavity || (op.kind === "move" && !old))
@@ -484,11 +486,11 @@ export function connectViaSplice(
   if (taken) return { ok: false, reason: "occupied", other: taken };
 
   const fo = old ? rowOf(tables, old) : null;
-  const splice = addSpliceBetween(doc, kept.connector, target.connector);
+  const { name: splice, split } = addSpliceBetween(doc, kept.connector, target.connector);
   if (fo) clearEnd(fo);
   writeEnd(fk, { connector: splice });
   writeEnd(ft, { connector: splice });
-  return { ok: true, splice };
+  return split ? { ok: true, splice, split } : { ok: true, splice };
 }
 
 /**
@@ -496,19 +498,25 @@ export function connectViaSplice(
  * leaf off the first junction the bundle passes through, or off a junction put
  * in the middle of the first branch when it passes through none. When the two
  * connectors are not joined at all it is put by the first one and left for
- * the check to say that no branch reaches it.
+ * the check to say that no branch reaches it. Returns the splice's name, and
+ * the length of the branch it split, if it split one that had a length.
  */
-function addSpliceBetween(doc: HarnessDoc, from: string, to: string): string {
+function addSpliceBetween(doc: HarnessDoc, from: string, to: string): { name: string; split?: string } {
   const names = namedNodes(doc);
   const a = names.get(from);
   const b = names.get(to);
   let anchor: HNode | undefined;
+  let split = "";
   const path = a && b ? findPath(doc, a.id, b.id) : null;
   if (a && path?.length) {
     const along = pathNodes(doc, a.id, path).slice(1, -1);
     anchor = along.map((id) => findNode(doc, id)).find((n) => n?.kind === "junction");
     const first = findSegment(doc, path[0] ?? "");
-    if (!anchor && first) anchor = splitSegment(doc, first, 0.5) ?? undefined;
+    if (!anchor && first) {
+      const len = first.len.trim();
+      anchor = splitSegment(doc, first, 0.5) ?? undefined;
+      if (anchor) split = len;
+    }
   }
   const at = anchor ?? a;
   const name = nextName(doc, "S");
@@ -523,5 +531,5 @@ function addSpliceBetween(doc: HarnessDoc, from: string, to: string): string {
   };
   doc.nodes.push(node);
   if (anchor) connectNodes(doc, anchor.id, node.id);
-  return name;
+  return split ? { name, split } : { name };
 }
