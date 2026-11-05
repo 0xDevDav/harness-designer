@@ -151,6 +151,26 @@ describe("cross-references between tables", () => {
     expect(messages(warnings(issues))).toContain("validate.sectionMismatch");
   });
 
+  it("reads a bare size in the unit its column is headed with", () => {
+    const two = (b: string): HarnessDoc =>
+      docWith(
+        ["A", "B"],
+        [
+          { id: "ta", node: "a", title: "A", rows: [["1", "B.1", "rosso", "1.5 mm²"]] },
+          {
+            id: "tb",
+            node: "b",
+            title: "B",
+            head: ["Cavità", "Verso", "Colore", "Sezione (mm²)"],
+            rows: [["1", "A.1", "rosso", b]],
+          },
+        ],
+      );
+    expect(messages(warnings(validateDoc(two("1.5"), t)))).not.toContain("validate.sectionMismatch");
+    expect(messages(warnings(validateDoc(two("1,5"), t)))).not.toContain("validate.sectionMismatch");
+    expect(messages(warnings(validateDoc(two("2.5"), t)))).toContain("validate.sectionMismatch");
+  });
+
   describe("the wire type", () => {
     const HEAD = ["Cavity", "To", "Colour", "Section", "Wire type"];
     const two = (a: string, b: string): HarnessDoc =>

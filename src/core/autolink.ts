@@ -1,4 +1,5 @@
 import { applyWireDefaults } from "./defaults";
+import { wireUnitOf } from "./wiresize";
 import {
   NOT_CONNECTED_RE,
   cavityTables,
@@ -235,8 +236,9 @@ export function applyBirthDefaults(doc: HarnessDoc, tableId: string, rowIndex: n
   const target = dest ? tables.find((c) => c.owner === dest.connector) : undefined;
   const farRow = dest && target?.table.rows.find((r) => cell(r, target.cols.cavity) === dest.cavity);
   applyWireDefaults(
-    { row, cols: source.cols },
-    target && farRow ? { row: farRow, cols: target.cols } : null,
+    { row, cols: source.cols, head: source.table.head },
+    target && farRow ? { row: farRow, cols: target.cols, head: target.table.head } : null,
     doc.defaults,
+    wireUnitOf(doc),
   );
 }

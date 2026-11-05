@@ -144,7 +144,11 @@ All notable changes to this project are documented here. The format follows
   them, except a wire that was moved there. They fill
   only what neither end of the wire says anything about, so the two ends never
   disagree, are saved with the drawing, and the size follows a change of unit
-  (the window that warns about rounding lists it on a line of its own).
+  (the window that warns about rounding lists it on a line of its own). The
+  size is written the way the table writes its sizes: the bare number under a
+  heading that names the unit, _1.5 mm²_ or _16 AWG_ under a plain _Section_.
+  The check and the question when a wire is dropped read the two ends' sizes
+  in the unit of each column, so _1.5_ and _1.5 mm²_ are one size.
 
 ### Changed
 

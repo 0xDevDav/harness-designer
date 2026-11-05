@@ -147,6 +147,39 @@ function headingUnit(heading: string | undefined): WireUnit | undefined {
   return undefined;
 }
 
+/** The unit a bare number in a Section column is in: the one its heading names, else the drawing's. */
+export const columnUnit = (heading: string | undefined, drawing: WireUnit): WireUnit =>
+  headingUnit(heading) ?? drawing;
+
+/**
+ * A size as it is written in a cell under `heading`. A heading that names the
+ * unit says it for the whole column, so the number goes in bare, the way
+ * `setWireUnit` leaves it; under a plain "Section" every cell names its own.
+ * `unit` is the drawing's, the one a bare `text` is in. Anything that is not a
+ * size goes in as it is.
+ */
+export function sizeForCell(text: string, unit: WireUnit, heading: string | undefined): string {
+  const size = parseSize(text, unit);
+  if (!size) return text;
+  const own = size.unit ?? unit;
+  return headingUnit(heading) === own ? size.figure : `${size.figure} ${unitLabel(own)}`;
+}
+
+/**
+ * Whether two cells name the same size, each read in the unit of its own
+ * column: "1.5" under "Section (mm²)" and "1.5 mm²" under "Section" are one
+ * wire. Cells that are not sizes are compared as text.
+ */
+export function sameSize(a: string, aUnit: WireUnit, b: string, bUnit: WireUnit): boolean {
+  const sa = parseSize(a, aUnit);
+  const sb = parseSize(b, bUnit);
+  if (!sa || !sb) {
+    const plain = (v: string): string => v.toLowerCase().replace(/\s+/g, "").replace(/,/g, ".");
+    return plain(a) === plain(b);
+  }
+  return (sa.unit ?? aUnit) === (sb.unit ?? bUnit) && sa.area === sb.area;
+}
+
 /** The headings of a wire list, in the two languages the application is written in. */
 const WIRE_LIST_HEADS = [/^(from|da)$/i, /^(to|a)$/i, /^(length|lunghezza)$/i];
 

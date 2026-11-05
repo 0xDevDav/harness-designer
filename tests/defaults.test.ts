@@ -3,6 +3,7 @@ import { applyWireDefaults, normalizeDefaults, setDefaults } from "@/core/defaul
 import { applyBirthDefaults, autoLinkRow } from "@/core/autolink";
 import { normalizeDoc, tableColumns } from "@/core/doc";
 import { connectEnds, connectViaSplice } from "@/core/rewire";
+import { validateDoc } from "@/core/validate";
 import { setWireUnit } from "@/core/wiresize";
 import type { HarnessDoc } from "@/core/types";
 
@@ -66,6 +67,14 @@ describe("setDefaults", () => {
     expect(doc.defaults).toEqual({ color: "red", size: "1.5", type: "" });
   });
 
+  it("keeps a size typed with the drawing's unit as the bare number, and one in the other unit as typed", () => {
+    const doc = harness();
+    setDefaults(doc, { size: "1,5 mm²" });
+    expect(doc.defaults?.size).toBe("1,5");
+    setDefaults(doc, { size: "16 AWG" });
+    expect(doc.defaults?.size).toBe("16 AWG");
+  });
+
   it("leaves the document with none when the last one is cleared", () => {
     const doc = harness({ color: "red" });
     setDefaults(doc, { color: "" });
@@ -79,31 +88,76 @@ describe("applyWireDefaults", () => {
 
   it("fills what is empty and nothing that is written", () => {
     const row = ["1", "B.1", "", "Blue", "", ""];
-    applyWireDefaults({ row, cols }, null, defaults);
-    expect(row).toEqual(["1", "B.1", "", "Blue", "1.5", "GXL"]);
+    applyWireDefaults({ row, cols }, null, defaults, "mm2");
+    expect(row).toEqual(["1", "B.1", "", "Blue", "1.5 mm²", "GXL"]);
   });
 
   it("treats a dash as empty", () => {
     const row = ["1", "B.1", "", "-", "–", "-"];
-    applyWireDefaults({ row, cols }, null, defaults);
-    expect(row).toEqual(["1", "B.1", "", "red", "1.5", "GXL"]);
+    applyWireDefaults({ row, cols }, null, defaults, "mm2");
+    expect(row).toEqual(["1", "B.1", "", "red", "1.5 mm²", "GXL"]);
   });
 
   it("pads a short row, and does nothing with no defaults", () => {
     const row = ["1"];
-    applyWireDefaults({ row, cols }, null, { color: "", size: "", type: "GXL" });
+    applyWireDefaults({ row, cols }, null, { color: "", size: "", type: "GXL" }, "mm2");
     expect(row[5]).toBe("GXL");
     const same = ["1"];
-    applyWireDefaults({ row: same, cols }, null, undefined);
+    applyWireDefaults({ row: same, cols }, null, undefined, "mm2");
     expect(same).toEqual(["1"]);
   });
 
   it("fills both ends alike, and a property one end already has is left to that end", () => {
     const near = ["1", "B.1", "", "", "", ""];
     const far = ["1", "A.1", "", "Blue", "", "-"];
-    applyWireDefaults({ row: near, cols }, { row: far, cols }, defaults);
-    expect(near.slice(3)).toEqual(["", "1.5", "GXL"]); // the colour is the far end's to give
-    expect(far.slice(3)).toEqual(["Blue", "1.5", "GXL"]);
+    applyWireDefaults({ row: near, cols }, { row: far, cols }, defaults, "mm2");
+    expect(near.slice(3)).toEqual(["", "1.5 mm²", "GXL"]); // the colour is the far end's to give
+    expect(far.slice(3)).toEqual(["Blue", "1.5 mm²", "GXL"]);
+  });
+});
+
+describe("the default size, written the way each table writes its sizes", () => {
+  const under = (heading: string): ReturnType<typeof tableColumns> =>
+    tableColumns({ id: "t", x: 0, y: 0, kind: "table", head: ["Cavity", "To", heading], rows: [] });
+  const write = (size: string, heading: string, unit: "mm2" | "awg" = "mm2"): string => {
+    const row = ["1", "B.1", ""];
+    applyWireDefaults(
+      { row, cols: under(heading), head: ["Cavity", "To", heading] },
+      null,
+      { color: "", size, type: "" },
+      unit,
+    );
+    return row[2] ?? "";
+  };
+
+  it("is the bare number under a heading that names the unit", () => {
+    expect(write("1.5", "Section (mm²)")).toBe("1.5");
+    expect(write("16", "AWG", "awg")).toBe("16");
+    expect(write("1.5 mm²", "mm²")).toBe("1.5");
+  });
+
+  it("carries the unit under a plain Section, once", () => {
+    expect(write("1.5", "Section")).toBe("1.5 mm²");
+    expect(write("1.5", "Sezione")).toBe("1.5 mm²");
+    expect(write("16", "Section", "awg")).toBe("16 AWG");
+    expect(write("1.5 mm²", "Section")).toBe("1.5 mm²");
+    expect(write("18 AWG", "Section")).toBe("18 AWG");
+  });
+
+  it("keeps its own unit under a heading that names the other one, and is left alone when it is no size", () => {
+    expect(write("1.5", "AWG")).toBe("1.5 mm²");
+    expect(write("2x0.5 shielded", "Section")).toBe("2x0.5 shielded");
+  });
+
+  it("on a wire between two tables headed differently, which the check then reads as one size", () => {
+    const doc = harness({ size: "1.5" });
+    doc.tables[1]!.head = ["Cavity", "To", "Function", "Colour", "Section (mm²)", "Wire type"];
+    expect(connectEnds(doc, "A.1", "B.1")).toEqual({ ok: true });
+    expect(rowOf(doc, "ta", "1")[4]).toBe("1.5 mm²");
+    expect(rowOf(doc, "tb", "1")[4]).toBe("1.5");
+    const t = (key: string): string => key;
+    const said = validateDoc(doc, t).map((i) => i.message);
+    expect(said).not.toContain("validate.sectionMismatch");
   });
 });
 
@@ -113,20 +167,20 @@ describe("a new wire starts from the defaults", () => {
   it("when it is connected in the schematic, at both ends", () => {
     const doc = harness(defaults);
     expect(connectEnds(doc, "A.1", "B.1")).toEqual({ ok: true });
-    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["red", "1.5", "GXL"]);
-    expect(rowOf(doc, "tb", "1").slice(3)).toEqual(["red", "1.5", "GXL"]);
+    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["red", "1.5 mm²", "GXL"]);
+    expect(rowOf(doc, "tb", "1").slice(3)).toEqual(["red", "1.5 mm²", "GXL"]);
   });
 
   it("when its far end is a splice, which has no table to copy from", () => {
     const doc = harness(defaults);
     connectEnds(doc, "A.1", "S1");
-    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["red", "1.5", "GXL"]);
+    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["red", "1.5 mm²", "GXL"]);
   });
 
   it("but never over what the cavity already says", () => {
     const doc = harness(defaults);
     connectEnds(doc, "A.2", "B.1");
-    expect(rowOf(doc, "ta", "2").slice(3)).toEqual(["Blue", "1.5", "GXL"]);
+    expect(rowOf(doc, "ta", "2").slice(3)).toEqual(["Blue", "1.5 mm²", "GXL"]);
     expect(rowOf(doc, "tb", "1")[3]).toBe("Blue");
   });
 
@@ -134,8 +188,8 @@ describe("a new wire starts from the defaults", () => {
     const doc = harness(defaults);
     rowOf(doc, "tb", "1").splice(3, 3, "-", "-", "");
     expect(connectEnds(doc, "A.1", "B.1")).toEqual({ ok: true });
-    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["red", "1.5", "GXL"]);
-    expect(rowOf(doc, "tb", "1").slice(3)).toEqual(["red", "1.5", "GXL"]);
+    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["red", "1.5 mm²", "GXL"]);
+    expect(rowOf(doc, "tb", "1").slice(3)).toEqual(["red", "1.5 mm²", "GXL"]);
   });
 
   it("when a destination is typed in the table", () => {
@@ -143,8 +197,8 @@ describe("a new wire starts from the defaults", () => {
     rowOf(doc, "ta", "1")[1] = "B.1";
     expect(autoLinkRow(doc, "ta", 0).status).toBe("linked");
     applyBirthDefaults(doc, "ta", 0); // what the edit that wrote the destination goes on to do
-    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["red", "1.5", "GXL"]);
-    expect(rowOf(doc, "tb", "1").slice(3)).toEqual(["red", "1.5", "GXL"]);
+    expect(rowOf(doc, "ta", "1").slice(3)).toEqual(["red", "1.5 mm²", "GXL"]);
+    expect(rowOf(doc, "tb", "1").slice(3)).toEqual(["red", "1.5 mm²", "GXL"]);
   });
 
   it("not to a wire that is already linked, whose empty cells were left empty on purpose", () => {
@@ -172,8 +226,8 @@ describe("a new wire starts from the defaults", () => {
   it("when two cavities are joined through a new splice, each wire in its empty cells", () => {
     const doc = harness(defaults);
     expect(connectViaSplice(doc, { kind: "new", from: "A.2" }, "B.1")).toMatchObject({ ok: true });
-    expect(rowOf(doc, "ta", "2").slice(3)).toEqual(["Blue", "1.5", "GXL"]);
-    expect(rowOf(doc, "tb", "1").slice(3)).toEqual(["red", "1.5", "GXL"]);
+    expect(rowOf(doc, "ta", "2").slice(3)).toEqual(["Blue", "1.5 mm²", "GXL"]);
+    expect(rowOf(doc, "tb", "1").slice(3)).toEqual(["red", "1.5 mm²", "GXL"]);
   });
 
   it("through a new splice, but not to the wire being moved there, which keeps its cells", () => {
@@ -184,7 +238,7 @@ describe("a new wire starts from the defaults", () => {
     const move = { kind: "move", ends: ["A.1", "B.1"], moving: 1 } as const;
     expect(connectViaSplice(doc, move, "B.2")).toMatchObject({ ok: true });
     expect(rowOf(doc, "ta", "1").slice(1)).toEqual(["S2", "", "", "", ""]);
-    expect(rowOf(doc, "tb", "2").slice(3)).toEqual(["red", "1.5", "GXL"]);
+    expect(rowOf(doc, "tb", "2").slice(3)).toEqual(["red", "1.5 mm²", "GXL"]);
   });
 
   it("not at all without defaults", () => {

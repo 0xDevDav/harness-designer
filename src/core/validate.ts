@@ -13,6 +13,7 @@ import type { CavityTable } from "./doc";
 import { routeWires } from "./routing";
 import { checkWireEnds } from "./wireends";
 import { wireColorKey } from "./colors";
+import { columnUnit, sameSize, wireUnitOf } from "./wiresize";
 import type { HarnessDoc, Issue } from "./types";
 import type { Translate } from "@/i18n";
 
@@ -153,7 +154,9 @@ const crossReferences: ValidationRule = {
   id: "cross-references",
   run({ doc, t, tables, byOwner, jointed }) {
     const issues: Issue[] = [];
-    for (const { table, cols, owner } of tables) {
+    const unit = wireUnitOf(doc);
+    for (const source of tables) {
+      const { table, cols, owner } = source;
       for (const row of table.rows) {
         const cavity = cell(row, cols.cavity);
         if (!cavity) continue;
@@ -235,6 +238,11 @@ const crossReferences: ValidationRule = {
           if (ka && kb) return ka === kb;
           return a.toLowerCase().replace(/\s+/g, "") === b.toLowerCase().replace(/\s+/g, "");
         };
+        // "1.5" under "Section (mm²)" and "1.5 mm²" under "Section" are the same size
+        const headingOf = (ct: CavityTable): string | undefined =>
+          ct.cols.section === undefined ? undefined : ct.table.head?.[ct.cols.section];
+        const sameSection = (a: string, b: string): boolean =>
+          sameSize(a, columnUnit(headingOf(source), unit), b, columnUnit(headingOf(target), unit));
         // Compared once per wire, from the alphabetically lower end — and not
         // at all when a joint lies between the two. There the tables describe
         // two wires, one each side of it, and two wires meeting at a joint are
@@ -248,7 +256,7 @@ const crossReferences: ValidationRule = {
               target: { type: "table", id: table.id },
             });
           }
-          if (here.section && there.section && !same(here.section, there.section)) {
+          if (here.section && there.section && !sameSection(here.section, there.section)) {
             issues.push({
               rule: "cross-references",
               severity: "warning",

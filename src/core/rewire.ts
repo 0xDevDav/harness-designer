@@ -17,7 +17,8 @@ import {
 import type { CavityTable } from "./doc";
 import { uid } from "./ids";
 import { findPath, namedNodes, pathNodes } from "./routing";
-import type { HarnessDoc, HNode } from "./types";
+import type { HarnessDoc, HNode, WireUnit } from "./types";
+import { columnUnit, sameSize, wireUnitOf } from "./wiresize";
 
 /**
  * Connecting and re-connecting wires.
@@ -193,18 +194,34 @@ function endsOfOp(op: WireOp): { kept: End | null; old: End | null } {
   return { kept: parseEnd(op.ends[op.moving === 0 ? 1 : 0]), old: parseEnd(op.ends[op.moving]) };
 }
 
+/** One of the wire's details, and the row it was read from. */
+interface Detail {
+  value: string;
+  from: Found | null;
+}
+
 /** The colour and size the wire has: those of the end that stays, or of the one it leaves if that has none. */
-function wireDetails(tables: readonly CavityTable[], kept: End, old: End | null): Record<Prop, string> {
+function wireDetails(tables: readonly CavityTable[], kept: End, old: End | null): Record<Prop, Detail> {
   const fk = rowOf(tables, kept);
   const fo = old ? rowOf(tables, old) : null;
-  const out = {} as Record<Prop, string>;
+  const out = {} as Record<Prop, Detail>;
   for (const prop of PROPS) {
     const own = fk ? cell(fk.row, fk.ct.cols[prop]) : "";
     const left = fo ? cell(fo.row, fo.ct.cols[prop]) : "";
-    out[prop] = isBlank(own) ? (isBlank(left) ? "" : left) : own;
+    out[prop] = !isBlank(own)
+      ? { value: own, from: fk }
+      : !isBlank(left)
+        ? { value: left, from: fo }
+        : { value: "", from: null };
   }
   return out;
 }
+
+/** The unit a bare size in a row's Section column is in. */
+const sizeUnitOf = (f: Found | null, unit: WireUnit): WireUnit => {
+  const col = f?.ct.cols.section;
+  return columnUnit(col === undefined ? undefined : f?.ct.table.head?.[col], unit);
+};
 
 /**
  * What the wire and the cavity it is dropped on disagree about, or null when
@@ -220,15 +237,22 @@ export function detailsConflict(doc: HarnessDoc, op: WireOp, to: string): Detail
   if (!ft) return null;
   const mine = wireDetails(tables, kept, old);
   const fk = rowOf(tables, kept) ?? (old ? rowOf(tables, old) : null);
+  const unit = wireUnitOf(doc);
   const differences: DetailDifference[] = [];
   for (const prop of PROPS) {
     const col = ft.ct.cols[prop];
     const theirs = cell(ft.row, col);
-    if (isBlank(mine[prop]) || isBlank(theirs) || sameDetail(prop, mine[prop], theirs)) continue;
+    const { value, from } = mine[prop];
+    if (isBlank(value) || isBlank(theirs)) continue;
+    const same =
+      prop === "section"
+        ? sameSize(value, sizeUnitOf(from, unit), theirs, sizeUnitOf(ft, unit))
+        : sameDetail(prop, value, theirs);
+    if (same) continue;
     const heading = fk?.ct.cols[prop] === undefined ? undefined : fk.ct.table.head?.[fk.ct.cols[prop]];
     differences.push({
       label: heading ?? ft.ct.table.head?.[col ?? 0] ?? prop,
-      start: mine[prop],
+      start: value,
       target: theirs,
     });
   }

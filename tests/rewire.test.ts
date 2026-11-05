@@ -390,6 +390,15 @@ describe("a wire joining cavities that disagree about it", () => {
     expect(detailsConflict(doc, made, "C.1")).toBeNull();
   });
 
+  it("is not a disagreement when one table writes the unit and the other has it in its heading", () => {
+    const doc = unlike();
+    const tc = doc.tables.find((t) => t.id === "tc")!;
+    tc.head = tc.head!.map((h) => (h === "Section" ? "Section (mm²)" : h));
+    Object.assign(rowOf(doc, "tc", "1"), { 3: "Blue", 4: "2.5" });
+    Object.assign(rowOf(doc, "ta", "2"), { 4: "2.5 mm²" });
+    expect(detailsConflict(doc, made, "C.1")).toBeNull();
+  });
+
   it("is asked about a wire that is moved too, with the wire's own details", () => {
     const doc = unlike();
     const move = { kind: "move", ends: ["A.1", "B.1"], moving: 1 } as const;
