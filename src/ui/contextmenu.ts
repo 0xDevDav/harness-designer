@@ -53,7 +53,7 @@ import { menuContributors, openMenu } from "./menu";
 import type { MenuItem } from "./menu";
 import { parseCsv } from "@/core/wirelist";
 import { TITLE_ROW } from "@/render/tables";
-import { placeTable } from "./insert";
+import { placeTable, tellPlacedFar } from "./insert";
 import { editOnSheet } from "./sheet-edit";
 import type { SchematicMenuTarget } from "./schematic";
 import type { AppContext } from "@/app/context";
@@ -445,7 +445,7 @@ async function makeConnector(app: AppContext, id: string): Promise<void> {
   }
 
   let created = "";
-  let onTop = false;
+  let far = false;
   const changed = editDoc(
     app,
     (doc) => {
@@ -457,14 +457,14 @@ async function makeConnector(app: AppContext, id: string): Promise<void> {
       const table = cavityTableFor(app.t, target);
       table.x = snapTo(table.x, app.store.snapEnabled);
       table.y = snapTo(table.y, app.store.snapEnabled);
-      onTop = placeTable(app, doc, table);
+      far = placeTable(app, doc, table);
       created = table.id;
     },
     "connector",
   );
   if (!changed || !created) return;
   app.store.select({ type: "table", id: created });
-  if (onTop) app.toast.show(app.t("toast.dropFar"));
+  if (far) tellPlacedFar(app, created);
   await assignHousing(app, created);
 }
 
@@ -492,7 +492,7 @@ async function renameFlow(app: AppContext, id: string): Promise<void> {
 
 function createCavityTable(app: AppContext, id: string): void {
   let created = "";
-  let onTop = false;
+  let far = false;
   const changed = editDoc(
     app,
     (doc) => {
@@ -501,14 +501,14 @@ function createCavityTable(app: AppContext, id: string): void {
       const table = cavityTableFor(app.t, node, app.doc.wireUnit);
       table.x = snapTo(table.x, app.store.snapEnabled);
       table.y = snapTo(table.y, app.store.snapEnabled);
-      onTop = placeTable(app, doc, table);
+      far = placeTable(app, doc, table);
       created = table.id;
     },
     "add-table",
   );
   if (!changed || !created) return;
   app.store.select({ type: "table", id: created });
-  if (onTop) app.toast.show(app.t("toast.dropFar"));
+  if (far) tellPlacedFar(app, created);
 }
 
 /* ============================ branch ============================ */
@@ -1045,19 +1045,19 @@ function startBranchHere(app: AppContext, world: Point): void {
 function addCavityTableAt(app: AppContext, world: Point): void {
   const snap = app.store.snapEnabled;
   let created = "";
-  let onTop = false;
+  let far = false;
   const changed = editDoc(
     app,
     (doc) => {
       const table = cavityTable(app.t, snapTo(world.x, snap), snapTo(world.y, snap), undefined, doc.wireUnit);
-      onTop = placeTable(app, doc, table);
+      far = placeTable(app, doc, table);
       created = table.id;
     },
     "add-table",
   );
   if (!changed || !created) return;
   app.store.select({ type: "table", id: created });
-  if (onTop) app.toast.show(app.t("toast.dropFar"));
+  if (far) tellPlacedFar(app, created);
 }
 
 /* ============================ utilità comuni ============================ */

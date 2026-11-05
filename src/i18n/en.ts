@@ -166,6 +166,7 @@ export const en = {
   "cmd.separate": "Separate overlapping objects",
   "toast.separated": "Objects moved apart: {n}",
   "toast.dropFar": "Left on top of another object: the nearest free place is too far away",
+  "toast.placedFar": "No room here: the table went to the nearest free place, farther off",
   "toast.separatedNone": "Nothing overlaps",
   "menu.fitView": "Fit view",
   "menu.addCavityTable": "+ Cavity table here",

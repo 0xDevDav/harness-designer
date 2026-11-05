@@ -70,16 +70,37 @@ describe("placeTable", () => {
     expect(findTable(store.doc, "n")).toBeUndefined();
   });
 
-  it("leaves it where it was put, and says so, when the free place is farther than a nudge", () => {
+  it("takes the free place however far it is, and says so, rather than leave it on top", () => {
     const store = storeWith();
     const long = { x: 0, y: 0, w: MAX_NUDGE * 4, h: 600 };
     const renderer = rendererOf({ t: long, n: { x: MAX_NUDGE * 2, y: 300, w: 100, h: 50 } });
-    let onTop = false;
+    let far = false;
     store.edit((doc) => {
-      onTop = placeTable({ store, renderer }, doc, { ...added, x: MAX_NUDGE * 2, y: 300 });
+      far = placeTable({ store, renderer }, doc, { ...added, x: MAX_NUDGE * 2, y: 300 });
     }, "insert");
-    expect(onTop).toBe(true);
-    expect(findTable(store.doc, "n")).toMatchObject({ x: MAX_NUDGE * 2, y: 300 });
+    expect(far).toBe(true);
+    const table = findTable(store.doc, "n")!;
+    expect(table.y >= 600 || table.y + 50 <= 0).toBe(true);
+  });
+
+  it("keeps a new table off the branches of the bundle", () => {
+    const store = new Store();
+    store.load(
+      normalizeDoc({
+        nodes: [
+          { id: "j1", kind: "junction", x: 0, y: 100 },
+          { id: "j2", kind: "junction", x: 400, y: 100 },
+        ],
+        segments: [{ id: "s", a: "j1", b: "j2" }],
+        tables: [],
+      }),
+    );
+    const renderer = rendererOf({ n: { x: 100, y: 80, w: 100, h: 50 } });
+    store.edit((doc) => {
+      placeTable({ store, renderer }, doc, { ...added, x: 100, y: 80 });
+    }, "insert");
+    const table = findTable(store.doc, "n")!;
+    expect(table.y + 50 <= 90 || table.y >= 110).toBe(true);
   });
 
   it("leaves a table that lies on nothing where it was put", () => {

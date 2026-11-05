@@ -11,7 +11,7 @@
  * can lie on top of something else in the way a table lying on a connector is.
  */
 import type { AppContext, RendererApi } from "@/app/context";
-import { findNode, findTable } from "@/core/doc";
+import { findNode, findTable, segmentPath } from "@/core/doc";
 import { GRID } from "@/core/geometry";
 import { OVERLAP_GAP, freeSpot, overlaps, separate } from "@/core/overlap";
 import type { Item } from "@/core/overlap";
@@ -88,9 +88,42 @@ function moveSheetObject(doc: HarnessDoc, item: SheetItem, corner: Point): void 
   target.y = corner.y + item.anchor.y;
 }
 
+/** Clear space round a branch, as the selection draws it: the line has a width and a label. */
+const BRANCH_MARGIN = 10;
+
+/**
+ * The bundle as rectangles: every node that is not a connector, and every
+ * straight piece of every branch. A drop may land on a branch, since it is
+ * where the person put it; a table the application puts down must not.
+ */
+function bundleRects(doc: HarnessDoc, renderer: RendererApi): Rect[] {
+  const rects: Rect[] = [];
+  for (const node of doc.nodes) {
+    if (node.kind === "connector") continue;
+    const box = renderer.entityBBox({ type: "node", id: node.id });
+    if (box) rects.push(box);
+  }
+  for (const seg of doc.segments) {
+    const path = segmentPath(doc, seg) ?? [];
+    for (let i = 1; i < path.length; i++) {
+      const a = path[i - 1]!;
+      const b = path[i]!;
+      rects.push({
+        x: Math.min(a.x, b.x) - BRANCH_MARGIN,
+        y: Math.min(a.y, b.y) - BRANCH_MARGIN,
+        w: Math.abs(a.x - b.x) + BRANCH_MARGIN * 2,
+        h: Math.abs(a.y - b.y) + BRANCH_MARGIN * 2,
+      });
+    }
+  }
+  return rects;
+}
+
 /**
  * Where an object of the sheet goes not to lie on a table or a connector: the
- * nearest free place, unless that is farther than `MAX_NUDGE`.
+ * nearest free place, unless that is farther than `MAX_NUDGE`. With `anywhere`
+ * the bundle is avoided too and there is no limit: the free place is taken
+ * however far it is, and the result says when it was farther than a nudge.
  */
 function placeOnSheet(
   doc: HarnessDoc,
@@ -98,17 +131,20 @@ function placeOnSheet(
   snap: boolean,
   kind: SheetObject,
   ref: string,
-): { result: "clear" | "far" } | { result: "moved"; item: SheetItem; spot: Point } {
+  anywhere = false,
+): { result: "clear" | "far" } | { result: "moved" | "far"; item: SheetItem; spot: Point } {
   if (kind === "node" && findNode(doc, ref)?.kind !== "connector") return { result: "clear" };
   const items = sheetItems(doc, renderer, snap);
   const key = keyOf(kind, ref);
   const item = items.find((i) => i.id === key);
   if (!item) return { result: "clear" };
   const others = items.filter((i) => i.id !== key).map((i) => i.rect);
+  if (anywhere) others.push(...bundleRects(doc, renderer));
   const spot = freeSpot(item.rect, others, item.options);
   if (spot.x === item.rect.x && spot.y === item.rect.y) return { result: "clear" };
-  if (Math.hypot(spot.x - item.rect.x, spot.y - item.rect.y) > MAX_NUDGE) return { result: "far" };
-  return { result: "moved", item, spot };
+  const far = Math.hypot(spot.x - item.rect.x, spot.y - item.rect.y) > MAX_NUDGE;
+  if (far && !anywhere) return { result: "far" };
+  return { result: far ? "far" : "moved", item, spot };
 }
 
 /**
@@ -125,14 +161,17 @@ export function settleSheetDrop(
 ): SettleResult {
   const { store, renderer } = app;
   const place = placeOnSheet(store.doc, renderer, store.snapEnabled, kind, ref);
-  if (place.result === "moved") store.live((doc) => moveSheetObject(doc, place.item, place.spot), "move");
+  if ("spot" in place) store.live((doc) => moveSheetObject(doc, place.item, place.spot), "move");
   return place.result;
 }
 
 /**
- * A table just put on the sheet goes where a drop would: off whatever it lies
- * on, to the nearest free place within `MAX_NUDGE`. Called inside the edit that
- * adds it, so adding and moving are one undo step.
+ * A table just put on the sheet goes to the nearest place where it lies on
+ * nothing, the bundle included: nobody chose where it lands, so it is never
+ * left on top of the drawing. A tall one, such as the wire list, may have to
+ * go a long way; then the result is "far", for the caller to say so and bring
+ * it into view. Called inside the edit that adds it, so adding and moving are
+ * one undo step.
  */
 export function settleNewTable(
   doc: HarnessDoc,
@@ -140,8 +179,8 @@ export function settleNewTable(
   snap: boolean,
   tableId: string,
 ): SettleResult {
-  const place = placeOnSheet(doc, renderer, snap, "table", tableId);
-  if (place.result === "moved") moveSheetObject(doc, place.item, place.spot);
+  const place = placeOnSheet(doc, renderer, snap, "table", tableId, true);
+  if ("spot" in place) moveSheetObject(doc, place.item, place.spot);
   return place.result;
 }
 

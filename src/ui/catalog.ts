@@ -30,7 +30,7 @@ import type { HarnessDoc, Table } from "@/core/types";
 import { symbolsWithRole } from "@/render/connectors";
 import { tableSize } from "@/render/tables";
 import { openDialog } from "./dialogs";
-import { insertTable, placeTable, viewCenter } from "./insert";
+import { insertTable, placeTable, tellPlacedFar, viewCenter } from "./insert";
 
 /* ============================ the tables themselves ============================ */
 
@@ -353,35 +353,37 @@ async function askEntry(app: AppContext, kind: CatalogKind): Promise<NewEntry | 
 
 /**
  * Adds an entry, creating the catalogue first if the drawing has none. Inside a
- * store edit. Returns true when the new catalogue was left on top of something.
+ * store edit. Returns true when the new catalogue had to go far off to find room.
  */
 function putEntry(app: AppContext, doc: HarnessDoc, kind: CatalogKind, entry: NewEntry): boolean {
   let table = catalogOf(doc, kind);
-  let onTop = false;
+  let far = false;
   if (!table) {
     table = catalogTable(app.t, kind, 0, 0);
     const centre = viewCenter(app);
     table.x = snapTo(centre.x, app.store.snapEnabled);
     table.y = snapTo(centre.y, app.store.snapEnabled);
-    onTop = placeTable(app, doc, table);
+    far = placeTable(app, doc, table);
   }
   addEntry(table, entry.values, entry.symbol);
-  return onTop;
+  return far;
 }
 
-const sayIfOnTop = (app: AppContext, onTop: boolean): void => {
-  if (onTop) app.toast.show(app.t("toast.dropFar"));
+// the view stays on the connector being given a housing or a termination
+const sayIfFar = (app: AppContext, far: boolean, kind: CatalogKind): void => {
+  const table = far ? catalogOf(app.doc, kind) : undefined;
+  if (table) tellPlacedFar(app, table.id, false);
 };
 
 /** Asks for a new entry and adds it. Returns the name, or null if it was given up. */
 export async function createEntry(app: AppContext, kind: CatalogKind): Promise<string | null> {
   const entry = await askEntry(app, kind);
   if (!entry) return null;
-  let onTop = false;
+  let far = false;
   app.store.edit((doc) => {
-    onTop = putEntry(app, doc, kind, entry);
+    far = putEntry(app, doc, kind, entry);
   }, "catalog-add");
-  sayIfOnTop(app, onTop);
+  sayIfFar(app, far, kind);
   return entry.name;
 }
 
@@ -415,11 +417,11 @@ export async function assignHousing(app: AppContext, tableId: string): Promise<v
   // shorter, it loses only the empty rows at its end.
   let fitted: Fitted = { added: 0, removed: 0, over: 0 };
   let cavities = 0;
-  let onTop = false;
+  let far = false;
   app.store.edit((doc) => {
     const target = findTable(doc, tableId);
     if (!target) return;
-    if (entry) onTop = putEntry(app, doc, "housings", entry);
+    if (entry) far = putEntry(app, doc, "housings", entry);
     if (name === null) {
       delete target.housing;
       return;
@@ -428,7 +430,7 @@ export async function assignHousing(app: AppContext, tableId: string): Promise<v
     cavities = housingCavities(doc, name) ?? 0;
     if (cavities) fitted = fitCavityRows(target, cavities);
   }, "housing");
-  sayIfOnTop(app, onTop);
+  sayIfFar(app, far, "housings");
   const who = nameOf(app, table);
   if (fitted.added) app.toast.show(app.t("toast.cavitiesAdded", { n: fitted.added }));
   else if (fitted.removed) app.toast.show(app.t("toast.cavitiesRemoved", { n: fitted.removed }));
@@ -461,16 +463,16 @@ export async function assignTermination(app: AppContext, tableId: string, row: n
     if (!entry) return;
     name = entry.name;
   }
-  let onTop = false;
+  let far = false;
   app.store.edit((doc) => {
-    if (entry) onTop = putEntry(app, doc, "terminations", entry);
+    if (entry) far = putEntry(app, doc, "terminations", entry);
     const target = findTable(doc, tableId);
     const cells = target?.rows[row];
     if (!cells) return;
     while (cells.length <= col) cells.push("");
     cells[col] = name;
   }, "termination");
-  sayIfOnTop(app, onTop);
+  sayIfFar(app, far, "terminations");
 }
 
 /** Gives a cavity table the column its terminations are picked in, after the wire's colour and size. */

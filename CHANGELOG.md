@@ -80,8 +80,11 @@ All notable changes to this project are documented here. The format follows
   command palette and the sheet's background menu) clears up drawings that
   already have objects on top of each other: tables give way to connectors, and only a box somebody placed by
   hand moves in the schematic. It works on the views on screen only, and a drop
-  or a table added whose nearest free place is more than 240 units away stays
-  where it was put, with a message, rather than jumping across a long table.
+  whose nearest free place is more than 240 units away stays where it was put,
+  with a message, rather than jumping across a long table. A table added keeps
+  off the branches too and is never left on top of anything: a tall one, such
+  as the wire list, goes to the nearest free place however far it is, with a
+  message, and the view moves to it.
 - **Autosave to the file.** Where the browser can keep a link to a file (Chrome,
   Edge), Open and Save link the drawing to the real file on disk and every edit
   is written to it a moment after it is made, so nothing is lost by forgetting

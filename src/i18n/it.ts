@@ -170,6 +170,7 @@ export const it = {
   "cmd.separate": "Separa gli oggetti sovrapposti",
   "toast.separated": "Oggetti separati: {n}",
   "toast.dropFar": "Lasciato sopra un altro oggetto: il posto libero più vicino è troppo lontano",
+  "toast.placedFar": "Qui non c'era posto: la tabella è nel posto libero più vicino, più in là",
   "toast.separatedNone": "Nessuna sovrapposizione",
   "menu.fitView": "Adatta vista",
   "menu.addCavityTable": "+ Tabella cavità qui",
