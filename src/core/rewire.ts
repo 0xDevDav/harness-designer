@@ -490,6 +490,10 @@ export function connectViaSplice(
   if (fo) clearEnd(fo);
   writeEnd(fk, { connector: splice });
   writeEnd(ft, { connector: splice });
+  // the wire to the cavity dropped on is new, and so is the other one unless it
+  // is a wire being moved, which keeps the cells it has as any moved wire does
+  applyBirthDefaults(doc, ft.ct.table.id, ft.index);
+  if (op.kind === "new") applyBirthDefaults(doc, fk.ct.table.id, fk.index);
   return split ? { ok: true, splice, split } : { ok: true, splice };
 }
 

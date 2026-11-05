@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { applyWireDefaults, normalizeDefaults, setDefaults } from "@/core/defaults";
 import { applyBirthDefaults, autoLinkRow } from "@/core/autolink";
 import { normalizeDoc, tableColumns } from "@/core/doc";
-import { connectEnds } from "@/core/rewire";
+import { connectEnds, connectViaSplice } from "@/core/rewire";
 import { setWireUnit } from "@/core/wiresize";
 import type { HarnessDoc } from "@/core/types";
 
@@ -167,6 +167,24 @@ describe("a new wire starts from the defaults", () => {
     rowOf(doc, "ta", "2")[1] = "B.1";
     expect(autoLinkRow(doc, "ta", 1).status).toBe("linked");
     expect(rowOf(doc, "ta", "2").slice(3)).toEqual(["Blue", "", ""]);
+  });
+
+  it("when two cavities are joined through a new splice, each wire in its empty cells", () => {
+    const doc = harness(defaults);
+    expect(connectViaSplice(doc, { kind: "new", from: "A.2" }, "B.1")).toMatchObject({ ok: true });
+    expect(rowOf(doc, "ta", "2").slice(3)).toEqual(["Blue", "1.5", "GXL"]);
+    expect(rowOf(doc, "tb", "1").slice(3)).toEqual(["red", "1.5", "GXL"]);
+  });
+
+  it("through a new splice, but not to the wire being moved there, which keeps its cells", () => {
+    const doc = harness(defaults);
+    rowOf(doc, "ta", "1")[1] = "B.1";
+    autoLinkRow(doc, "ta", 0);
+    doc.tables[1]!.rows.push(["2", "", "", "", "", ""]);
+    const move = { kind: "move", ends: ["A.1", "B.1"], moving: 1 } as const;
+    expect(connectViaSplice(doc, move, "B.2")).toMatchObject({ ok: true });
+    expect(rowOf(doc, "ta", "1").slice(1)).toEqual(["S2", "", "", "", ""]);
+    expect(rowOf(doc, "tb", "2").slice(3)).toEqual(["red", "1.5", "GXL"]);
   });
 
   it("not at all without defaults", () => {
