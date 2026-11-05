@@ -19,7 +19,7 @@ import { lerpPoint } from "@/core/geometry";
 import type { HarnessDoc, Point, Rect, Selection, Table } from "@/core/types";
 import { HEAD_ROW, ROW_H, TITLE_ROW, cellAt, cellRect, titleBlockLayout } from "@/render/tables";
 import { textWidth } from "@/render/svg";
-import { nearestSize, parseSize, sizesFor, unitLabel, wireUnitOf } from "@/core/wiresize";
+import { columnUnit, parseSize, sameSize, sizeChoices, wireUnitOf } from "@/core/wiresize";
 import { assignTermination } from "./catalog";
 import { WIRE_TYPES } from "@/core/wiretype";
 import { openColorPicker } from "./colorpicker";
@@ -332,28 +332,21 @@ function openChoiceMenu(
 }
 
 /**
- * The sizes of the drawing's unit. Each one shows what it comes to in the other
- * unit, because the point of having both is to read across.
+ * The sizes of the drawing's unit, each written the way the column writes its
+ * sizes: bare under a heading that names the unit, with it under a plain one.
  */
 function openSizeMenu(app: AppContext, table: Table, row: number, col: number, rect: Rect): void {
   const { t } = app;
   const unit = wireUnitOf(app.store.doc);
-  const other = unit === "awg" ? "mm2" : "awg";
+  const heading = table.head?.[col];
+  const own = columnUnit(heading, unit);
   openChoiceMenu(app, table, row, col, rect, {
     header: t("menu.sizeHeader"),
-    choices: sizesFor(unit).map((size) => ({
-      value: size.label,
-      label: `${size.label} ${unitLabel(unit)}`,
-      note: `≈ ${nearestSize(size.area, other).label} ${unitLabel(other)}`,
-    })),
+    choices: sizeChoices(unit, heading),
     other: t("menu.sizeOther"),
     clear: t("menu.sizeClear"),
     // "2.5 mm²", "0,75" and "18 AWG" are the sizes they say, however they are spelled
-    holds: (choice, written) => {
-      const here = parseSize(written, unit);
-      const size = sizesFor(unit).find((s) => s.label === choice.value);
-      return !!here && !!size && (here.unit ?? unit) === unit && Math.abs(here.area / size.area - 1) < 1e-6;
-    },
+    holds: (choice, written) => !!parseSize(written, own) && sameSize(written, own, choice.value, own),
   });
 }
 

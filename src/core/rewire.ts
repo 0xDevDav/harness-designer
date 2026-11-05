@@ -18,7 +18,7 @@ import type { CavityTable } from "./doc";
 import { uid } from "./ids";
 import { findPath, namedNodes, pathNodes } from "./routing";
 import type { HarnessDoc, HNode, WireUnit } from "./types";
-import { columnUnit, sameSize, wireUnitOf } from "./wiresize";
+import { columnUnit, sameSize, sizeAcross, wireUnitOf } from "./wiresize";
 
 /**
  * Connecting and re-connecting wires.
@@ -141,14 +141,27 @@ function clearEnd(f: Found, keepDetails = false): void {
   }
 }
 
+/** The heading of a row's Section column, which says what unit a bare size there is in. */
+const sizeHeading = (f: Found | null): string | undefined => {
+  const col = f?.ct.cols.section;
+  return col === undefined ? undefined : f?.ct.table.head?.[col];
+};
+
+/**
+ * A wire detail as `f`'s table writes it, read from the row it comes from: a
+ * size goes from the way one column writes it to the way the other does.
+ */
+const carried = (f: Found, prop: Prop, { value, from }: Detail, unit: WireUnit): string =>
+  prop === "section" ? sizeAcross(value, sizeHeading(from), sizeHeading(f), unit) : value;
+
 /** Gives the loser the details the winner has, wherever the winner has one. */
-function adopt(winner: Found, loser: Found): void {
+function adopt(winner: Found, loser: Found, unit: WireUnit): void {
   for (const prop of PROPS) {
     const to = loser.ct.cols[prop];
     const value = cell(winner.row, winner.ct.cols[prop]);
     if (to === undefined || isBlank(value)) continue;
     while (loser.row.length <= to) loser.row.push("");
-    loser.row[to] = value;
+    loser.row[to] = carried(loser, prop, { value, from: winner }, unit);
   }
 }
 
@@ -218,10 +231,7 @@ function wireDetails(tables: readonly CavityTable[], kept: End, old: End | null)
 }
 
 /** The unit a bare size in a row's Section column is in. */
-const sizeUnitOf = (f: Found | null, unit: WireUnit): WireUnit => {
-  const col = f?.ct.cols.section;
-  return columnUnit(col === undefined ? undefined : f?.ct.table.head?.[col], unit);
-};
+const sizeUnitOf = (f: Found | null, unit: WireUnit): WireUnit => columnUnit(sizeHeading(f), unit);
 
 /**
  * What the wire and the cavity it is dropped on disagree about, or null when
@@ -260,19 +270,19 @@ export function detailsConflict(doc: HarnessDoc, op: WireOp, to: string): Detail
 }
 
 /** Puts a wire property in a row that has nothing there yet, a dash included. */
-function fill(f: Found, prop: Prop, value: string): void {
+function fill(f: Found, prop: Prop, detail: Detail, unit: WireUnit): void {
   const col = f.ct.cols[prop];
-  if (col === undefined || !value || !isBlank(cell(f.row, col))) return;
+  if (col === undefined || !detail.value || !isBlank(cell(f.row, col))) return;
   while (f.row.length <= col) f.row.push("");
-  f.row[col] = value;
+  f.row[col] = carried(f, prop, detail, unit);
 }
 
 /** Puts a wire property in a row, over whatever it said; a value with nothing in it changes nothing. */
-function overwrite(f: Found, prop: Prop, value: string): void {
+function overwrite(f: Found, prop: Prop, detail: Detail, unit: WireUnit): void {
   const col = f.ct.cols[prop];
-  if (col === undefined || isBlank(value)) return;
+  if (col === undefined || isBlank(detail.value)) return;
   while (f.row.length <= col) f.row.push("");
-  f.row[col] = value;
+  f.row[col] = carried(f, prop, detail, unit);
 }
 
 /** A row that already has a wire, to somewhere other than `other`. */
@@ -340,8 +350,9 @@ function settle(doc: HarnessDoc, start: End, target: End, prefer: Prefer): void 
   const fs = rowOf(tables, start);
   const ft = rowOf(tables, target);
   if (!fs || !ft) return;
-  if (prefer === "start") adopt(fs, ft);
-  else adopt(ft, fs);
+  const unit = wireUnitOf(doc);
+  if (prefer === "start") adopt(fs, ft, unit);
+  else adopt(ft, fs, unit);
 }
 
 /**
@@ -448,22 +459,18 @@ export function moveWireEnd(
   if (!fk && !hasTable(tables, target)) return { ok: false, reason: "no-table" };
 
   const fo = rowOf(tables, old);
-  const props = {} as Record<Prop, string>;
-  for (const prop of PROPS) {
-    const own = fk ? cell(fk.row, fk.ct.cols[prop]) : "";
-    const left = fo ? cell(fo.row, fo.ct.cols[prop]) : "";
-    props[prop] = isBlank(own) ? (isBlank(left) ? "" : left) : own;
-  }
+  const props = wireDetails(tables, kept, old);
+  const unit = wireUnitOf(doc);
 
   if (fo) clearEnd(fo);
 
   if (fk) {
     writeEnd(fk, target);
-    for (const prop of PROPS) fill(fk, prop, props[prop]);
+    for (const prop of PROPS) fill(fk, prop, props[prop], unit);
     autoLinkRow(doc, fk.ct.table.id, fk.index);
     // the far end fills in by linking, which leaves a dash where one was typed
     const far = rowOf(cavityTables(doc), target);
-    if (far) for (const prop of PROPS) fill(far, prop, props[prop]);
+    if (far) for (const prop of PROPS) fill(far, prop, props[prop], unit);
   } else {
     const row = rowOrNew(tables, target);
     if (!row) return { ok: false, reason: "no-table" };
@@ -471,8 +478,8 @@ export function moveWireEnd(
     // the end that stays is a splice, which has no row: its side of the question is
     // the wire's own details, those of the cavity being left, which the window showed
     for (const prop of PROPS) {
-      if (prefer === "start") overwrite(row, prop, props[prop]);
-      else fill(row, prop, props[prop]);
+      if (prefer === "start") overwrite(row, prop, props[prop], unit);
+      else fill(row, prop, props[prop], unit);
     }
   }
   if (prefer) settle(doc, kept, target, prefer);

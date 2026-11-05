@@ -7,6 +7,8 @@ import {
   parseSize,
   previewUnitChange,
   setWireUnit,
+  sizeAcross,
+  sizeChoices,
   sizesAlreadyIn,
   sizesFor,
   unitLabel,
@@ -429,5 +431,43 @@ describe("sizesAlreadyIn", () => {
   it("lists nothing when labelling leaves every size as it is", () => {
     const doc = docWith(table("t", HEAD, [["1", "B.1", "Red", "18"]]));
     expect(previewUnitChange(doc, "awg", "awg")).toEqual([]);
+  });
+});
+
+describe("the sizes a Section cell is picked from", () => {
+  const value = (unit: "mm2" | "awg", heading: string, label: string): string | undefined =>
+    sizeChoices(unit, heading).find((c) => c.label.startsWith(`${label} `))?.value;
+
+  it("are written with the unit under a plain Section, as the other cells there are", () => {
+    expect(value("mm2", "Sezione", "1.5")).toBe("1.5 mm²");
+    expect(value("awg", "Section", "16")).toBe("16 AWG");
+  });
+
+  it("are written bare under a heading that names the unit, never with it twice", () => {
+    expect(value("mm2", "Sezione (mm²)", "1.5")).toBe("1.5");
+    expect(value("mm2", "mm²", "1.5")).toBe("1.5");
+    expect(value("awg", "AWG", "16")).toBe("16");
+  });
+
+  it("say their unit under a heading that names the other one", () => {
+    expect(value("mm2", "AWG", "1.5")).toBe("1.5 mm²");
+  });
+
+  it("still read in the drawing's unit and show the other one beside it", () => {
+    const choice = sizeChoices("mm2", "Sezione").find((c) => c.label === "1.5 mm²");
+    expect(choice?.note).toBe("≈ 16 AWG");
+  });
+});
+
+describe("a size carried to the other end of a wire", () => {
+  it("is written the way the column it goes to writes its sizes", () => {
+    expect(sizeAcross("1.5", "Section (mm²)", "Section", "mm2")).toBe("1.5 mm²");
+    expect(sizeAcross("1.5 mm²", "Section", "Section (mm²)", "mm2")).toBe("1.5");
+    expect(sizeAcross("16", "AWG", "Section", "mm2")).toBe("16 AWG");
+  });
+
+  it("goes as it is between two columns headed alike", () => {
+    expect(sizeAcross("1,5", "Section", "Sezione", "mm2")).toBe("1,5");
+    expect(sizeAcross("1.5", "Section (mm²)", "mm²", "mm2")).toBe("1.5");
   });
 });

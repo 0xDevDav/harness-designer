@@ -450,6 +450,34 @@ describe("a wire joining cavities that disagree about it", () => {
     expect(rowOf(doc, "tb", "1")[1]).toBe("");
   });
 
+  it("writes the size it carries the way the table it lands in writes its sizes", () => {
+    const named = (doc: HarnessDoc, id: string): void => {
+      const table = doc.tables.find((t) => t.id === id)!;
+      table.head = table.head!.map((h) => (h === "Section" ? "Section (mm²)" : h));
+    };
+    // from a plain Section, where the cell names the unit, to a heading that names it
+    const bare = harness();
+    named(bare, "tc");
+    rowOf(bare, "ta", "1")[4] = "1.5 mm²";
+    expect(moveWireEnd(bare, ["A.1", "B.1"], 1, "C.1")).toEqual({ ok: true });
+    expect(rowOf(bare, "tc", "1")[4]).toBe("1.5");
+    expect(rowOf(bare, "ta", "1")[4]).toBe("1.5 mm²");
+    // and back: the bare number under "Section (mm²)" says its unit under a plain Section
+    const unit = harness();
+    named(unit, "ta");
+    expect(moveWireEnd(unit, ["A.1", "B.1"], 1, "C.1")).toEqual({ ok: true });
+    expect(rowOf(unit, "tc", "1")[4]).toBe("1.5 mm²");
+  });
+
+  it("writes the winning size the way the other cavity's table does", () => {
+    const doc = unlike();
+    const tc = doc.tables.find((t) => t.id === "tc")!;
+    tc.head = tc.head!.map((h) => (h === "Section" ? "Section (mm²)" : h));
+    Object.assign(rowOf(doc, "ta", "2"), { 4: "2.5 mm²" });
+    expect(connectEnds(doc, "A.2", "C.1", "start")).toEqual({ ok: true });
+    expect(rowOf(doc, "tc", "1")[4]).toBe("2.5");
+  });
+
   it("joins them through a new splice that each keeps its own details at", () => {
     const doc = unlike();
     const result = connectViaSplice(doc, made, "C.1");

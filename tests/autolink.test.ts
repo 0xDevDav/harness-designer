@@ -370,3 +370,37 @@ describe("the wire type", () => {
     expect(findTable(doc, "tb")?.rows[0]).toEqual(["1", "TXL", "A.1"]);
   });
 });
+
+describe("the size at the far end", () => {
+  /** C1 is headed "Sezione", C3 names the unit in its heading. */
+  const mixed = (): HarnessDoc => {
+    const doc = build();
+    const t3 = findTable(doc, "t3")!;
+    t3.head = t3.head!.map((h) => (h === "Sezione" ? "Sezione (mm²)" : h));
+    return doc;
+  };
+
+  it("is written bare under a heading that names the unit", () => {
+    const doc = mixed();
+    findTable(doc, "t1")!.rows[0]![2] = "1.5 mm²";
+    autoLinkRow(doc, "t1", 0);
+    expect(cellsOf(doc, "t3", "3")?.[2]).toBe("1.5");
+  });
+
+  it("is written with the unit under a plain Section", () => {
+    const doc = mixed();
+    findTable(doc, "t1")!.rows[0]![3] = "";
+    findTable(doc, "t3")!.rows[0] = ["1", "rosso", "1.5", "C1", "2"];
+    autoLinkRow(doc, "t3", 0);
+    expect(cellsOf(doc, "t1", "2")?.[2]).toBe("1.5 mm²");
+  });
+
+  it("is not changed, nor reported, when the two ends say the same size each in its own way", () => {
+    const doc = mixed();
+    autoLinkRow(doc, "t1", 0);
+    findTable(doc, "t1")!.rows[0]![2] = "1.5 mm²";
+    findTable(doc, "t3")!.rows.find((r) => r[0] === "3")![2] = "1.5";
+    expect(autoLinkRow(doc, "t1", 0).status).toBe("already");
+    expect(cellsOf(doc, "t3", "3")?.[2]).toBe("1.5");
+  });
+});

@@ -166,6 +166,39 @@ export function sizeForCell(text: string, unit: WireUnit, heading: string | unde
 }
 
 /**
+ * A size carried from one Section column to another, the other end of the same
+ * wire: read in the unit of the column it comes from and written the way the
+ * column it goes to writes its sizes. Between two columns headed alike it goes
+ * as it is. `unit` is the drawing's.
+ */
+export function sizeAcross(
+  text: string,
+  from: string | undefined,
+  to: string | undefined,
+  unit: WireUnit,
+): string {
+  if (headingUnit(from) === headingUnit(to)) return text;
+  return sizeForCell(text, columnUnit(from, unit), to);
+}
+
+/**
+ * The sizes a Section cell is picked from, those of the drawing's unit, each
+ * written the way the cell's column writes its sizes and showing what it comes
+ * to in the other unit, because the point of having both is to read across.
+ */
+export function sizeChoices(
+  unit: WireUnit,
+  heading: string | undefined,
+): { value: string; label: string; note: string }[] {
+  const other = unit === "awg" ? "mm2" : "awg";
+  return sizesFor(unit).map((size) => ({
+    value: sizeForCell(size.label, unit, heading),
+    label: `${size.label} ${unitLabel(unit)}`,
+    note: `≈ ${nearestSize(size.area, other).label} ${unitLabel(other)}`,
+  }));
+}
+
+/**
  * Whether two cells name the same size, each read in the unit of its own
  * column: "1.5" under "Section (mm²)" and "1.5 mm²" under "Section" are one
  * wire. Cells that are not sizes are compared as text.
