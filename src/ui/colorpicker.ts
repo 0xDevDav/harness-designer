@@ -134,7 +134,7 @@ export function openColorPicker({ anchor, value, onPick }: PickerOptions): void 
         code.textContent = color.code;
         b.appendChild(code);
       } else {
-        b.textContent = "—";
+        b.textContent = "-";
       }
       if (selected() === color) b.classList.add("is-active");
       b.addEventListener("click", () => {

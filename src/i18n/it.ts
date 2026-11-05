@@ -85,30 +85,29 @@ export const it = {
   "guide.plugins.install.title": "Come si installa",
   "guide.plugins.install.body": "Dal pannello Plugin, in tre modi:",
   "guide.plugins.install.url":
-    "<code>Aggiungi da URL</code> — indirizzo di un file .js raggiungibile dal browser.",
+    "<code>Aggiungi da URL</code>: indirizzo di un file .js raggiungibile dal browser.",
   "guide.plugins.install.file":
-    "<code>Aggiungi da file</code> — un file sul tuo computer, comodo mentre lo scrivi.",
+    "<code>Aggiungi da file</code>: un file sul tuo computer, comodo mentre lo scrivi.",
   "guide.plugins.install.bundled":
     "Nella copia a file unico i plugin di serie sono già dentro il programma; quelli da URL non sono caricabili, perché il browser non lo consente aprendo la pagina dal disco.",
   "guide.plugins.api.title": "Che cosa mette a disposizione l'API",
   "guide.plugins.api.body": "L'oggetto api ricevuto da activate espone:",
   "guide.plugins.api.commands":
-    "<code>commands.register</code> — comandi con scorciatoia, visibili nella palette (Ctrl+K).",
+    "<code>commands.register</code>: comandi con scorciatoia, visibili nella palette (Ctrl+K).",
   "guide.plugins.api.menu":
-    "<code>menu.contribute</code> — voci nel menù del tasto destro, in base a ciò che è stato cliccato.",
+    "<code>menu.contribute</code>: voci nel menù del tasto destro, in base a ciò che è stato cliccato.",
   "guide.plugins.api.validation":
-    "<code>validation.addRule</code> — controlli propri nel rapporto di Verifica.",
-  "guide.plugins.api.exporters": "<code>exporters.register</code> — nuovi formati nel menù File.",
+    "<code>validation.addRule</code>: controlli propri nel rapporto di Verifica.",
+  "guide.plugins.api.exporters": "<code>exporters.register</code>: nuovi formati nel menù File.",
   "guide.plugins.api.symbols":
-    "<code>symbols.registerConnector</code> — simboli di terminale disegnati da te.",
-  "guide.plugins.api.colors": "<code>colors.registerName</code> — nomi o sigle di colore aggiuntivi.",
-  "guide.plugins.api.i18n": "<code>i18n.add</code> — le tue stringhe, in italiano e in inglese.",
+    "<code>symbols.registerConnector</code>: simboli di terminale disegnati da te.",
+  "guide.plugins.api.colors": "<code>colors.registerName</code>: nomi o sigle di colore aggiuntivi.",
+  "guide.plugins.api.i18n": "<code>i18n.add</code>: le tue stringhe, in italiano e in inglese.",
   "guide.plugins.api.ui":
-    "<code>ui.toast · confirm · prompt · sidebarSection</code> — messaggi, domande e una sezione tua nel pannello.",
-  "guide.plugins.api.events":
-    "<code>events.on(doc | selection | load)</code> — per reagire a ciò che accade.",
+    "<code>ui.toast · confirm · prompt · sidebarSection</code>: messaggi, domande e una sezione tua nel pannello.",
+  "guide.plugins.api.events": "<code>events.on(doc | selection | load)</code>: per reagire a ciò che accade.",
   "guide.plugins.api.storage":
-    "<code>storage.get · set</code> — impostazioni tue, separate da quelle degli altri plugin.",
+    "<code>storage.get · set</code>: impostazioni tue, separate da quelle degli altri plugin.",
   "guide.plugins.edit.title": "Modificare il disegno",
   "guide.plugins.edit.body":
     "Ogni modifica passa da api.edit: il documento cambia in un solo passo di annullamento e il foglio si ridisegna da sé. Non modificare mai il documento fuori da qui.",
@@ -134,9 +133,9 @@ export const it = {
 
   /* ---------------- canvas hints ---------------- */
   "hint.select":
-    "Tasto destro per il menù azioni — trascina gli elementi per spostarli, Ctrl+clic per sceglierne più di uno, trascina il vuoto per la vista, rotella per lo zoom",
+    "Tasto destro per il menù azioni, trascina gli elementi per spostarli, Ctrl+clic per sceglierne più di uno, trascina il vuoto per la vista, rotella per lo zoom",
   "hint.branch":
-    "Disegno ramo — clic per aggiungere punti, clic su un nodo per collegarti; Esc, doppio clic o tasto destro per terminare",
+    "Disegno ramo: clic per aggiungere punti, clic su un nodo per collegarti; Esc, doppio clic o tasto destro per terminare",
 
   /* ---------------- context menu ---------------- */
   "menu.mergeNodes": "⇥ Unisci {n} nodi qui",
@@ -260,12 +259,12 @@ export const it = {
   "props.inline.title": "Etichetta / componente inline",
   "props.field.text": "Testo",
   "props.field.color": "Colore (nome o #hex)",
-  "props.field.position": "Posizione lungo il ramo (0–1)",
+  "props.field.position": "Posizione lungo il ramo (da 0 a 1)",
 
   "props.table.title": "Tabella",
   "props.field.tableTitle": "Titolo",
   "props.field.linkedNode": "Connettore collegato",
-  "props.linkedNode.none": "— nessuno —",
+  "props.linkedNode.none": "(nessuno)",
   "props.table.colorHelp":
     "Nella colonna Colore scrivi un colore (rosso, nero, #hex…) o più colori separati da virgola per un campione a fasce.",
   "props.table.addRow": "+ Riga",
@@ -336,18 +335,18 @@ export const it = {
   /* ---------------- verifica ---------------- */
   "validate.title": "Verifica coerenza",
   "validate.ok": "✓ Nessun problema: incroci tra tabelle, cavità e riferimenti alle note sono coerenti.",
-  "validate.count": "{n} problemi — clic su una voce per andare all'elemento.",
-  "validate.countOne": "1 problema — clic sulla voce per andare all'elemento.",
+  "validate.count": "{n} problemi: clic su una voce per andare all'elemento.",
+  "validate.countOne": "1 problema: clic sulla voce per andare all'elemento.",
   "validate.noteMissing": "{what}: riferimento [{num}] assente nella tabella Note",
   "validate.nodeLabel": "Nodo {name}",
   "validate.nodeUnnamed": "senza nome",
   "validate.segmentLabel": "Ramo {len}",
   "validate.duplicateTable": "Due tabelle cavità per «{owner}»",
   "validate.jointGap":
-    "Accoppiamento {from}–{to}: le cavità {cavities} sono collegate su {from} e non su {to}",
+    "Accoppiamento fra {from} e {to}: le cavità {cavities} sono collegate su {from} e non su {to}",
   "validate.duplicateCavity": "{owner}: cavità {cavity} duplicata",
   "validate.multiWireCavity":
-    "{owner}: cavità {cavity} con {n} fili verso destinazioni diverse — verifica che sia voluto",
+    "{owner}: cavità {cavity} con {n} fili verso destinazioni diverse, verifica che sia voluto",
   "validate.unknownTarget": "{from} → {dest}: «{name}» non esiste nello schema",
   "validate.missingCavity": "{from} → {dest}: cavità {cavity} assente nella tabella {owner}",
   "validate.crossMismatch": "Incrocio errato: {from} → {dest}, ma {dest} → {back}",
@@ -401,7 +400,7 @@ export const it = {
   "guide.doubleClick":
     "<b>Doppio clic</b> su una cella, un nome, una lunghezza o un'etichetta: si modifica direttamente sul foglio.",
   "guide.rightClick":
-    "<b>Tasto destro</b>: tutte le azioni dell'elemento — righe e colonne, colore, collegamenti, elimina.",
+    "<b>Tasto destro</b>: tutte le azioni dell'elemento (righe e colonne, colore, collegamenti, elimina).",
   "guide.tab":
     "Mentre modifichi una cella: <b>Tab</b> passa alla successiva, <b>Invio</b> scende, <b>Esc</b> annulla.",
   "guide.branch": "<b>B</b> o tasto destro sul vuoto per disegnare un ramo; Esc per terminare.",
