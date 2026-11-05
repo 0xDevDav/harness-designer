@@ -19,6 +19,7 @@ import {
   wireUnitOf,
   wouldChangeUnit,
 } from "@/core/wiresize";
+import { addTypeColumn } from "@/core/typecolumn";
 import type { UnitChange } from "@/core/wiresize";
 import { copySelection, countOf, isEmptyClipping } from "@/core/clipboard";
 import { heldClipping, hold, pasteHeldAt } from "@/ui/clipboard";
@@ -36,7 +37,7 @@ import { deleteCatalogFlow, insertCatalog, startingCatalogs } from "@/ui/catalog
 import { insertTable, viewCenter } from "@/ui/insert";
 import { openFind } from "@/ui/find";
 import { openCommandPalette } from "@/ui/palette";
-import { separateOverlaps } from "@/ui/separate";
+import { separateOverlaps, widenTables } from "@/ui/separate";
 import { cycleViewMode, setViewMode, showsBoard, showsSchematic } from "@/ui/viewmode";
 
 /* ============================ shortcuts ============================ */
@@ -623,6 +624,30 @@ export function registerBuiltinCommands(app: AppContext): void {
       id: "insert.terminations",
       titleKey: "cmd.insertTerminations",
       run: (a) => insertCatalog(a, "terminations"),
+    },
+    {
+      id: "insert.typeColumn",
+      titleKey: "cmd.insertTypeColumn",
+      run: (a) => {
+        let n = 0;
+        let moved = 0;
+        let stuck: string[] = [];
+        a.store.edit((doc) => {
+          // the new column makes a table wider: the tables to its right move over by what it gained
+          const result = widenTables(doc, a.renderer, a.store.snapEnabled, () =>
+            addTypeColumn(doc, a.t("table.head.type")),
+          );
+          n = result.widened.length;
+          moved = result.moved;
+          // a table with no free place near enough stays where it was: say which, by connector
+          stuck = result.stuck.map((id) => (findTable(doc, id)?.title ?? "").split(/\s/)[0] || id);
+        }, "type-column");
+        if (!n) a.toast.show(a.t("toast.typeColumnNone"));
+        else if (stuck.length)
+          a.toast.show(a.t("toast.typeColumnStuck", { n, moved, names: stuck.join(", ") }));
+        else if (moved) a.toast.show(a.t("toast.typeColumnMoved", { n, moved }));
+        else a.toast.show(a.t("toast.typeColumnAdded", { n }));
+      },
     },
     {
       id: "insert.notes",

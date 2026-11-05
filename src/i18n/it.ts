@@ -307,6 +307,7 @@ export const it = {
   "table.head.conductor": "Conduttore",
   "table.head.color": "Colore",
   "table.head.section": "Sezione",
+  "table.head.type": "Tipo filo",
   "table.head.length": "Lunghezza",
   "table.head.contactPn": "PN contatto",
   "table.head.notes": "Note",
@@ -352,6 +353,7 @@ export const it = {
   "validate.oneWay": "{from} → {dest}, ma {dest} non indica alcuna destinazione",
   "validate.colorMismatch": "Filo {from} ↔ {dest}: colore discorde ({a} / {b})",
   "validate.sectionMismatch": "Filo {from} ↔ {dest}: sezione discorde ({a} / {b})",
+  "validate.typeMismatch": "Filo {from} ↔ {dest}: tipo filo discorde ({a} / {b})",
   "validate.wireTooManyEnds": "Colore {color} presente in {n} connettori ({list}): un filo ha due soli capi",
   "validate.wireUnreachable":
     "Filo {from} → {to}: i due connettori esistono ma nessun ramo li collega, il filo non è realizzabile",
@@ -523,6 +525,14 @@ export const it = {
   "menu.wireColorClear": "Rimuovi colore",
   "toast.wireColorNone":
     "Questo filo non ha una colonna Colore su cui scrivere: aggiungila alla tabella delle cavità.",
+  "cmd.insertTypeColumn": "Aggiungi una colonna Tipo filo alle tabelle delle cavità",
+  "insert.typeColumn": "Colonna Tipo filo in ogni tabella delle cavità",
+  "toast.typeColumnAdded": "Colonna Tipo filo aggiunta alle tabelle: {n}",
+  "toast.typeColumnMoved":
+    "Colonna Tipo filo aggiunta alle tabelle: {n}. Tabelle spostate per fare spazio: {moved}",
+  "toast.typeColumnStuck":
+    "Colonna Tipo filo aggiunta alle tabelle: {n}. Tabelle spostate per fare spazio: {moved}. Ancora sopra qualcosa, lasciate dove erano: {names}",
+  "toast.typeColumnNone": "Ogni tabella delle cavità ha già una colonna Tipo filo",
   "topbar.unit.tip":
     "Unità di misura delle sezioni. Sceglierne un'altra converte tutte le sezioni del disegno",
   "cmd.unitMm2": "Sezioni dei fili in mm²",
@@ -543,6 +553,9 @@ export const it = {
   "dialog.unit.thicker": "{pct} % più spesso",
   "dialog.unit.more": "• e altre {n} sezioni",
   "dialog.unit.confirm": "Converti",
+  "menu.typeHeader": "Tipo di filo",
+  "menu.typeOther": "Altro tipo…",
+  "menu.typeClear": "Cancella tipo",
   "menu.sizeHeader": "Sezione del filo",
   "menu.sizeOther": "Altra sezione…",
   "menu.sizeClear": "Cancella sezione",
