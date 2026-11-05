@@ -13,7 +13,7 @@
  * Renames the cache, which is what invalidates the previous one.
  *
  * The build stamps the version from package.json over this line, so it cannot
- * drift from the program it caches — it did once, and a service worker whose
+ * drift from the program it caches. It did once, and a service worker whose
  * own file never changes is one the browser never replaces: the old cache is
  * then never cleaned and the update never lands. What is written here is only
  * what `npm run dev` sees.

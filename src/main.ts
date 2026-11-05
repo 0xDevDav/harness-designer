@@ -253,8 +253,8 @@ store.setPersister((doc) => {
 /**
  * Views waiting to be fitted to what they are showing.
  *
- * Neither can be fitted while it is hidden — a view with no size on screen has
- * no ratio to fit to — so a fit asked for while a view is away waits until it
+ * Neither can be fitted while it is hidden (a view with no size on screen has
+ * no ratio to fit to), so a fit asked for while a view is away waits until it
  * is shown. Both come round again whenever a different drawing is loaded.
  */
 let boardToFit = true;
@@ -468,7 +468,7 @@ void app.plugins.loadAll().then(() => app.refreshUi());
  * The service worker deliberately does not take over by itself: a tab must not
  * change version under someone in the middle of drawing. The cost of that is
  * that an update sits there in silence, and the only way to reach it is to
- * close every tab of the site — which nobody does, because nobody was told.
+ * close every tab of the site, which nobody does, because nobody was told.
  * So it says so, and the reload happens when the offer is accepted.
  */
 function offerUpdate(registration: ServiceWorkerRegistration): void {

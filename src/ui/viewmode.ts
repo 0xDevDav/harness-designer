@@ -9,8 +9,8 @@ import { safeGet, safeSet } from "@/io/storage";
  * in the other, which is the question nobody could answer without holding two
  * sheets of paper side by side.
  *
- * It is a setting of the program and not a property of the drawing — it says
- * how somebody is working right now, not what the harness is — so it is kept
+ * It is a setting of the program and not a property of the drawing (it says
+ * how somebody is working right now, not what the harness is), so it is kept
  * next to the theme and the language, and it is not saved into the file.
  */
 

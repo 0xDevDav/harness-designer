@@ -325,7 +325,7 @@ export function segmentEnds(doc: HarnessDoc, s: Segment): [HNode, HNode] | null 
  * diagonal, and the crossover is put exactly halfway between them: out along
  * one axis, across at the midpoint, and on again to the far end. Both ends then
  * leave along the same axis and the jog sits in open sheet, away from whatever
- * is gathered at either end — a corner tucked against a node lands on the
+ * is gathered at either end: a corner tucked against a node lands on the
  * fitting there, and against a connector it lands on the body.
  *
  * Which axis is the long one, so the crossover is the short leg and the branch
@@ -433,8 +433,8 @@ export function segmentPath(doc: HarnessDoc, seg: Segment): Point[] | null {
  * Unit vector of a branch leaving one of its nodes.
  *
  * The way the cable actually goes, which on a branch that bends is not the way
- * the far end lies. Everything that has to point along a branch at a node — the
- * fillet, the way a connector faces — asks this rather than subtracting the two
+ * the far end lies. Everything that has to point along a branch at a node (the
+ * fillet, the way a connector faces) asks this rather than subtracting the two
  * ends.
  */
 export function branchDirection(doc: HarnessDoc, seg: Segment, fromNodeId: string): Point | null {
@@ -907,7 +907,7 @@ export function splitSegment(doc: HarnessDoc, seg: Segment, t: number): HNode | 
  * This is the way out of the two situations a formboard gets into on its own: a
  * junction drawn twice a few millimetres apart, and two runs that were meant to
  * meet and never quite did. Both look joined and behave as though they are not,
- * because routing follows branches and not proximity — so the fix has to be an
+ * because routing follows branches and not proximity, so the fix has to be an
  * edit to the drawing rather than a tolerance in the reader.
  *
  * Branches follow their ends over to the survivor. One that ends up with both

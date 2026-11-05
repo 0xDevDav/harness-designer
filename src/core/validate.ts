@@ -407,7 +407,7 @@ const wireRouting: ValidationRule = {
  * Cavity 3 of one half of a mated pair is cavity 3 of the other: they are one
  * point, wired from either side by two different wires that may well be two
  * different colours. That is the whole reason the pairing exists, and it is
- * also the thing nobody notices going wrong — a circuit wired up to the joint
+ * also the thing nobody notices going wrong: a circuit wired up to the joint
  * and left dead on the far side looks complete from both tables, because each
  * table is complete on its own terms.
  *

@@ -2,8 +2,8 @@
  * The one clipping the application is holding, and putting it down.
  *
  * It lives in memory and not in the system clipboard on purpose. What is copied
- * is a piece of a document — nodes, branches, tables with their references
- * between them — and the system clipboard carries text. Going through it would
+ * is a piece of a document (nodes, branches, tables with their references
+ * between them), and the system clipboard carries text. Going through it would
  * mean inventing a serialization of half the model, and reading back whatever
  * else the user had copied meanwhile.
  */

@@ -27,7 +27,7 @@ import { columnUnit, sameSize, sizeAcross, sizeForCell, wireUnitOf } from "./wir
  * each other, so making one, or moving one end of it, is editing those rows.
  * What lives here is the part of that which is bookkeeping, so that dragging an
  * end across the schematic does exactly what retyping it in the tables would
- * have done — including the far end filling itself in, through the same mutual
+ * have done, including the far end filling itself in, through the same mutual
  * linking, and the colour, size and type going with the wire rather than
  * staying behind on the cavity it left.
  *
@@ -361,8 +361,8 @@ function settle(doc: HarnessDoc, start: End, target: End, prefer: Prefer): void 
 /**
  * Takes a wire out: both cavities let go of it. Each end is cleared only if it
  * really points at the other, so a table that disagrees about the wire is not
- * made to lose a different one. What the cavity says about the wire — colour,
- * size, type, function, notes — stays, so that putting the wire back, or another one
+ * made to lose a different one. What the cavity says about the wire (colour,
+ * size, type, function, notes) stays, so that putting the wire back, or another one
  * in its place, does not start from an empty row.
  *
  * Returns how many rows were cleared, zero when the tables hold no such wire.
@@ -409,7 +409,7 @@ export function connectionCount(doc: HarnessDoc, name: string): number {
 /**
  * Takes a connector, or a splice, out of the drawing: every other cavity that
  * went to it lets go of its wire, its own cavity table goes, and the node goes
- * from the sheet with the branches attached to it — what deleting it on the
+ * from the sheet with the branches attached to it, which is what deleting it on the
  * sheet does. What those cavities say about their wires stays, as it does when
  * a wire is deleted. Returns how many wires were disconnected.
  */
@@ -436,7 +436,7 @@ export function deleteConnector(doc: HarnessDoc, name: string, nodeId?: string):
  * `ends` are the wire's two endpoints as the tables write them and `moving` is
  * which of them is picked up. The end that stays is re-pointed at the new place
  * and the new place at it; the cavity that was left lets go, taking nothing but
- * its own description with it — the colour, size and type belong to the wire and
+ * its own description with it: the colour, size and type belong to the wire and
  * go where it goes.
  */
 export function moveWireEnd(

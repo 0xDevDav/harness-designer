@@ -35,7 +35,7 @@ Cinque livelli, con le dipendenze sempre rivolte verso il basso:
 
 ## 2. Mappa dei moduli
 
-### `src/core/` — modello e logica, senza DOM
+### `src/core/`: modello e logica, senza DOM
 
 | File           | Contenuto                                                                                                                                                                                                                                               |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -52,7 +52,7 @@ Cinque livelli, con le dipendenze sempre rivolte verso il basso:
 | `sample.ts`    | Il documento di esempio caricato al primo avvio                                                                                                                                                                                                         |
 | `schematic.ts` | La vista schema ricavata dal documento: un riquadro per connettore con le sue cavità, un filo per riga di distinta, disposizione a colonne che riduce gli incroci, percorso squadrato di ogni filo e corrispondenze fra le due viste                    |
 
-### `src/render/` — dal documento all'SVG
+### `src/render/`: dal documento all'SVG
 
 | File            | Contenuto                                                                                                                                              |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -63,7 +63,7 @@ Cinque livelli, con le dipendenze sempre rivolte verso il basso:
 | `renderer.ts`   | Il `Renderer`: svuota `#world` e ridisegna tutto, gestisce vista, riquadri, ricerca del nodo vicino e produce l'SVG autonomo per esportazione e stampa |
 | `schematic.ts`  | Il disegno della vista schema: riquadri, fili colorati, evidenziazione, e una vista propria perché affiancate le due si muovono separatamente          |
 
-### `src/ui/` — interfaccia
+### `src/ui/`: interfaccia
 
 | File              | Contenuto                                                                                                                                          |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -75,7 +75,7 @@ Cinque livelli, con le dipendenze sempre rivolte verso il basso:
 | `keyboard.ts`     | Scorciatoie globali: confronta l'evento con le scorciatoie dichiarate dai comandi                                                                  |
 | `palette.ts`      | La palette `Ctrl+K`: ricerca fra i comandi disponibili                                                                                             |
 | `topbar.ts`       | Barra superiore: pulsanti, menù _Inserisci_ ed _Esporta_, lingua, plugin, stato annulla/ripristina                                                 |
-| `viewmode.ts`     | Quale vista è a schermo — foglio, schema o entrambe — ricordata come il tema e la lingua                                                           |
+| `viewmode.ts`     | Quale vista è a schermo (foglio, schema o entrambe), ricordata come il tema e la lingua                                                            |
 | `props.ts`        | Pannello proprietà: ricostruito da zero a ogni cambio di selezione                                                                                 |
 | `report.ts`       | Rapporto della verifica nel pannello flottante; ogni voce porta al colpevole                                                                       |
 | `catalog.ts`      | Scegliere un alloggiamento o un terminale dalla tabella (con «+ Nuovo»), aggiungerne uno, chiedere prima di eliminarne uno in uso                  |
@@ -83,7 +83,7 @@ Cinque livelli, con le dipendenze sempre rivolte verso il basso:
 | `toast.ts`        | Messaggi temporanei in basso                                                                                                                       |
 | `pluginsPanel.ts` | Elenco dei plugin installati con installazione, attivazione e rimozione                                                                            |
 
-### `src/io/` — mondo esterno
+### `src/io/`: mondo esterno
 
 | File           | Contenuto                                                                                          |
 | -------------- | -------------------------------------------------------------------------------------------------- |
@@ -92,14 +92,14 @@ Cinque livelli, con le dipendenze sempre rivolte verso il basso:
 | `tabs.ts`      | Ascolta l'evento `storage` per accorgersi che lo stesso schema è aperto in un'altra scheda         |
 | `exporters.ts` | Esportazioni di serie: SVG, PNG (dall'SVG, scala 2×), distinta fili CSV, stampa                    |
 
-### `src/plugins/` — estensioni
+### `src/plugins/`: estensioni
 
 | File      | Contenuto                                                                                                             |
 | --------- | --------------------------------------------------------------------------------------------------------------------- |
 | `api.ts`  | Il contratto pubblico verso chi scrive un plugin (`HarnessPlugin`, `PluginAPI`)                                       |
 | `host.ts` | Caricamento, attivazione e disattivazione: ogni contributo è **revocabile** e ogni chiamata è protetta da `try/catch` |
 
-### `src/i18n/` — lingue
+### `src/i18n/`: lingue
 
 | File       | Contenuto                                                                                                               |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -155,7 +155,7 @@ Punti che vale la pena conoscere:
 
 ## 4. Modello dati e invarianti
 
-Tutto lo stato del disegno sta in un unico oggetto serializzabile, `HarnessDoc`. È **contemporaneamente** tre cose: il formato dei file `.json`, il contenuto del salvataggio automatico e l'unità di annullamento. Da qui la regola: **deve restare serializzabile con `JSON.stringify`** — niente `Map`, `Set`, funzioni, riferimenti circolari o classi.
+Tutto lo stato del disegno sta in un unico oggetto serializzabile, `HarnessDoc`. È **contemporaneamente** tre cose: il formato dei file `.json`, il contenuto del salvataggio automatico e l'unità di annullamento. Da qui la regola: **deve restare serializzabile con `JSON.stringify`**: niente `Map`, `Set`, funzioni, riferimenti circolari o classi.
 
 ```ts
 doc = {
@@ -194,7 +194,7 @@ Convenzioni sui dati, non imposte dal tipo ma usate dalle funzioni: la colonna *
 
 A ogni cambiamento `#world` viene svuotato e ridisegnato per intero da `doc`. È volutamente «ingenuo», e ha un vantaggio che vale più della raffinatezza: **non esiste uno stato intermedio da mantenere allineato**. Non ci sono bug del tipo «ho cambiato il documento ma lo schermo mostra ancora l'elemento vecchio», perché lo schermo è una funzione pura del documento.
 
-Il costo è accettabile: uno schema di cablaggio ha centinaia di elementi, non centinaia di migliaia, e `requestRedraw()` garantisce comunque **un solo** ridisegno per frame. Se un giorno servisse più velocità, il punto da ottimizzare è uno solo — `Renderer.redrawNow()` — e nient'altro nel programma cambia.
+Il costo è accettabile: uno schema di cablaggio ha centinaia di elementi, non centinaia di migliaia, e `requestRedraw()` garantisce comunque **un solo** ridisegno per frame. Se un giorno servisse più velocità, il punto da ottimizzare è uno solo, `Renderer.redrawNow()`, e nient'altro nel programma cambia.
 
 ### Annullamento a istantanee
 
@@ -206,11 +206,11 @@ Il prezzo è la memoria, ed è tenuto sotto controllo con due limiti: al massimo
 
 Ogni elemento SVG cliccabile porta due attributi: `data-ent` (`node`, `segment`, `inline`, `table`) e `data-id`. Chi gestisce il puntatore risale il DOM con `ev.target.closest("[data-ent]")` e sa immediatamente cosa è stato colpito.
 
-Il vantaggio è che **il browser fa il lavoro geometrico**: niente calcoli di distanza da linee e rettangoli, niente indici spaziali da tenere aggiornati, e la zona sensibile coincide esattamente con ciò che si vede — comprese le aree di aggancio invisibili e più larghe che disegniamo apposta sotto i rami sottili, per rendere il tocco con le dita affidabile.
+Il vantaggio è che **il browser fa il lavoro geometrico**: niente calcoli di distanza da linee e rettangoli, niente indici spaziali da tenere aggiornati, e la zona sensibile coincide esattamente con ciò che si vede, comprese le aree di aggancio invisibili e più larghe che disegniamo apposta sotto i rami sottili, per rendere il tocco con le dita affidabile.
 
 ### Un solo punto di modifica
 
-Tutto passa dallo `Store`. Cronologia, salvataggio automatico, ripristino delle invarianti e ridisegno sono conseguenze automatiche di `edit()`, non cose da ricordarsi. Un modulo che modificasse `doc` direttamente non romperebbe subito nulla di visibile — e sarebbe proprio questo il problema: niente annullamento, niente salvataggio, schermo fermo.
+Tutto passa dallo `Store`. Cronologia, salvataggio automatico, ripristino delle invarianti e ridisegno sono conseguenze automatiche di `edit()`, non cose da ricordarsi. Un modulo che modificasse `doc` direttamente non romperebbe subito nulla di visibile, e sarebbe proprio questo il problema: niente annullamento, niente salvataggio, schermo fermo.
 
 ### I comandi come unica definizione delle azioni
 
@@ -224,7 +224,7 @@ Nessuna stringa rivolta all'utente compare nel codice: c'è sempre una chiave. I
 
 ### Contributi dei plugin revocabili
 
-Ogni funzione di registrazione (comandi, regole, esportatori, simboli, voci di menù, sezioni del pannello plugin) restituisce la funzione che **disfa** la registrazione. L'host le raccoglie e, quando un plugin viene disattivato, le chiama tutte: l'estensione sparisce senza ricaricare la pagina. I plugin girano nello stesso contesto della pagina — è una scelta esplicita, dichiarata all'utente — perciò l'host isola gli **errori** (`try/catch` attorno a caricamento, attivazione e a ogni chiamata di contributo) ma non i permessi.
+Ogni funzione di registrazione (comandi, regole, esportatori, simboli, voci di menù, sezioni del pannello plugin) restituisce la funzione che **disfa** la registrazione. L'host le raccoglie e, quando un plugin viene disattivato, le chiama tutte: l'estensione sparisce senza ricaricare la pagina. I plugin girano nello stesso contesto della pagina (è una scelta esplicita, dichiarata all'utente), perciò l'host isola gli **errori** (`try/catch` attorno a caricamento, attivazione e a ogni chiamata di contributo) ma non i permessi.
 
 ### Zero dipendenze, base relativa
 

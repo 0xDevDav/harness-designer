@@ -114,8 +114,8 @@ function replaceCurrent(app: AppContext): void {
     app.toast.error(app.t("find.refused"));
     return;
   }
-  // The edit has already searched again. If the match is still there — the
-  // replacement contains the query — the next one is the one after it, or
+  // The edit has already searched again. If the match is still there (the
+  // replacement contains the query), the next one is the one after it, or
   // pressing Replace would never leave this spot.
   if (state.hits[state.index] && JSON.stringify(state.hits[state.index]) === was) state.index++;
   if (state.index >= state.hits.length) state.index = 0;

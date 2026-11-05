@@ -1,4 +1,4 @@
-# Plugin — guida / Plugin guide
+# Guida ai plugin / Plugin guide
 
 > Italiano prima, English below. Il contratto di riferimento è `src/plugins/api.ts`.
 > Italian first, English below. The reference contract is `src/plugins/api.ts`.
@@ -48,10 +48,10 @@ una sessione e l'altra e con cui è indicizzata la sua memoria (`api.storage`).
 
 ## Ciclo di vita
 
-1. **Caricamento** — l'host importa il modulo (da URL o da sorgente incorporata) e legge l'export default.
-2. **`activate(api)`** — è qui che va registrato _tutto_. Può essere `async`: l'host attende la promessa.
-3. **Uso** — i contributi restano attivi finché il plugin è abilitato.
-4. **`deactivate()`** (facoltativa) e funzioni passate a **`api.onDispose(fn)`** — vengono eseguite alla
+1. **Caricamento**: l'host importa il modulo (da URL o da sorgente incorporata) e legge l'export default.
+2. **`activate(api)`**: è qui che va registrato _tutto_. Può essere `async`: l'host attende la promessa.
+3. **Uso**: i contributi restano attivi finché il plugin è abilitato.
+4. **`deactivate()`** (facoltativa) e funzioni passate a **`api.onDispose(fn)`**: vengono eseguite alla
    disattivazione o alla rimozione.
 
 Ogni contributo registrato tramite `api` è **revocabile**: l'host raccoglie da sé le funzioni di rimozione e
@@ -64,14 +64,14 @@ dall'host: il plugin viene segnato come _fallito_ nel pannello Plugin e l'applic
 
 Due accortezze pratiche:
 
-- **guardia dopo la disattivazione** — una voce di menù già aperta può essere premuta dopo che il plugin è
+- **guardia dopo la disattivazione**: una voce di menù già aperta può essere premuta dopo che il plugin è
   stato disabilitato; tenere un flag `disposed` impostato da `onDispose` ed uscire subito (entrambi gli
   esempi lo fanno);
-- **i nomi colore e i messaggi non si tolgono** — `api.colors.registerName` e `api.i18n.add` alimentano
+- **i nomi colore e i messaggi non si tolgono**: `api.colors.registerName` e `api.i18n.add` alimentano
   registri di sola aggiunta: dopo la disattivazione un colore e una traduzione restano riconosciuti. Non è
   un contributo visibile nell'interfaccia, quindi non lascia funzionalità attive.
 
-## PluginAPI — elenco completo
+## PluginAPI: elenco completo
 
 ```ts
 interface PluginAPI {
@@ -214,10 +214,10 @@ hai cambiato il documento senza passare da `store` (cosa che comunque non dovres
 
 Dalla barra superiore, pulsante **Plugin**:
 
-- **Da URL** — indirizzo di un modulo ES, per esempio uno dei plugin distribuiti con l'applicazione:
+- **Da URL**: indirizzo di un modulo ES, per esempio uno dei plugin distribuiti con l'applicazione:
   `plugins/metraggi.js` oppure `plugins/connettore-tondo.js` (i file di `public/plugins/` finiscono nella
   radice del sito). Un indirizzo esterno deve essere raggiungibile e servito con gli header CORS adatti.
-- **Da file** — si sceglie un `.js` dal disco: il contenuto viene letto e conservato come sorgente
+- **Da file**: si sceglie un `.js` dal disco: il contenuto viene letto e conservato come sorgente
   incorporata, quindi il plugin continua a funzionare anche offline e dopo un riavvio del browser.
 
 L'elenco dei plugin, il loro stato (attivo, disattivato, fallito) e la memoria di `api.storage` sono
@@ -227,8 +227,8 @@ del disegno.
 ### Avvertenza sui permessi
 
 I plugin girano **nello stesso contesto della pagina**, senza sandbox: hanno accesso al documento, al DOM,
-a `localStorage` e alla rete esattamente come l'applicazione. È una scelta esplicita — un plugin deve poter
-disegnare sul foglio e leggere il documento — ma significa che **installare un plugin equivale a eseguire
+a `localStorage` e alla rete esattamente come l'applicazione. È una scelta esplicita (un plugin deve poter
+disegnare sul foglio e leggere il documento), ma significa che **installare un plugin equivale a eseguire
 codice altrui sul proprio computer**.
 
 Installa solo plugin di cui conosci la provenienza, leggi il sorgente prima di installarlo (sono file
@@ -276,8 +276,8 @@ Il comando compare subito nella palette (`Ctrl+K`) con il titolo tradotto.
 Cosa mostra: **comando che scrive sul foglio**, **regola di verifica**, **traduzioni**, **memoria del
 plugin**.
 
-- `parseLengthMm(value)` converte in millimetri le lunghezze scritte a mano — `"600 mm"`, `"1,2 m"`,
-  `"30 cm"`, `"12 ft"`, `"18\""` — e restituisce `null` per tutto il resto (`"da definire"` non è un
+- `parseLengthMm(value)` converte in millimetri le lunghezze scritte a mano (`"600 mm"`, `"1,2 m"`,
+  `"30 cm"`, `"12 ft"`, `"18\""`) e restituisce `null` per tutto il resto (`"da definire"` non è un
   errore di battitura da correggere). Un numero senza unità è inteso in millimetri, l'unità di quotatura
   del disegno.
 - La **copertura** non è un campo del modello dati: è scritta come etichetta inline sul ramo
@@ -352,10 +352,10 @@ sessions and under which its storage (`api.storage`) is filed.
 
 ## Lifecycle
 
-1. **Loading** — the host imports the module (from a URL or from inlined source) and reads the default export.
-2. **`activate(api)`** — register _everything_ here. It may be `async`: the host awaits the promise.
-3. **Use** — contributions stay live while the plugin is enabled.
-4. **`deactivate()`** (optional) and the functions given to **`api.onDispose(fn)`** — run on disable or removal.
+1. **Loading**: the host imports the module (from a URL or from inlined source) and reads the default export.
+2. **`activate(api)`**: register _everything_ here. It may be `async`: the host awaits the promise.
+3. **Use**: contributions stay live while the plugin is enabled.
+4. **`deactivate()`** (optional) and the functions given to **`api.onDispose(fn)`**: run on disable or removal.
 
 Every contribution registered through `api` is **revocable**: the host collects the removal functions itself
 and runs them on disable, so commands, menu entries, rules and exporters disappear without a page reload.
@@ -367,13 +367,13 @@ is marked _failed_ in the Plugins panel and the application keeps working.
 
 Two practical points:
 
-- **guard after disposal** — an already open menu entry can be clicked after the plugin was disabled; keep a
+- **guard after disposal**: an already open menu entry can be clicked after the plugin was disabled; keep a
   `disposed` flag set from `onDispose` and return immediately (both examples do this);
-- **colour names and messages are not removed** — `api.colors.registerName` and `api.i18n.add` feed
+- **colour names and messages are not removed**: `api.colors.registerName` and `api.i18n.add` feed
   append-only registries: after disabling, a colour and a translation stay recognised. Neither is a visible
   contribution, so nothing keeps working behind the user's back.
 
-## PluginAPI — full listing
+## PluginAPI: full listing
 
 ```ts
 interface PluginAPI {
@@ -514,10 +514,10 @@ not be doing anyway).
 
 From the top bar, **Plugins** button:
 
-- **From URL** — the address of an ES module, for example one of the plugins shipped with the application:
+- **From URL**: the address of an ES module, for example one of the plugins shipped with the application:
   `plugins/metraggi.js` or `plugins/connettore-tondo.js` (files in `public/plugins/` land in the site root).
   An external address must be reachable and served with suitable CORS headers.
-- **From file** — pick a `.js` from disk: its content is read and kept as inlined source, so the plugin keeps
+- **From file**: pick a `.js` from disk: its content is read and kept as inlined source, so the plugin keeps
   working offline and across browser restarts.
 
 The plugin list, its status (enabled, disabled, failed) and the `api.storage` data live in the browser's
@@ -526,8 +526,8 @@ The plugin list, its status (enabled, disabled, failed) and the `api.storage` da
 ### A word about permissions
 
 Plugins run **in the page's own context**, unsandboxed: they can reach the document, the DOM,
-`localStorage` and the network exactly like the application. This is a deliberate trade-off — a plugin must
-be able to draw on the sheet and read the document — but it means **installing a plugin is running someone
+`localStorage` and the network exactly like the application. This is a deliberate trade-off (a plugin must
+be able to draw on the sheet and read the document), but it means **installing a plugin is running someone
 else's code on your computer**.
 
 Only install plugins whose origin you know, read the source before installing (these files are small and
@@ -574,8 +574,8 @@ The command shows up straight away in the palette (`Ctrl+K`) with its translated
 
 Shows: **a command that writes on the sheet**, **a validation rule**, **translations**, **plugin storage**.
 
-- `parseLengthMm(value)` converts hand-written lengths to millimetres — `"600 mm"`, `"1,2 m"`, `"30 cm"`,
-  `"12 ft"`, `"18\""` — and returns `null` for anything else (`"tbd"` is not a typo waiting to be fixed).
+- `parseLengthMm(value)` converts hand-written lengths to millimetres (`"600 mm"`, `"1,2 m"`, `"30 cm"`,
+  `"12 ft"`, `"18\""`) and returns `null` for anything else (`"tbd"` is not a typo waiting to be fixed).
   A bare number is read as millimetres, the drawing's dimensioning unit.
 - **Covering** is not a field of the data model: it is written as an inline label on the branch
   (`COR ø13`, `GUAINA`, `NASTRO`). The plugin recognises labels naming a protection through a regular

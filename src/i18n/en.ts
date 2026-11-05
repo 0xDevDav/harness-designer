@@ -83,28 +83,28 @@ export const en = {
     "A JavaScript file exporting an object with an activate(api) method. Nothing to compile: write it, install it, it runs. Here is a complete template to start from.",
   "guide.plugins.install.title": "How to install one",
   "guide.plugins.install.body": "From the Plugins panel, in three ways:",
-  "guide.plugins.install.url": "<code>Add from URL</code> — address of a .js file the browser can reach.",
+  "guide.plugins.install.url": "<code>Add from URL</code>: address of a .js file the browser can reach.",
   "guide.plugins.install.file":
-    "<code>Add from file</code> — a file on your computer, handy while writing it.",
+    "<code>Add from file</code>: a file on your computer, handy while writing it.",
   "guide.plugins.install.bundled":
     "In the single-file copy the built-in plugins are already inside the program; URL ones cannot be loaded, because the browser forbids it when the page is opened from disk.",
   "guide.plugins.api.title": "What the API offers",
   "guide.plugins.api.body": "The api object passed to activate exposes:",
   "guide.plugins.api.commands":
-    "<code>commands.register</code> — commands with shortcuts, listed in the palette (Ctrl+K).",
+    "<code>commands.register</code>: commands with shortcuts, listed in the palette (Ctrl+K).",
   "guide.plugins.api.menu":
-    "<code>menu.contribute</code> — right-click menu entries, based on what was clicked.",
-  "guide.plugins.api.validation": "<code>validation.addRule</code> — your own checks in the Check report.",
-  "guide.plugins.api.exporters": "<code>exporters.register</code> — new formats in the File menu.",
+    "<code>menu.contribute</code>: right-click menu entries, based on what was clicked.",
+  "guide.plugins.api.validation": "<code>validation.addRule</code>: your own checks in the Check report.",
+  "guide.plugins.api.exporters": "<code>exporters.register</code>: new formats in the File menu.",
   "guide.plugins.api.symbols":
-    "<code>symbols.registerConnector</code> — termination symbols you draw yourself.",
-  "guide.plugins.api.colors": "<code>colors.registerName</code> — extra colour names or codes.",
-  "guide.plugins.api.i18n": "<code>i18n.add</code> — your strings, in Italian and English.",
+    "<code>symbols.registerConnector</code>: termination symbols you draw yourself.",
+  "guide.plugins.api.colors": "<code>colors.registerName</code>: extra colour names or codes.",
+  "guide.plugins.api.i18n": "<code>i18n.add</code>: your strings, in Italian and English.",
   "guide.plugins.api.ui":
-    "<code>ui.toast · confirm · prompt · sidebarSection</code> — messages, questions and your own panel section.",
-  "guide.plugins.api.events": "<code>events.on(doc | selection | load)</code> — to react to what happens.",
+    "<code>ui.toast · confirm · prompt · sidebarSection</code>: messages, questions and your own panel section.",
+  "guide.plugins.api.events": "<code>events.on(doc | selection | load)</code>: to react to what happens.",
   "guide.plugins.api.storage":
-    "<code>storage.get · set</code> — your own settings, kept apart from other plugins.",
+    "<code>storage.get · set</code>: your own settings, kept apart from other plugins.",
   "guide.plugins.edit.title": "Changing the drawing",
   "guide.plugins.edit.body":
     "Every change goes through api.edit: the document changes in a single undo step and the sheet redraws itself. Never mutate the document outside it.",
@@ -130,9 +130,9 @@ export const en = {
 
   /* ---------------- canvas hints ---------------- */
   "hint.select":
-    "Right-click for the action menu — drag elements to move them, Ctrl+click to pick more than one, drag empty space to pan, wheel to zoom",
+    "Right-click for the action menu, drag elements to move them, Ctrl+click to pick more than one, drag empty space to pan, wheel to zoom",
   "hint.branch":
-    "Drawing a branch — click to add points, click a node to connect; Esc, double click or right-click to finish",
+    "Drawing a branch: click to add points, click a node to connect; Esc, double click or right-click to finish",
 
   /* ---------------- context menu ---------------- */
   "menu.mergeNodes": "⇥ Merge {n} nodes here",
@@ -255,12 +255,12 @@ export const en = {
   "props.inline.title": "Inline label / component",
   "props.field.text": "Text",
   "props.field.color": "Colour (name or #hex)",
-  "props.field.position": "Position along the branch (0–1)",
+  "props.field.position": "Position along the branch (from 0 to 1)",
 
   "props.table.title": "Table",
   "props.field.tableTitle": "Title",
   "props.field.linkedNode": "Linked connector",
-  "props.linkedNode.none": "— none —",
+  "props.linkedNode.none": "(none)",
   "props.table.colorHelp":
     "In the Colour column type a colour (red, black, #hex…) or several colours separated by commas for a banded swatch.",
   "props.table.addRow": "+ Row",
@@ -331,17 +331,18 @@ export const en = {
   /* ---------------- validation ---------------- */
   "validate.title": "Consistency check",
   "validate.ok": "✓ No problems: cross-references, cavities and note references are consistent.",
-  "validate.count": "{n} problems — click an entry to jump to the element.",
-  "validate.countOne": "1 problem — click the entry to jump to the element.",
+  "validate.count": "{n} problems: click an entry to jump to the element.",
+  "validate.countOne": "1 problem: click the entry to jump to the element.",
   "validate.noteMissing": "{what}: reference [{num}] is missing from the Notes table",
   "validate.nodeLabel": "Node {name}",
   "validate.nodeUnnamed": "unnamed",
   "validate.segmentLabel": "Branch {len}",
   "validate.duplicateTable": "Two cavity tables for “{owner}”",
-  "validate.jointGap": "Joint {from}–{to}: cavities {cavities} are wired on {from} and not on {to}",
+  "validate.jointGap":
+    "Joint between {from} and {to}: cavities {cavities} are wired on {from} and not on {to}",
   "validate.duplicateCavity": "{owner}: cavity {cavity} is duplicated",
   "validate.multiWireCavity":
-    "{owner}: cavity {cavity} carries {n} wires to different destinations — check this is intended",
+    "{owner}: cavity {cavity} carries {n} wires to different destinations, check this is intended",
   "validate.unknownTarget": "{from} → {dest}: “{name}” does not exist in the drawing",
   "validate.missingCavity": "{from} → {dest}: cavity {cavity} is missing from table {owner}",
   "validate.crossMismatch": "Wrong cross-reference: {from} → {dest}, but {dest} → {back}",
@@ -394,7 +395,7 @@ export const en = {
   "guide.doubleClick":
     "<b>Double-click</b> a cell, a name, a length or a label: you edit it straight on the sheet.",
   "guide.rightClick":
-    "<b>Right-click</b>: every action for that element — rows and columns, colour, links, delete.",
+    "<b>Right-click</b>: every action for that element (rows and columns, colour, links, delete).",
   "guide.tab":
     "While editing a cell: <b>Tab</b> moves to the next one, <b>Enter</b> goes down, <b>Esc</b> cancels.",
   "guide.branch": "<b>B</b> or right-click on empty space to draw a branch; Esc to finish.",

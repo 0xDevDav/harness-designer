@@ -110,7 +110,7 @@ export const palette = (): DrawingPalette => active;
  *
  * Only black and what is nearly black have one, and only on screen in the dark
  * guise: every other colour is already told from the sheet by being itself, and
- * on paper — which is what prints — black needs no help. Null means none.
+ * on paper (which is what prints) black needs no help. Null means none.
  */
 export function wireHalo(hex: string): string | null {
   return active === DARK && isVeryDark(hex) ? HALO : null;

@@ -22,7 +22,7 @@ import type { Translate } from "@/i18n";
  * - **Every wire is declared once**, in `WIRES`, and both cavity tables are
  *   generated from that. Cross-references, colours and sections therefore
  *   cannot disagree between the two ends, which is exactly the mistake the
- *   consistency check exists to catch — an example that trips its own checks
+ *   consistency check exists to catch: an example that trips its own checks
  *   would teach the wrong lesson. `tests/sample.test.ts` holds it to that.
  * - **Every colour appears in at most two connectors**, because that is the
  *   two-ends rule, and plain black is the only one bridged further, because it
@@ -56,7 +56,7 @@ const TERMINALS: Terminal[] = [
     y: 620,
     style: "ring",
     ways: 2,
-    title: "BAT — Battery terminals",
+    title: "BAT - Battery terminals",
     refs: "[2]",
     table: { x: -20, y: 510 },
   },
@@ -67,7 +67,7 @@ const TERMINALS: Terminal[] = [
     y: 460,
     style: "plug",
     ways: 9,
-    title: "FB — Engine bay fuse and relay box",
+    title: "FB - Engine bay fuse and relay box",
     refs: "[2]",
     table: { x: 60, y: 200 },
   },
@@ -77,7 +77,7 @@ const TERMINALS: Terminal[] = [
     y: 1030,
     style: "plug",
     ways: 3,
-    title: "ALT — Alternator",
+    title: "ALT - Alternator",
     refs: "[3]",
     table: { x: 270, y: 1090 },
   },
@@ -89,7 +89,7 @@ const TERMINALS: Terminal[] = [
     y: 350,
     style: "plug",
     ways: 12,
-    title: "ECU-A — Engine control unit, power and network",
+    title: "ECU-A - Engine control unit, power and network",
     refs: "[3]",
     table: { x: 560, y: 40 },
   },
@@ -99,7 +99,7 @@ const TERMINALS: Terminal[] = [
     y: 400,
     style: "plug",
     ways: 16,
-    title: "ECU-B — Engine control unit, sensors and actuators",
+    title: "ECU-B - Engine control unit, sensors and actuators",
     refs: "[3]",
     table: { x: 930, y: 10 },
   },
@@ -113,7 +113,7 @@ const TERMINALS: Terminal[] = [
     y: 1270,
     style: "plug",
     ways: 2,
-    title: "INJ1 — Injector, cylinder 1",
+    title: "INJ1 - Injector, cylinder 1",
     table: { x: 710, y: 1330 },
   },
   {
@@ -122,7 +122,7 @@ const TERMINALS: Terminal[] = [
     y: 1340,
     style: "plug",
     ways: 3,
-    title: "IGN1 — Ignition coil, cylinder 1",
+    title: "IGN1 - Ignition coil, cylinder 1",
     table: { x: 930, y: 1410 },
   },
   {
@@ -131,7 +131,7 @@ const TERMINALS: Terminal[] = [
     y: 1250,
     style: "plug",
     ways: 2,
-    title: "INJ2 — Injector, cylinder 2",
+    title: "INJ2 - Injector, cylinder 2",
     table: { x: 1150, y: 1320 },
   },
   {
@@ -140,7 +140,7 @@ const TERMINALS: Terminal[] = [
     y: 1350,
     style: "plug",
     ways: 3,
-    title: "IGN2 — Ignition coil, cylinder 2",
+    title: "IGN2 - Ignition coil, cylinder 2",
     table: { x: 1320, y: 1420 },
   },
   {
@@ -149,7 +149,7 @@ const TERMINALS: Terminal[] = [
     y: 1270,
     style: "plug",
     ways: 2,
-    title: "INJ3 — Injector, cylinder 3",
+    title: "INJ3 - Injector, cylinder 3",
     table: { x: 1510, y: 1340 },
   },
   {
@@ -158,7 +158,7 @@ const TERMINALS: Terminal[] = [
     y: 1360,
     style: "plug",
     ways: 3,
-    title: "IGN3 — Ignition coil, cylinder 3",
+    title: "IGN3 - Ignition coil, cylinder 3",
     table: { x: 1740, y: 1430 },
   },
   {
@@ -167,7 +167,7 @@ const TERMINALS: Terminal[] = [
     y: 1260,
     style: "plug",
     ways: 2,
-    title: "INJ4 — Injector, cylinder 4",
+    title: "INJ4 - Injector, cylinder 4",
     table: { x: 2060, y: 1230 },
   },
   {
@@ -176,7 +176,7 @@ const TERMINALS: Terminal[] = [
     y: 1150,
     style: "plug",
     ways: 3,
-    title: "IGN4 — Ignition coil, cylinder 4",
+    title: "IGN4 - Ignition coil, cylinder 4",
     table: { x: 1910, y: 1320 },
   },
 
@@ -187,7 +187,7 @@ const TERMINALS: Terminal[] = [
     y: 490,
     style: "plug",
     ways: 3,
-    title: "CKP — Crankshaft position sensor",
+    title: "CKP - Crankshaft position sensor",
     table: { x: 1120, y: 330 },
   },
   {
@@ -196,7 +196,7 @@ const TERMINALS: Terminal[] = [
     y: 340,
     style: "plug",
     ways: 3,
-    title: "CMP — Camshaft position sensor",
+    title: "CMP - Camshaft position sensor",
     table: { x: 1360, y: 180 },
   },
   {
@@ -205,7 +205,7 @@ const TERMINALS: Terminal[] = [
     y: 460,
     style: "plug",
     ways: 4,
-    title: "MAP — Manifold pressure and intake air temperature",
+    title: "MAP - Manifold pressure and intake air temperature",
     table: { x: 1570, y: 280 },
   },
   { name: "S1", x: 1690, y: 555, style: "splice", refs: "[6]" },
@@ -215,7 +215,7 @@ const TERMINALS: Terminal[] = [
     y: 330,
     style: "plug",
     ways: 2,
-    title: "ECT — Coolant temperature sensor",
+    title: "ECT - Coolant temperature sensor",
     table: { x: 1800, y: 190 },
   },
   { name: "S2", x: 2160, y: 460, style: "splice", refs: "[6]" },
@@ -227,7 +227,7 @@ const TERMINALS: Terminal[] = [
     y: 630,
     style: "plug",
     ways: 6,
-    title: "IL-A — Inline pair, harness side",
+    title: "IL-A - Inline pair, harness side",
     refs: "[8]",
     table: { x: 2050, y: 670 },
   },
@@ -237,7 +237,7 @@ const TERMINALS: Terminal[] = [
     y: 630,
     style: "plug",
     ways: 6,
-    title: "IL-B — Inline pair, sensor side",
+    title: "IL-B - Inline pair, sensor side",
     refs: "[8]",
     table: { x: 2460, y: 670 },
   },
@@ -247,7 +247,7 @@ const TERMINALS: Terminal[] = [
     y: 410,
     style: "plug",
     ways: 4,
-    title: "O2S — Heated oxygen sensor, upstream",
+    title: "O2S - Heated oxygen sensor, upstream",
     table: { x: 2420, y: 240 },
   },
   {
@@ -256,7 +256,7 @@ const TERMINALS: Terminal[] = [
     y: 390,
     style: "plug",
     ways: 2,
-    title: "KS — Knock sensor",
+    title: "KS - Knock sensor",
     table: { x: 2850, y: 260 },
   },
 
@@ -267,7 +267,7 @@ const TERMINALS: Terminal[] = [
     y: 900,
     style: "plug",
     ways: 8,
-    title: "BH-E — Bulkhead connector, engine side",
+    title: "BH-E - Bulkhead connector, engine side",
     refs: "[7]",
     table: { x: 2240, y: 930 },
   },
@@ -277,7 +277,7 @@ const TERMINALS: Terminal[] = [
     y: 900,
     style: "plug",
     ways: 8,
-    title: "BH-C — Bulkhead connector, cabin side",
+    title: "BH-C - Bulkhead connector, cabin side",
     refs: "[7]",
     table: { x: 2600, y: 930 },
   },
@@ -287,7 +287,7 @@ const TERMINALS: Terminal[] = [
     y: 760,
     style: "plug",
     ways: 12,
-    title: "DASH — Instrument cluster",
+    title: "DASH - Instrument cluster",
     table: { x: 2980, y: 430 },
   },
   {
@@ -296,7 +296,7 @@ const TERMINALS: Terminal[] = [
     y: 830,
     style: "plug",
     ways: 4,
-    title: "DLC — Diagnostic socket (OBD-II)",
+    title: "DLC - Diagnostic socket (OBD-II)",
     table: { x: 3300, y: 780 },
   },
   { name: "G2", x: 3130, y: 1060, style: "ring", refs: "[4]" },
@@ -440,7 +440,7 @@ const MARKERS: Marker[] = [
  * One wire, declared once and written into the tables at both of its ends.
  *
  * An endpoint is `NAME.cavity`, or a bare `NAME` for a ring terminal or a
- * splice — they have nothing to number, and the drawing has no table for them.
+ * splice: they have nothing to number, and the drawing has no table for them.
  */
 interface Wire {
   from: string;
@@ -551,10 +551,10 @@ const WIRES: Wire[] = [
 const SPARE = { dest: "n.c.", fn: "Spare", color: "-", mm: "-" };
 
 const NOTES: string[] = [
-  "Engine harness, 1.4 petrol, four cylinders — sequential injection, coil on plug",
+  "Engine harness, 1.4 petrol, four cylinders: sequential injection, coil on plug",
   "Main fuse 40 A within 300 mm of the battery post; fuse and relay box FB in the engine bay",
   "ECU connectors A and B are keyed differently and cannot be swapped",
-  "Grounds on M6 studs: G1 on the engine block, G2 and G3 on the body — 9 Nm",
+  "Grounds on M6 studs: G1 on the engine block, G2 and G3 on the body, 9 Nm",
   "Coil and injector supply spliced at S3: ultrasonic weld, sealed with heat-shrink",
   "Sensor 5 V supply spliced at S1, sensor ground at S2",
   "Bulkhead pair BH-E / BH-C: the two halves share one cavity numbering",
@@ -680,7 +680,7 @@ export function sampleDoc(t: Translate): HarnessDoc {
 
   return normalizeDoc({
     meta: {
-      title: "Engine harness — 1.4 petrol, four cylinders",
+      title: "Engine harness, 1.4 petrol, four cylinders",
       description: "Sequential injection, coil on plug, CAN link to the cluster and the OBD socket",
       partNumber: "EH-1400.04-C",
       revision: "C",

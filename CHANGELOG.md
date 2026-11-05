@@ -189,11 +189,11 @@ All notable changes to this project are documented here. The format follows
 - A second way of reading the same harness: the **schematic**. Every connector
   becomes a box of its cavities, carrying the full title its cavity table has on
   the sheet, and every wire in the list becomes a line from one cavity to
-  another in the colour it is really made of. Nothing is stored twice — it is
+  another in the colour it is really made of. Nothing is stored twice: it is
   the cavity tables read a second way, so it cannot drift out of step with them.
 - A view selector in the bar, and `V` to go round the three: the sheet on its
   own, the schematic on its own, or the two side by side. What is picked in one
-  lights up in the other — a connector shows its box and its wires, a branch
+  lights up in the other: a connector shows its box and its wires, a branch
   shows every wire that runs through it, and a wire picked in the schematic
   lights the whole road it takes across the harness, branch by branch. That last
   one is the question nobody could answer before without two sheets of paper and
@@ -202,7 +202,7 @@ All notable changes to this project are documented here. The format follows
   the wiring they are from the busiest one, and each column is ordered so the
   wires cross as little as possible and arrive level. Wires run square, take the
   clear lane between the boxes rather than straight through whatever stands in
-  the way, and are never drawn on top of each other — two grounds onto the same
+  the way, and are never drawn on top of each other. Two grounds onto the same
   ring terminal are two lines with daylight between them, not one line that
   happens to be two. A box can be dragged where it suits, and **moving one box
   moves only that box**: the arrangement is worked out with it still in the
@@ -219,7 +219,7 @@ All notable changes to this project are documented here. The format follows
   eight arriving on the middle of one face and the one leaving the middle of the
   other. The box is as tall as its fan needs to be.
 - A mated pair carries the same double arrow the sheet uses, with the two halves
-  set side by side and level so the pairing is plain — and the colour changing
+  set side by side and level so the pairing is plain, and the colour changing
   across it is plain with it.
 - Wires in the schematic turn on a wide radius instead of a square corner, and
   leave a connector far enough out to have the room to do it.
@@ -230,13 +230,13 @@ All notable changes to this project are documented here. The format follows
   four-cylinder petrol car, in English. Battery, main fuse and body ground, fuse
   and relay box, alternator, an ECU on two connectors, four injectors, four
   coil-on-plug coils, crank, cam, manifold, coolant, oxygen and knock sensors,
-  three splices, two mated pairs — the bulkhead and a flying pair for the sensor
-  sub-harness — and the run through to the cluster and the diagnostic socket.
+  three splices, two mated pairs (the bulkhead and a flying pair for the sensor
+  sub-harness) and the run through to the cluster and the diagnostic socket.
   Twenty-four pin-outs and seventy-odd wires, each cavity table beside the
   connector it belongs to, and not one problem in its own check: every wire is
   declared once and both ends are written from that, so the two can never
   disagree. Both the sheet and the schematic are laid out by hand rather than
-  left to the automatic arrangement — an example is worth the trouble of being
+  left to the automatic arrangement: an example is worth the trouble of being
   arranged.
 - Making the window narrower, or switching between one view and two, keeps what
   was in the middle of a view in the middle of it. A view still exactly as the
@@ -257,9 +257,9 @@ All notable changes to this project are documented here. The format follows
 - Copy and paste: `Ctrl+C` takes whatever is selected, `Ctrl+V` puts an
   identical one down with its corner exactly where the pointer is. The
   right-click menu offers the same, and pastes at the point that was clicked.
-  References inside the copy follow the copies — two connectors copied together
+  References inside the copy follow the copies: two connectors copied together
   stay mated, a branch keeps its ends, a cavity table copied with its connector
-  goes on belonging to it — while references out of it are dropped, so a copy
+  goes on belonging to it. References out of it are dropped, so a copy
   never lays claim to what the original owns. A copied connector is given a free
   name. The title block is not copied: there is one to a sheet.
 - Inline labels take any colour, not only the six presets, and the menu marks
@@ -288,7 +288,7 @@ All notable changes to this project are documented here. The format follows
 
 - Each half of a circuit running through a joint is drawn in the colour its own
   end declares. The wire list keeps one colour per wire, which is right until a
-  joint makes it two wires — and the whole point of a joint is that the colour
+  joint makes it two wires, and the whole point of a joint is that the colour
   is allowed to change there.
 
 ## [1.1.3]

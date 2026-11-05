@@ -6,8 +6,8 @@
  * to one address and one port. Where the browser offers the File System Access
  * API the tab can hold a handle to the real file instead, and that buys three
  * things at once: every edit can be written back (no "forgot to save"), the file
- * can be read again on demand, and the tab can notice when something else — an
- * editor, a script, an assistant — has changed the file underneath it.
+ * can be read again on demand, and the tab can notice when something else (an
+ * editor, a script, an assistant) has changed the file underneath it.
  *
  * Nothing here knows about the document model: it moves text. The caller gives
  * it the serialized drawing and gets text back, which keeps this testable with a
@@ -74,8 +74,8 @@ export class DiskFile {
   private exclusive: Exclusive = (job) => job();
 
   /**
-   * Makes the reads that nobody asked for at a given moment — the timer, the
-   * window getting focus, Reload — wait their turn behind the writes, and so
+   * Makes the reads that nobody asked for at a given moment (the timer, the
+   * window getting focus, Reload) wait their turn behind the writes, and so
    * never see the file half written. The caller's write queue goes here.
    */
   serializeWith(run: Exclusive): void {

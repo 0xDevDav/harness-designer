@@ -2,13 +2,13 @@
  * Interaction in the schematic view.
  *
  * Far less than the sheet allows, on purpose: the schematic is read, not
- * drawn. What can be done here is look — pan, zoom, pick a connector or a wire
- * to see what it is on the formboard — and move a box, which is the one thing
+ * drawn. What can be done here is look (pan, zoom, pick a connector or a wire
+ * to see what it is on the formboard) and move a box, which is the one thing
  * about the schematic that is a decision rather than a consequence.
  *
  * Everything picked goes through the ordinary selection, so the sheet lights up
  * without knowing this view exists. A wire is the exception: it is not an
- * element of the document — it is what two cavity tables say between them — so
+ * element of the document (it is what two cavity tables say between them), so
  * it is held by the schematic renderer and read back by the sheet.
  */
 import { cloneDoc } from "@/core/doc";

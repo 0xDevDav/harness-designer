@@ -134,7 +134,7 @@ export function openColorPicker({ anchor, value, onPick }: PickerOptions): void 
         code.textContent = color.code;
         b.appendChild(code);
       } else {
-        b.textContent = "—";
+        b.textContent = "-";
       }
       if (selected() === color) b.classList.add("is-active");
       b.addEventListener("click", () => {
@@ -244,7 +244,7 @@ export function openColorPicker({ anchor, value, onPick }: PickerOptions): void 
  *
  * The control itself is never seen: it exists to be opened. It goes as soon as
  * a colour is chosen, and if the picker is dismissed instead it goes on the way
- * back — a cancelled pick fires nothing, so waiting for one would leave it in
+ * back: a cancelled pick fires nothing, so waiting for one would leave it in
  * the page for good.
  */
 export function pickFreeColor(current: string, onPick: (hex: string) => void): void {
