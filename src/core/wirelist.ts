@@ -1,5 +1,6 @@
 import { cavityTables, cell, resolveDest } from "./doc";
 import { formatLengthMm } from "./length";
+import { columnUnit, sizeForCell, unitLabel, wireUnitOf } from "./wiresize";
 import type { HarnessDoc, WireRow } from "./types";
 
 /** Values that mean "not connected" and produce no wire. */
@@ -8,12 +9,23 @@ const NOT_CONNECTED = /^(n\.?c\.?|nc|—|-|–|n\/a)$/i;
 /**
  * Builds the wire list from the cavity tables, collapsing mirrored pairs:
  * `C13.1 → CL.1` and `CL.1 → C13.1` are the same wire.
+ *
+ * Sizes come from tables headed in different ways ("1.5" under "Section (mm²)",
+ * "1.5 mm²" under "Section"), so each is read in the unit of its own column and
+ * written the way the list's own Section column writes its sizes: bare under the
+ * unit the list is headed with once the drawing has one, with the unit under a
+ * plain "Section". A size in the other unit keeps its unit, and text that is not
+ * a size goes in as it is.
  */
 export function buildWireList(doc: HarnessDoc): WireRow[] {
   const rows: WireRow[] = [];
   const seen = new Set<string>();
+  const unit = wireUnitOf(doc);
+  // the heading `wireListHeadings` gives the list's Section column
+  const listHeading = doc.wireUnit ? unitLabel(doc.wireUnit) : undefined;
 
   for (const { table, cols, owner } of cavityTables(doc)) {
+    const fromUnit = columnUnit(cols.section === undefined ? undefined : table.head?.[cols.section], unit);
     for (const row of table.rows) {
       const cavity = cell(row, cols.cavity);
       const raw = cell(row, cols.dest);
@@ -33,7 +45,7 @@ export function buildWireList(doc: HarnessDoc): WireRow[] {
         to: dest,
         func: cell(row, cols.func),
         color: cell(row, cols.color),
-        section: cell(row, cols.section),
+        section: sizeForCell(cell(row, cols.section), fromUnit, listHeading),
       });
     }
   }

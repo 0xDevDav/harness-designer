@@ -52,7 +52,10 @@ All notable changes to this project are documented here. The format follows
   _Other size…_ for anything not on it. A size picked there, or carried to the
   other end of the wire, is written the way that table writes its sizes: bare
   under a heading that names the unit, _1.5 mm²_ or _16 AWG_ under a plain
-  _Section_. The scales do not line up, so a
+  _Section_. The wire list and its CSV follow the same rule for their own
+  Section column, whatever the cavity tables the sizes come from are headed:
+  bare under _mm²_ or _AWG_, with the unit under a plain _Section_, and a size
+  in the other unit keeps its unit. The scales do not line up, so a
   conversion rounds to the nearest standard size and going to AWG and back can
   land on a neighbouring size; when any size would change, a window lists each
   one, with how much thinner or thicker the wire becomes and in how many places,

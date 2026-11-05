@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizeDoc } from "@/core/doc";
+import { wireListHeadings } from "@/core/factories";
+import { validateDoc } from "@/core/validate";
 import { buildWireList, parseCsv, wireListCsv, wireListRows } from "@/core/wirelist";
 import type { HarnessDoc } from "@/core/types";
 
@@ -9,6 +11,7 @@ interface TableSpec {
   id: string;
   node: string;
   rows: string[][];
+  head?: string[];
 }
 
 function docWith(names: string[], tables: TableSpec[]): HarnessDoc {
@@ -27,7 +30,7 @@ function docWith(names: string[], tables: TableSpec[]): HarnessDoc {
       y: 0,
       kind: "table",
       title: s.id,
-      head: HEAD,
+      head: s.head ?? HEAD,
       rows: s.rows,
     })),
   });
@@ -134,6 +137,92 @@ describe("buildWireList", () => {
 
   it("produces no rows on a document with no cavity tables", () => {
     expect(buildWireList(normalizeDoc({}))).toEqual([]);
+  });
+});
+
+describe("buildWireList sizes", () => {
+  const MM2_HEAD = ["Cavità", "Verso", "Funzione", "Colore", "Sezione (mm²)"];
+  const AWG_HEAD = ["Cavità", "Verso", "Funzione", "Colore", "AWG"];
+
+  // A headed "Section (mm²)" with bare numbers, B headed "Section" with the unit in every cell
+  const twoTables = (aRows: string[][], bRows: string[][]): HarnessDoc =>
+    docWith(
+      ["A", "B", "C"],
+      [
+        { id: "ta", node: "a", head: MM2_HEAD, rows: aRows },
+        { id: "tb", node: "b", rows: bRows },
+      ],
+    );
+
+  it("names the unit in every size under a plain Section heading", () => {
+    const doc = twoTables([["1", "C.1", "", "", "1.5"]], [["1", "C.2", "", "", "1,5 mm²"]]);
+    expect(buildWireList(doc).map((r) => r.section)).toEqual(["1.5 mm²", "1,5 mm²"]);
+  });
+
+  it("writes bare numbers once the list is headed with the drawing's unit", () => {
+    const doc = twoTables([["1", "C.1", "", "", "1.5"]], [["1", "C.2", "", "", "2.5 mm²"]]);
+    doc.wireUnit = "mm2";
+    expect(buildWireList(doc).map((r) => r.section)).toEqual(["1.5", "2.5"]);
+    expect(wireListHeadings((k) => k, doc.wireUnit)[5]).toBe("mm²");
+  });
+
+  it("keeps a gauge a gauge in a metric drawing", () => {
+    const doc = docWith(
+      ["A", "C"],
+      [{ id: "ta", node: "a", head: AWG_HEAD, rows: [["1", "C.1", "", "", "16"]] }],
+    );
+    doc.wireUnit = "mm2";
+    expect(buildWireList(doc)[0]?.section).toBe("16 AWG");
+    delete doc.wireUnit;
+    // the heading alone makes the drawing a gauge one, and the list is headed "Section"
+    expect(buildWireList(doc)[0]?.section).toBe("16 AWG");
+  });
+
+  it("leaves text that is not a size, and blanks, as they are", () => {
+    const doc = twoTables([["1", "C.1", "", "", "2x0.5 shielded"]], [["1", "C.2", "", "", ""]]);
+    doc.wireUnit = "mm2";
+    expect(buildWireList(doc).map((r) => r.section)).toEqual(["2x0.5 shielded", ""]);
+  });
+
+  it("gives one wire one size, whichever end it is read from", () => {
+    // the same wire written "1.5" under "Section (mm²)" and "1.5 mm²" under "Section"
+    const doc = twoTables([["1", "B.1", "", "", "1.5"]], [["1", "A.1", "", "", "1.5 mm²"]]);
+    const rows = buildWireList(doc);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.section).toBe("1.5 mm²");
+    // and the check sees the two ends agree
+    const t = (key: string): string => key;
+    expect(validateDoc(doc, t).map((i) => i.message)).not.toContain("validate.sectionMismatch");
+
+    const reversed = docWith(
+      ["A", "B"],
+      [
+        { id: "tb", node: "b", rows: [["1", "A.1", "", "", "1.5 mm²"]] },
+        { id: "ta", node: "a", head: MM2_HEAD, rows: [["1", "B.1", "", "", "1.5"]] },
+      ],
+    );
+    expect(buildWireList(reversed)[0]?.section).toBe("1.5 mm²");
+  });
+
+  it("exports the sizes to CSV the way the list writes them", () => {
+    const doc = twoTables([["1", "C.1", "", "", "1.5"]], [["1", "C.2", "", "", "1.5 mm²"]]);
+    const plain = parseCsv(
+      wireListCsv(
+        buildWireList(doc),
+        wireListHeadings((k) => k),
+      ),
+    );
+    expect(plain.slice(1).map((r) => r[5])).toEqual(["1.5 mm²", "1.5 mm²"]);
+
+    doc.wireUnit = "mm2";
+    const headed = parseCsv(
+      wireListCsv(
+        buildWireList(doc),
+        wireListHeadings((k) => k, doc.wireUnit),
+      ),
+    );
+    expect(headed[0]?.[5]).toBe("mm²");
+    expect(headed.slice(1).map((r) => r[5])).toEqual(["1.5", "1.5"]);
   });
 });
 
