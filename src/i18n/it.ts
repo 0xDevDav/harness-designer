@@ -500,7 +500,7 @@ export const it = {
   "toast.rewire.splice": "{from} e {to} unite con il nuovo splice {splice}",
   "toast.rewire.moved": "Filo {from} spostato su {to}",
   "toast.rewire.made": "{from} collegato a {to}",
-  "toast.rewire.occupied": "{to} ha già un filo, verso {other}",
+  "toast.rewire.occupied": "{to} è già collegato a {other}",
   "toast.rewire.same-connector": "Un filo non può andare da un connettore a se stesso",
   "toast.rewire.no-table": "{to} non ha una tabella delle cavità dove tenere il filo",
   "toast.rewire.no-end": "Un filo non può andare lì",
@@ -544,7 +544,7 @@ export const it = {
   "dialog.unitFits.title": "Le sezioni sono già in {unit}?",
   "dialog.unitFits.body":
     "Queste sezioni ({sizes}) non sono sezioni {from} standard ma sono sezioni {unit} standard. Se sono già in {unit}, basta chiamare la colonna {unit} senza convertire nulla.",
-  "dialog.unitFits.yes": "Etichetta solo {unit}",
+  "dialog.unitFits.yes": "Cambia solo l'intestazione in {unit}",
   "dialog.unitFits.no": "No, convertile",
   "dialog.unit.title": "Convertire le sezioni in {unit}?",
   "dialog.unit.body":
@@ -576,18 +576,18 @@ export const it = {
   "topbar.reload": "Ricarica",
   "topbar.reload.tip": "Rilegge il file dal disco (Ctrl+Z annulla)",
   "topbar.reload.stale": "Il file è cambiato sul disco: clicca per caricare le modifiche",
-  "topbar.reload.none": "Ricaricare richiede un file: usa prima Apri o Salva",
+  "topbar.reload.none": "Per ricaricare serve un file: usa prima Apri o Salva",
   "topbar.file.none": "Nessun file",
   "topbar.file.none.tip":
-    "Il salvataggio automatico tiene solo una copia in questo browser. Apri o Salva per collegare un file su disco e ogni modifica vi verrà scritta.",
+    "Il salvataggio automatico tiene solo una copia in questo browser. Apri o Salva per collegare un file su disco, così ogni modifica viene salvata lì.",
   "topbar.file.linked.tip": "Ogni modifica viene salvata automaticamente su {name}",
   "topbar.file.readonly.tip":
     "L'accesso in scrittura a {name} è stato negato: le modifiche non vengono salvate",
-  "toast.openedFile": "Aperto {name}: le modifiche vi vengono salvate automaticamente",
-  "toast.savedFile": "Salvato su {name}: le modifiche vi vengono salvate automaticamente",
+  "toast.openedFile": "Aperto {name}: da ora le modifiche si salvano lì in automatico",
+  "toast.savedFile": "Salvato su {name}: da ora le modifiche si salvano lì in automatico",
   "toast.reloaded": "Ricaricato {name} (Ctrl+Z annulla)",
   "toast.fileChanged":
-    "Il file è cambiato sul disco. Il salvataggio automatico è in pausa: Ricarica per prendere le modifiche, oppure Salva per sovrascriverle.",
+    "Il file è cambiato sul disco. Il salvataggio automatico è in pausa: Ricarica per caricare le modifiche, oppure Salva per sovrascriverle.",
   "file.error.permission": "il permesso di scrivere sul file non è stato dato",
   "file.error.noFile": "nessun file è collegato a questo disegno",
   "toast.saveFailed": "Impossibile salvare sul file: {error}",
