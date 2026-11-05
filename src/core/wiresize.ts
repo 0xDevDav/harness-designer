@@ -213,6 +213,13 @@ export function setWireUnit(doc: HarnessDoc, unit: WireUnit, read?: WireUnit): U
       change.converted++;
     }
   }
+  // the default size is a size like any other
+  const kept = doc.defaults?.size;
+  if (doc.defaults && kept) {
+    const size = parseSize(kept, current);
+    if (size && (size.unit ?? current) !== unit) doc.defaults.size = nearestSize(size.area, unit).label;
+    else if (size?.unit) doc.defaults.size = size.figure;
+  }
   doc.wireUnit = unit;
   return change;
 }
@@ -242,28 +249,31 @@ const SAME_WIRE = 0.01;
 export function previewUnitChange(doc: HarnessDoc, unit: WireUnit): SizeChange[] {
   const current = wireUnitOf(doc);
   const groups = new Map<string, SizeChange>();
+  const note = (text: string, from: WireUnit): void => {
+    const size = parseSize(text, from);
+    if (!size || (size.unit ?? from) === unit) return;
+    const target = nearestSize(size.area, unit);
+    const ratio = target.area / size.area;
+    if (Math.abs(ratio - 1) < SAME_WIRE) return;
+    const change: SizeChange = {
+      from: `${size.figure} ${unitLabel(size.unit ?? from)}`,
+      to: `${target.label} ${unitLabel(unit)}`,
+      count: 1,
+      ratio,
+    };
+    const key = `${change.from}>${change.to}`;
+    const seen = groups.get(key);
+    if (seen) seen.count++;
+    else groups.set(key, change);
+  };
   for (const table of doc.tables) {
     const col = sizeColumn(table);
     if (!table.head || col === undefined) continue;
     const from = headingUnit(table.head[col]) ?? current;
-    for (const row of table.rows) {
-      const size = parseSize(row[col] ?? "", from);
-      if (!size || (size.unit ?? from) === unit) continue;
-      const target = nearestSize(size.area, unit);
-      const ratio = target.area / size.area;
-      if (Math.abs(ratio - 1) < SAME_WIRE) continue;
-      const change: SizeChange = {
-        from: `${size.figure} ${unitLabel(size.unit ?? from)}`,
-        to: `${target.label} ${unitLabel(unit)}`,
-        count: 1,
-        ratio,
-      };
-      const key = `${change.from}>${change.to}`;
-      const seen = groups.get(key);
-      if (seen) seen.count++;
-      else groups.set(key, change);
-    }
+    for (const row of table.rows) note(row[col] ?? "", from);
   }
+  // the size a new wire starts from is rounded like the others, so the window lists it too
+  if (doc.defaults?.size) note(doc.defaults.size, current);
   return [...groups.values()].sort((a, b) => a.ratio - b.ratio || a.from.localeCompare(b.from));
 }
 
