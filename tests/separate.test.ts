@@ -4,6 +4,7 @@ import { findNode, findTable, normalizeDoc } from "@/core/doc";
 import type { AppContext, RendererApi } from "@/app/context";
 import type { Rect } from "@/core/types";
 import { MAX_NUDGE, separateOverlaps, settleSheetDrop } from "@/ui/separate";
+import { placeTable } from "@/ui/insert";
 import { setViewMode } from "@/ui/viewmode";
 
 /** A renderer that knows only the rectangles it is given, by id. */
@@ -49,6 +50,45 @@ describe("settleSheetDrop", () => {
     const store = storeWith();
     const renderer = rendererOf({ t: { x: 0, y: 0, w: 50, h: 50 }, c: { x: 300, y: 300, w: 40, h: 40 } });
     expect(settleSheetDrop({ store, renderer }, "node", "c")).toBe("clear");
+  });
+});
+
+describe("placeTable", () => {
+  const added = { id: "n", x: 10, y: 10, kind: "table" as const, title: "C2", rows: [["1"]] };
+
+  it("puts a new table that would lie on another at the nearest free place, in the same undo step", () => {
+    const store = storeWith(300);
+    const renderer = rendererOf({ t: { x: 0, y: 0, w: 150, h: 100 }, n: { x: 10, y: 10, w: 100, h: 50 } });
+    let onTop = true;
+    store.edit((doc) => {
+      onTop = placeTable({ store, renderer }, doc, { ...added });
+    }, "insert");
+    expect(onTop).toBe(false);
+    const table = findTable(store.doc, "n")!;
+    expect(table.x !== 10 || table.y !== 10).toBe(true);
+    store.undo();
+    expect(findTable(store.doc, "n")).toBeUndefined();
+  });
+
+  it("leaves it where it was put, and says so, when the free place is farther than a nudge", () => {
+    const store = storeWith();
+    const long = { x: 0, y: 0, w: MAX_NUDGE * 4, h: 600 };
+    const renderer = rendererOf({ t: long, n: { x: MAX_NUDGE * 2, y: 300, w: 100, h: 50 } });
+    let onTop = false;
+    store.edit((doc) => {
+      onTop = placeTable({ store, renderer }, doc, { ...added, x: MAX_NUDGE * 2, y: 300 });
+    }, "insert");
+    expect(onTop).toBe(true);
+    expect(findTable(store.doc, "n")).toMatchObject({ x: MAX_NUDGE * 2, y: 300 });
+  });
+
+  it("leaves a table that lies on nothing where it was put", () => {
+    const store = storeWith();
+    const renderer = rendererOf({ t: { x: 0, y: 0, w: 50, h: 50 }, n: { x: 400, y: 400, w: 100, h: 50 } });
+    store.edit((doc) => {
+      placeTable({ store, renderer }, doc, { ...added, x: 400, y: 400 });
+    }, "insert");
+    expect(findTable(store.doc, "n")).toMatchObject({ x: 400, y: 400 });
   });
 });
 

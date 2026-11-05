@@ -30,7 +30,7 @@ import type { HarnessDoc, Table } from "@/core/types";
 import { symbolsWithRole } from "@/render/connectors";
 import { tableSize } from "@/render/tables";
 import { openDialog } from "./dialogs";
-import { insertTable, viewCenter } from "./insert";
+import { insertTable, placeTable, viewCenter } from "./insert";
 
 /* ============================ the tables themselves ============================ */
 
@@ -351,24 +351,37 @@ async function askEntry(app: AppContext, kind: CatalogKind): Promise<NewEntry | 
   }
 }
 
-/** Adds an entry, creating the catalogue first if the drawing has none. Inside a store edit. */
-function putEntry(app: AppContext, doc: HarnessDoc, kind: CatalogKind, entry: NewEntry): void {
+/**
+ * Adds an entry, creating the catalogue first if the drawing has none. Inside a
+ * store edit. Returns true when the new catalogue was left on top of something.
+ */
+function putEntry(app: AppContext, doc: HarnessDoc, kind: CatalogKind, entry: NewEntry): boolean {
   let table = catalogOf(doc, kind);
+  let onTop = false;
   if (!table) {
     table = catalogTable(app.t, kind, 0, 0);
     const centre = viewCenter(app);
     table.x = snapTo(centre.x, app.store.snapEnabled);
     table.y = snapTo(centre.y, app.store.snapEnabled);
-    doc.tables.push(table);
+    onTop = placeTable(app, doc, table);
   }
   addEntry(table, entry.values, entry.symbol);
+  return onTop;
 }
+
+const sayIfOnTop = (app: AppContext, onTop: boolean): void => {
+  if (onTop) app.toast.show(app.t("toast.dropFar"));
+};
 
 /** Asks for a new entry and adds it. Returns the name, or null if it was given up. */
 export async function createEntry(app: AppContext, kind: CatalogKind): Promise<string | null> {
   const entry = await askEntry(app, kind);
   if (!entry) return null;
-  app.store.edit((doc) => putEntry(app, doc, kind, entry), "catalog-add");
+  let onTop = false;
+  app.store.edit((doc) => {
+    onTop = putEntry(app, doc, kind, entry);
+  }, "catalog-add");
+  sayIfOnTop(app, onTop);
   return entry.name;
 }
 
@@ -402,10 +415,11 @@ export async function assignHousing(app: AppContext, tableId: string): Promise<v
   // shorter, it loses only the empty rows at its end.
   let fitted: Fitted = { added: 0, removed: 0, over: 0 };
   let cavities = 0;
+  let onTop = false;
   app.store.edit((doc) => {
     const target = findTable(doc, tableId);
     if (!target) return;
-    if (entry) putEntry(app, doc, "housings", entry);
+    if (entry) onTop = putEntry(app, doc, "housings", entry);
     if (name === null) {
       delete target.housing;
       return;
@@ -414,6 +428,7 @@ export async function assignHousing(app: AppContext, tableId: string): Promise<v
     cavities = housingCavities(doc, name) ?? 0;
     if (cavities) fitted = fitCavityRows(target, cavities);
   }, "housing");
+  sayIfOnTop(app, onTop);
   const who = nameOf(app, table);
   if (fitted.added) app.toast.show(app.t("toast.cavitiesAdded", { n: fitted.added }));
   else if (fitted.removed) app.toast.show(app.t("toast.cavitiesRemoved", { n: fitted.removed }));
@@ -446,14 +461,16 @@ export async function assignTermination(app: AppContext, tableId: string, row: n
     if (!entry) return;
     name = entry.name;
   }
+  let onTop = false;
   app.store.edit((doc) => {
-    if (entry) putEntry(app, doc, "terminations", entry);
+    if (entry) onTop = putEntry(app, doc, "terminations", entry);
     const target = findTable(doc, tableId);
     const cells = target?.rows[row];
     if (!cells) return;
     while (cells.length <= col) cells.push("");
     cells[col] = name;
   }, "termination");
+  sayIfOnTop(app, onTop);
 }
 
 /** Gives a cavity table the column its terminations are picked in, after the wire's colour and size. */

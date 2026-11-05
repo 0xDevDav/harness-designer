@@ -89,6 +89,29 @@ function moveSheetObject(doc: HarnessDoc, item: SheetItem, corner: Point): void 
 }
 
 /**
+ * Where an object of the sheet goes not to lie on a table or a connector: the
+ * nearest free place, unless that is farther than `MAX_NUDGE`.
+ */
+function placeOnSheet(
+  doc: HarnessDoc,
+  renderer: RendererApi,
+  snap: boolean,
+  kind: SheetObject,
+  ref: string,
+): { result: "clear" | "far" } | { result: "moved"; item: SheetItem; spot: Point } {
+  if (kind === "node" && findNode(doc, ref)?.kind !== "connector") return { result: "clear" };
+  const items = sheetItems(doc, renderer, snap);
+  const key = keyOf(kind, ref);
+  const item = items.find((i) => i.id === key);
+  if (!item) return { result: "clear" };
+  const others = items.filter((i) => i.id !== key).map((i) => i.rect);
+  const spot = freeSpot(item.rect, others, item.options);
+  if (spot.x === item.rect.x && spot.y === item.rect.y) return { result: "clear" };
+  if (Math.hypot(spot.x - item.rect.x, spot.y - item.rect.y) > MAX_NUDGE) return { result: "far" };
+  return { result: "moved", item, spot };
+}
+
+/**
  * Called when a drop on the sheet is about to be committed: if what was dropped
  * lies on a table or a connector, it is moved to the nearest place that does
  * not, inside the same edit, so the drop and the nudge are one undo step.
@@ -101,17 +124,25 @@ export function settleSheetDrop(
   ref: string,
 ): SettleResult {
   const { store, renderer } = app;
-  if (kind === "node" && findNode(store.doc, ref)?.kind !== "connector") return "clear";
-  const items = sheetItems(store.doc, renderer, store.snapEnabled);
-  const key = keyOf(kind, ref);
-  const dropped = items.find((i) => i.id === key);
-  if (!dropped) return "clear";
-  const others = items.filter((i) => i.id !== key).map((i) => i.rect);
-  const spot = freeSpot(dropped.rect, others, dropped.options);
-  if (spot.x === dropped.rect.x && spot.y === dropped.rect.y) return "clear";
-  if (Math.hypot(spot.x - dropped.rect.x, spot.y - dropped.rect.y) > MAX_NUDGE) return "far";
-  store.live((doc) => moveSheetObject(doc, dropped, spot), "move");
-  return "moved";
+  const place = placeOnSheet(store.doc, renderer, store.snapEnabled, kind, ref);
+  if (place.result === "moved") store.live((doc) => moveSheetObject(doc, place.item, place.spot), "move");
+  return place.result;
+}
+
+/**
+ * A table just put on the sheet goes where a drop would: off whatever it lies
+ * on, to the nearest free place within `MAX_NUDGE`. Called inside the edit that
+ * adds it, so adding and moving are one undo step.
+ */
+export function settleNewTable(
+  doc: HarnessDoc,
+  renderer: RendererApi,
+  snap: boolean,
+  tableId: string,
+): SettleResult {
+  const place = placeOnSheet(doc, renderer, snap, "table", tableId);
+  if (place.result === "moved") moveSheetObject(doc, place.item, place.spot);
+  return place.result;
 }
 
 /**

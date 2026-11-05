@@ -62,12 +62,13 @@ All notable changes to this project are documented here. The format follows
 - **Objects no longer lie on top of each other.** Drop a table or a connector on
   the sheet, or a box in the schematic, on top of another and it goes to the
   nearest free place instead, a little way off and on the grid, as part of the
-  same undo step. _Separate overlapping objects_ (in the command palette and the
-  sheet's background menu) clears up drawings that already have objects on top of
-  each other: tables give way to connectors, and only a box somebody placed by
+  same undo step. A table added from _Insert_ or a right-click menu goes to the
+  nearest free place in the same way. _Separate overlapping objects_ (in the
+  command palette and the sheet's background menu) clears up drawings that
+  already have objects on top of each other: tables give way to connectors, and only a box somebody placed by
   hand moves in the schematic. It works on the views on screen only, and a drop
-  whose nearest free place is more than 240 units away stays where it was
-  dropped, with a message, rather than jumping across a long table.
+  or a table added whose nearest free place is more than 240 units away stays
+  where it was put, with a message, rather than jumping across a long table.
 - **Autosave to the file.** Where the browser can keep a link to a file (Chrome,
   Edge), Open and Save link the drawing to the real file on disk and every edit
   is written to it a moment after it is made, so nothing is lost by forgetting
