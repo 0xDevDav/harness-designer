@@ -160,23 +160,18 @@ export function colorsOf(value: unknown): string[] | null {
   return out;
 }
 
-/** Colours so dark they disappear on a dark background: black, and the like. */
-export function isVeryDark(hex: string): boolean {
+/** Perceived luminance of a colour, from 0 (black) to 1 (white); grey for an unknown name. */
+export function luminance(hex: string): number {
   const h = colorOf(hex) ?? "#888888";
   const full = h.length === 4 ? `#${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}` : h;
   const r = parseInt(full.slice(1, 3), 16);
   const g = parseInt(full.slice(3, 5), 16);
   const b = parseInt(full.slice(5, 7), 16);
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.2;
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 }
 
+/** Colours so dark they disappear on a dark background: black, and the like. */
+export const isVeryDark = (hex: string): boolean => luminance(hex) < 0.2;
+
 /** Light colours, the ones dark text stays readable on. */
-export function isLightColor(hex: string): boolean {
-  const h = colorOf(hex) ?? "#888888";
-  const full = h.length === 4 ? `#${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}` : h;
-  const r = parseInt(full.slice(1, 3), 16);
-  const g = parseInt(full.slice(3, 5), 16);
-  const b = parseInt(full.slice(5, 7), 16);
-  // perceived luminance
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.62;
-}
+export const isLightColor = (hex: string): boolean => luminance(hex) > 0.62;

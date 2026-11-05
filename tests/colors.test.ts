@@ -4,7 +4,9 @@ import {
   colorOf,
   colorsOf,
   isLightColor,
+  isVeryDark,
   knownColorNames,
+  luminance,
   registerColorName,
 } from "@/core/colors";
 
@@ -134,5 +136,17 @@ describe("palette and names agree", () => {
     expect(colorOf("turchese")).toBe("#12a4a4");
     expect(colorOf("turquoise")).toBe("#12a4a4");
     expect(colorsOf("turchese/nero")).toEqual(["#12a4a4", "#111111"]);
+  });
+});
+
+describe("luminance", () => {
+  it("runs from black to white, with the two thresholds on one scale", () => {
+    expect(luminance("#000000")).toBe(0);
+    expect(luminance("#ffffff")).toBe(1);
+    const grey = luminance("nessun colore");
+    expect(isVeryDark("nessun colore")).toBe(false);
+    expect(isLightColor("nessun colore")).toBe(false);
+    expect(grey).toBeGreaterThan(0.2);
+    expect(grey).toBeLessThan(0.62);
   });
 });
