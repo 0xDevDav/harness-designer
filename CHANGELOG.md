@@ -141,7 +141,7 @@ All notable changes to this project are documented here. The format follows
   or one that is moved, keeps the cells it has, empty ones included. They fill
   only what neither end of the wire says anything about, so the two ends never
   disagree, are saved with the drawing, and the size follows a change of unit
-  (the window that warns about rounding lists it).
+  (the window that warns about rounding lists it on a line of its own).
 
 ### Changed
 

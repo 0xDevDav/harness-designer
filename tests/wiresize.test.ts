@@ -276,14 +276,23 @@ describe("previewUnitChange", () => {
     expect(back.map((c) => [c.from, c.to])).toEqual([["18 AWG", "0.75 mm²"]]);
   });
 
-  it("lists the size a new wire starts from, which is rounded with the rest", () => {
-    const doc = docWith(table("t", HEAD, [["1", "B.1", "Red", "2.5"]]));
+  it("lists the size a new wire starts from on a line of its own, first", () => {
+    const doc = docWith(
+      table("t", HEAD, [
+        ["1", "B.1", "Red", "2.5"],
+        ["2", "B.2", "Blue", "0.5"],
+      ]),
+    );
     doc.defaults = { color: "", size: "2.5", type: "" };
     const changes = previewUnitChange(doc, "awg");
-    expect(changes.map((c) => [c.from, c.to, c.count])).toEqual([["2.5 mm²", "14 AWG", 2]]);
+    expect(changes.map((c) => [c.from, c.to, c.count, c.isDefault ?? false])).toEqual([
+      ["2.5 mm²", "14 AWG", 1, true],
+      ["2.5 mm²", "14 AWG", 1, false],
+      ["0.5 mm²", "20 AWG", 1, false],
+    ]);
     // and a default alone is listed too
     doc.tables[0]!.rows = [];
-    expect(previewUnitChange(doc, "awg").map((c) => c.count)).toEqual([1]);
+    expect(previewUnitChange(doc, "awg").map((c) => [c.count, c.isDefault])).toEqual([[1, true]]);
   });
 
   it("is empty when there is nothing to change", () => {

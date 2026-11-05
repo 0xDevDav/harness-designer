@@ -541,6 +541,7 @@ export const en = {
     "The two scales do not line up. Sizes are rounded to the nearest standard size of the other scale, so converting back does not restore the earlier sizes:\n\n{lines}\n\nA wire that comes out thinner carries less current. Ctrl+Z undoes the conversion.",
   "dialog.unit.thinner": "{pct} % thinner",
   "dialog.unit.thicker": "{pct} % thicker",
+  "dialog.unit.default": "• Default size: {from} → {to}: {how}",
   "dialog.unit.more": "• and {n} more sizes",
   "dialog.unit.confirm": "Convert",
   "topbar.defaults": "Defaults",

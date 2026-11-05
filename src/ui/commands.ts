@@ -278,6 +278,7 @@ async function switchWireUnit(app: AppContext, unit: WireUnit): Promise<void> {
     const lines = changes.slice(0, UNIT_WARNING_LINES).map((c) => {
       const pct = Math.round(Math.abs(c.ratio - 1) * 100);
       const how = c.ratio < 1 ? t("dialog.unit.thinner", { pct }) : t("dialog.unit.thicker", { pct });
+      if (c.isDefault) return t("dialog.unit.default", { from: c.from, to: c.to, how });
       return `• ${c.from} → ${c.to}: ${how} (×${c.count})`;
     });
     if (changes.length > UNIT_WARNING_LINES) {

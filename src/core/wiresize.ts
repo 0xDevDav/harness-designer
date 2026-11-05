@@ -233,6 +233,8 @@ export interface SizeChange {
   count: number;
   /** copper of the result over copper of the original: 0.83 is a wire 17 % thinner */
   ratio: number;
+  /** the size a new wire starts from, which is in no cell */
+  isDefault?: true;
 }
 
 /** A conversion that moves the copper by less than this is the same wire for anyone's purposes. */
@@ -252,18 +254,22 @@ const SAME_WIRE = 0.01;
 export function previewUnitChange(doc: HarnessDoc, unit: WireUnit, read?: WireUnit): SizeChange[] {
   const current = read ?? wireUnitOf(doc);
   const groups = new Map<string, SizeChange>();
-  const note = (text: string, from: WireUnit): void => {
+  const changeOf = (text: string, from: WireUnit): SizeChange | null => {
     const size = parseSize(text, from);
-    if (!size || (size.unit ?? from) === unit) return;
+    if (!size || (size.unit ?? from) === unit) return null;
     const target = nearestSize(size.area, unit);
     const ratio = target.area / size.area;
-    if (Math.abs(ratio - 1) < SAME_WIRE) return;
-    const change: SizeChange = {
+    if (Math.abs(ratio - 1) < SAME_WIRE) return null;
+    return {
       from: `${size.figure} ${unitLabel(size.unit ?? from)}`,
       to: `${target.label} ${unitLabel(unit)}`,
       count: 1,
       ratio,
     };
+  };
+  const note = (text: string, from: WireUnit): void => {
+    const change = changeOf(text, from);
+    if (!change) return;
     const key = `${change.from}>${change.to}`;
     const seen = groups.get(key);
     if (seen) seen.count++;
@@ -275,9 +281,11 @@ export function previewUnitChange(doc: HarnessDoc, unit: WireUnit, read?: WireUn
     const from = headingUnit(table.head[col]) ?? current;
     for (const row of table.rows) note(row[col] ?? "", from);
   }
-  // the size a new wire starts from is rounded like the others, so the window lists it too
-  if (doc.defaults?.size) note(doc.defaults.size, current);
-  return [...groups.values()].sort((a, b) => a.ratio - b.ratio || a.from.localeCompare(b.from));
+  const changes = [...groups.values()].sort((a, b) => a.ratio - b.ratio || a.from.localeCompare(b.from));
+  // the size a new wire starts from is rounded like the others; on a line of its own, first,
+  // since folded into the count of the cells that share it nobody would notice it
+  const kept = doc.defaults?.size ? changeOf(doc.defaults.size, current) : null;
+  return kept ? [{ ...kept, isDefault: true }, ...changes] : changes;
 }
 
 /** The heading a new table's Section column gets: the unit if the drawing has one, else the plain word. */

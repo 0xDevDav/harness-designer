@@ -551,6 +551,7 @@ export const it = {
     "Le due scale non coincidono. Le sezioni sono arrotondate alla misura standard più vicina dell'altra scala, quindi riconvertendo non si ritrovano le sezioni di prima:\n\n{lines}\n\nUn filo che risulta più sottile porta meno corrente. Ctrl+Z annulla la conversione.",
   "dialog.unit.thinner": "{pct} % più sottile",
   "dialog.unit.thicker": "{pct} % più spesso",
+  "dialog.unit.default": "• Sezione predefinita: {from} → {to}: {how}",
   "dialog.unit.more": "• e altre {n} sezioni",
   "dialog.unit.confirm": "Converti",
   "topbar.defaults": "Predefiniti",
