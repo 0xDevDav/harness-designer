@@ -151,6 +151,32 @@ describe("cross-references between tables", () => {
     expect(messages(warnings(issues))).toContain("validate.sectionMismatch");
   });
 
+  it("takes a dash for nothing written, so it never disagrees with a size", () => {
+    const doc = docWith(
+      ["A", "B"],
+      [
+        { id: "ta", node: "a", title: "A", rows: [["1", "B.1", "-", "-"]] },
+        { id: "tb", node: "b", title: "B", rows: [["1", "A.1", "rosso", "1.5 mm²"]] },
+      ],
+    );
+    const said = messages(warnings(validateDoc(doc, t)));
+    expect(said).not.toContain("validate.sectionMismatch");
+    expect(said).not.toContain("validate.colorMismatch");
+  });
+
+  it("compares the two ends when only the higher one points at the other", () => {
+    const doc = docWith(
+      ["A", "B"],
+      [
+        { id: "ta", node: "a", title: "A", rows: [["1", "", "rosso", "1.5 mm²"]] },
+        { id: "tb", node: "b", title: "B", rows: [["1", "A.1", "rosso", "2.5 mm²"]] },
+      ],
+    );
+    const said = messages(warnings(validateDoc(doc, t)));
+    expect(said).toContain("validate.oneWay");
+    expect(said).toContain("validate.sectionMismatch");
+  });
+
   it("takes a decimal comma and a point for the same size", () => {
     const doc = docWith(
       ["A", "B"],

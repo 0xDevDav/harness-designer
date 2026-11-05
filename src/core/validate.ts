@@ -216,19 +216,19 @@ const crossReferences: ValidationRule = {
           continue;
         }
 
-        // same wire seen from both ends: colour and section have to agree
-        const here = { color: cell(row, cols.color), section: cell(row, cols.section) };
-        const there = {
-          color: cell(targetRow, target.cols.color),
-          section: cell(targetRow, target.cols.section),
-        };
+        // same wire seen from both ends: colour and section have to agree;
         // a dash stands for nothing written, as everywhere else in the tables
-        const typeOf = (r: string[], col: number | undefined): string => {
-          const written = cell(r, col);
-          return NOT_CONNECTED_RE.test(written) ? "" : written;
+        const written = (r: string[], col: number | undefined): string => {
+          const value = cell(r, col);
+          return NOT_CONNECTED_RE.test(value) ? "" : value;
         };
-        const hereType = typeOf(row, cols.type);
-        const thereType = typeOf(targetRow, target.cols.type);
+        const here = { color: written(row, cols.color), section: written(row, cols.section) };
+        const there = {
+          color: written(targetRow, target.cols.color),
+          section: written(targetRow, target.cols.section),
+        };
+        const hereType = written(row, cols.type);
+        const thereType = written(targetRow, target.cols.type);
         // the two ends may have been written in different languages or codes
         // ("bianco/giallo" and "WS/GE" are the same wire), so the comparison
         // runs on resolved colours and falls back to text only for non-colours
@@ -244,11 +244,12 @@ const crossReferences: ValidationRule = {
         const hereUnit = columnUnit(headingOf(source), unit);
         const thereUnit = columnUnit(headingOf(target), unit);
         const sameSection = (a: string, b: string): boolean => sameSize(a, hereUnit, b, thereUnit);
-        // Compared once per wire, from the alphabetically lower end — and not
-        // at all when a joint lies between the two. There the tables describe
-        // two wires, one each side of it, and two wires meeting at a joint are
-        // very often two different colours: that is what a joint is for.
-        if (from < dest && !jointed.has([from, dest].sort().join("|"))) {
+        // Compared once per wire, from the alphabetically lower end, or from
+        // this one when the other does not point back and so never gets here;
+        // and not at all when a joint lies between the two. There the tables
+        // describe two wires, one each side of it, and two wires meeting at a
+        // joint are very often two different colours: that is what a joint is for.
+        if ((from < dest || !bm) && !jointed.has([from, dest].sort().join("|"))) {
           if (here.color && there.color && !same(here.color, there.color)) {
             issues.push({
               rule: "cross-references",
