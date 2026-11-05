@@ -303,8 +303,6 @@ export function connectEnds(doc: HarnessDoc, from: string, to: string, prefer?: 
   const row = rowOrNew(tables, near);
   if (!row) return { ok: false, reason: "no-table" };
   writeEnd(row, far);
-  // a new wire starts from the defaults, even when the far end is a splice
-  // with no table to take them from this row
   autoLinkRow(doc, row.ct.table.id, row.index);
   // a wire made here is a new wire: it starts from the defaults, at both ends
   applyBirthDefaults(doc, row.ct.table.id, row.index);
