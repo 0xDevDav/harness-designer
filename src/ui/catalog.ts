@@ -26,7 +26,7 @@ import type { CatalogField, CatalogKind, EntryValues, Fitted } from "@/core/cata
 import { cell, deleteEntity, findTable, isCavityTable, ownerName, tableColumns } from "@/core/doc";
 import { catalogTable } from "@/core/factories";
 import { snapTo } from "@/core/geometry";
-import type { Table } from "@/core/types";
+import type { HarnessDoc, Table } from "@/core/types";
 import { symbolsWithRole } from "@/render/connectors";
 import { tableSize } from "@/render/tables";
 import { openDialog } from "./dialogs";
@@ -320,12 +320,20 @@ function entryForm(
   });
 }
 
+/** A new entry the person has filled in, not yet written into the drawing. */
+interface NewEntry {
+  name: string;
+  values: EntryValues;
+  symbol: string;
+}
+
 /**
- * Asks for a new entry and adds it, creating the catalogue first if the drawing
- * has none. Asks again, with what was typed still in it, until the name is one
- * the table can take. Returns the name, or null if it was given up.
+ * Asks for a new entry, again with what was typed still in it until the name
+ * is one the table can take. Writes nothing, so that the caller can add it in
+ * the same undo step as whatever it was asked for. Returns null if it was given
+ * up.
  */
-export async function createEntry(app: AppContext, kind: CatalogKind): Promise<string | null> {
+async function askEntry(app: AppContext, kind: CatalogKind): Promise<NewEntry | null> {
   let initial: Record<string, string> = {};
   for (;;) {
     const result = await entryForm(app, kind, initial);
@@ -337,21 +345,31 @@ export async function createEntry(app: AppContext, kind: CatalogKind): Promise<s
     } else if (existing && !nameIsFree(existing, name)) {
       app.toast.error(app.t("catalog.nameTaken", { name }));
     } else {
-      app.store.edit((doc) => {
-        let table = catalogOf(doc, kind);
-        if (!table) {
-          table = catalogTable(app.t, kind, 0, 0);
-          const centre = viewCenter(app);
-          table.x = snapTo(centre.x, app.store.snapEnabled);
-          table.y = snapTo(centre.y, app.store.snapEnabled);
-          doc.tables.push(table);
-        }
-        addEntry(table, result.values, result.symbol);
-      }, "catalog-add");
-      return name;
+      return { name, ...result };
     }
     initial = { ...result.values, symbol: result.symbol };
   }
+}
+
+/** Adds an entry, creating the catalogue first if the drawing has none. Inside a store edit. */
+function putEntry(app: AppContext, doc: HarnessDoc, kind: CatalogKind, entry: NewEntry): void {
+  let table = catalogOf(doc, kind);
+  if (!table) {
+    table = catalogTable(app.t, kind, 0, 0);
+    const centre = viewCenter(app);
+    table.x = snapTo(centre.x, app.store.snapEnabled);
+    table.y = snapTo(centre.y, app.store.snapEnabled);
+    doc.tables.push(table);
+  }
+  addEntry(table, entry.values, entry.symbol);
+}
+
+/** Asks for a new entry and adds it. Returns the name, or null if it was given up. */
+export async function createEntry(app: AppContext, kind: CatalogKind): Promise<string | null> {
+  const entry = await askEntry(app, kind);
+  if (!entry) return null;
+  app.store.edit((doc) => putEntry(app, doc, kind, entry), "catalog-add");
+  return entry.name;
 }
 
 /* ============================ assigning ============================ */
@@ -372,10 +390,13 @@ export async function assignHousing(app: AppContext, tableId: string): Promise<v
   );
   if (!choice) return;
   let name: string | null = null;
+  let entry: NewEntry | null = null;
   if (choice.type === "pick") name = choice.key;
   if (choice.type === "new") {
-    name = await createEntry(app, "housings");
-    if (name === null) return;
+    // made and given in one undo step
+    entry = await askEntry(app, "housings");
+    if (!entry) return;
+    name = entry.name;
   }
   // The table is made as long as the housing has cavities: longer, it grows;
   // shorter, it loses only the empty rows at its end.
@@ -384,6 +405,7 @@ export async function assignHousing(app: AppContext, tableId: string): Promise<v
   app.store.edit((doc) => {
     const target = findTable(doc, tableId);
     if (!target) return;
+    if (entry) putEntry(app, doc, "housings", entry);
     if (name === null) {
       delete target.housing;
       return;
@@ -416,13 +438,16 @@ export async function assignTermination(app: AppContext, tableId: string, row: n
   );
   if (!choice) return;
   let name = "";
+  let entry: NewEntry | null = null;
   if (choice.type === "pick") name = choice.key;
   if (choice.type === "new") {
-    const made = await createEntry(app, "terminations");
-    if (made === null) return;
-    name = made;
+    // made and given in one undo step
+    entry = await askEntry(app, "terminations");
+    if (!entry) return;
+    name = entry.name;
   }
   app.store.edit((doc) => {
+    if (entry) putEntry(app, doc, "terminations", entry);
     const target = findTable(doc, tableId);
     const cells = target?.rows[row];
     if (!cells) return;
