@@ -151,6 +151,57 @@ describe("cross-references between tables", () => {
     expect(messages(warnings(issues))).toContain("validate.sectionMismatch");
   });
 
+  it("takes a decimal comma and a point for the same size", () => {
+    const doc = docWith(
+      ["A", "B"],
+      [
+        { id: "ta", node: "a", title: "A", rows: [["1", "B.1", "rosso", "1,5 mm²"]] },
+        { id: "tb", node: "b", title: "B", rows: [["1", "A.1", "rosso", "1.5 mm²"]] },
+      ],
+    );
+    expect(messages(warnings(validateDoc(doc, t)))).not.toContain("validate.sectionMismatch");
+  });
+
+  it("names the two sections with a point and their unit when they disagree", () => {
+    const doc = docWith(
+      ["A", "B"],
+      [
+        { id: "ta", node: "a", title: "A", rows: [["1", "B.1", "rosso", "1,5"]] },
+        {
+          id: "tb",
+          node: "b",
+          title: "B",
+          head: ["Cavità", "Verso", "Colore", "Sezione (mm²)"],
+          rows: [["1", "A.1", "rosso", "2,5"]],
+        },
+      ],
+    );
+    const said: Record<string, unknown>[] = [];
+    const record: Translate = (key, vars) => {
+      if (key === "validate.sectionMismatch") said.push({ ...vars });
+      return String(key);
+    };
+    validateDoc(doc, record);
+    expect(said).toEqual([{ from: "A.1", dest: "B.1", a: "1.5 mm²", b: "2.5 mm²" }]);
+  });
+
+  it("names text that is not a size as it is written", () => {
+    const doc = docWith(
+      ["A", "B"],
+      [
+        { id: "ta", node: "a", title: "A", rows: [["1", "B.1", "rosso", "2x0,5 schermato"]] },
+        { id: "tb", node: "b", title: "B", rows: [["1", "A.1", "rosso", "1,5"]] },
+      ],
+    );
+    const said: Record<string, unknown>[] = [];
+    const record: Translate = (key, vars) => {
+      if (key === "validate.sectionMismatch") said.push({ ...vars });
+      return String(key);
+    };
+    validateDoc(doc, record);
+    expect(said).toEqual([{ from: "A.1", dest: "B.1", a: "2x0,5 schermato", b: "1.5 mm²" }]);
+  });
+
   it("reads a bare size in the unit its column is headed with", () => {
     const two = (b: string): HarnessDoc =>
       docWith(

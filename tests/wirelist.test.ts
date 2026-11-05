@@ -156,7 +156,34 @@ describe("buildWireList sizes", () => {
 
   it("names the unit in every size under a plain Section heading", () => {
     const doc = twoTables([["1", "C.1", "", "", "1.5"]], [["1", "C.2", "", "", "1,5 mm²"]]);
-    expect(buildWireList(doc).map((r) => r.section)).toEqual(["1.5 mm²", "1,5 mm²"]);
+    expect(buildWireList(doc).map((r) => r.section)).toEqual(["1.5 mm²", "1.5 mm²"]);
+  });
+
+  it("writes every size with a point, whichever separator its cell was typed with", () => {
+    const doc = twoTables(
+      [
+        ["1", "C.1", "", "", "1,5"],
+        ["2", "C.3", "", "", "0.75"],
+      ],
+      [
+        ["1", "C.2", "", "", "1,5 mm²"],
+        ["2", "C.4", "", "", "2,5"],
+      ],
+    );
+    expect(buildWireList(doc).map((r) => r.section)).toEqual(["1.5 mm²", "0.75 mm²", "1.5 mm²", "2.5 mm²"]);
+    doc.wireUnit = "mm2";
+    expect(buildWireList(doc).map((r) => r.section)).toEqual(["1.5", "0.75", "1.5", "2.5"]);
+  });
+
+  it("writes the point in the CSV too, and leaves a comma in text that is not a size", () => {
+    const doc = twoTables([["1", "C.1", "", "", "1,5"]], [["1", "C.2", "", "", "2x0,5 schermato"]]);
+    const csv = wireListCsv(
+      buildWireList(doc),
+      wireListHeadings((k) => k, doc.wireUnit),
+    );
+    const lines = csv.split("\n").slice(1);
+    expect(lines[0]).toContain(";1.5 mm²;");
+    expect(lines[1]).toContain(";2x0,5 schermato;");
   });
 
   it("writes bare numbers once the list is headed with the drawing's unit", () => {

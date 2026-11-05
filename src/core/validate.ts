@@ -13,7 +13,7 @@ import type { CavityTable } from "./doc";
 import { routeWires } from "./routing";
 import { checkWireEnds } from "./wireends";
 import { wireColorKey } from "./colors";
-import { columnUnit, sameSize, wireUnitOf } from "./wiresize";
+import { columnUnit, sameSize, sizeForCell, wireUnitOf } from "./wiresize";
 import type { HarnessDoc, Issue } from "./types";
 import type { Translate } from "@/i18n";
 
@@ -241,8 +241,9 @@ const crossReferences: ValidationRule = {
         // "1.5" under "Section (mm²)" and "1.5 mm²" under "Section" are the same size
         const headingOf = (ct: CavityTable): string | undefined =>
           ct.cols.section === undefined ? undefined : ct.table.head?.[ct.cols.section];
-        const sameSection = (a: string, b: string): boolean =>
-          sameSize(a, columnUnit(headingOf(source), unit), b, columnUnit(headingOf(target), unit));
+        const hereUnit = columnUnit(headingOf(source), unit);
+        const thereUnit = columnUnit(headingOf(target), unit);
+        const sameSection = (a: string, b: string): boolean => sameSize(a, hereUnit, b, thereUnit);
         // Compared once per wire, from the alphabetically lower end — and not
         // at all when a joint lies between the two. There the tables describe
         // two wires, one each side of it, and two wires meeting at a joint are
@@ -260,7 +261,13 @@ const crossReferences: ValidationRule = {
             issues.push({
               rule: "cross-references",
               severity: "warning",
-              message: t("validate.sectionMismatch", { from, dest, a: here.section, b: there.section }),
+              // each with its unit, so two columns headed differently read alike
+              message: t("validate.sectionMismatch", {
+                from,
+                dest,
+                a: sizeForCell(here.section, hereUnit, undefined),
+                b: sizeForCell(there.section, thereUnit, undefined),
+              }),
               target: { type: "table", id: table.id },
             });
           }

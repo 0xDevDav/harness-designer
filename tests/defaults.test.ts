@@ -70,7 +70,7 @@ describe("setDefaults", () => {
   it("keeps a size typed with the drawing's unit as the bare number, and one in the other unit as typed", () => {
     const doc = harness();
     setDefaults(doc, { size: "1,5 mm²" });
-    expect(doc.defaults?.size).toBe("1,5");
+    expect(doc.defaults?.size).toBe("1.5");
     setDefaults(doc, { size: "16 AWG" });
     expect(doc.defaults?.size).toBe("16 AWG");
   });
@@ -113,6 +113,19 @@ describe("applyWireDefaults", () => {
     applyWireDefaults({ row: near, cols }, { row: far, cols }, defaults, "mm2");
     expect(near.slice(3)).toEqual(["", "1.5 mm²", "GXL"]); // the colour is the far end's to give
     expect(far.slice(3)).toEqual(["Blue", "1.5 mm²", "GXL"]);
+  });
+});
+
+describe("a default size typed with a decimal comma", () => {
+  const cols = tableColumns({ id: "t", x: 0, y: 0, kind: "table", head: HEAD, rows: [] });
+
+  it("is kept as typed and written into a new wire with a point", () => {
+    const doc = harness();
+    setDefaults(doc, { size: "1,5" });
+    expect(doc.defaults?.size).toBe("1,5");
+    const row = ["1", "B.1", "", "", "", ""];
+    applyWireDefaults({ row, cols }, null, { color: "", size: "1,5", type: "" }, "mm2");
+    expect(row[4]).toBe("1.5 mm²");
   });
 });
 

@@ -85,6 +85,12 @@ describe("parseSize", () => {
     expect(parseSize("AWG 16", "mm2")).toMatchObject({ unit: "awg", figure: "16" });
   });
 
+  it("gives the number back with a point for a decimal comma", () => {
+    expect(parseSize("1,5", "mm2")).toMatchObject({ figure: "1.5" });
+    expect(parseSize("0,75 mm²", "awg")).toMatchObject({ unit: "mm2", figure: "0.75" });
+    expect(parseSize("1,5", "mm2")?.area).toBe(parseSize("1.5", "mm2")?.area);
+  });
+
   it("reads 1/0 as a gauge whatever the drawing is in", () => {
     expect(parseSize("1/0", "mm2")).toMatchObject({ unit: "awg" });
     expect(parseSize("1/0", "mm2")?.area).toBeCloseTo(53.5, 1);
@@ -201,6 +207,17 @@ describe("setWireUnit", () => {
     expect(sections(doc)).toEqual(["18"]);
   });
 
+  it("writes a point when it tidies a unit away, and leaves a bare number with a comma as typed", () => {
+    const doc = docWith(
+      table("t", HEAD, [
+        ["1", "B.1", "Red", "1,5 mm²"],
+        ["2", "B.2", "Red", "2,5"],
+      ]),
+    );
+    setWireUnit(doc, "mm2");
+    expect(sections(doc)).toEqual(["1.5", "2,5"]);
+  });
+
   it("keeps the table readable by the rest of the application", () => {
     const doc = docWith(table("t", HEAD, [["1", "B.1", "Red", "1.5"]]));
     setWireUnit(doc, "awg");
@@ -267,6 +284,16 @@ describe("previewUnitChange", () => {
     // nothing was written
     expect(sections(doc)).toEqual(["0.5", "1.5", "2.5", "2.5", "see note", ""]);
     expect(doc.wireUnit).toBeUndefined();
+  });
+
+  it("counts a size typed with a comma together with the same size typed with a point", () => {
+    const doc = docWith(
+      table("t", HEAD, [
+        ["1", "B.1", "Red", "1,5"],
+        ["2", "B.2", "Red", "1.5"],
+      ]),
+    );
+    expect(previewUnitChange(doc, "awg").map((c) => [c.from, c.count])).toEqual([["1.5 mm²", 2]]);
   });
 
   it("shows the rounding that a round trip would do", () => {
@@ -464,6 +491,11 @@ describe("a size carried to the other end of a wire", () => {
     expect(sizeAcross("1.5", "Section (mm²)", "Section", "mm2")).toBe("1.5 mm²");
     expect(sizeAcross("1.5 mm²", "Section", "Section (mm²)", "mm2")).toBe("1.5");
     expect(sizeAcross("16", "AWG", "Section", "mm2")).toBe("16 AWG");
+  });
+
+  it("is written with a point when it goes to a column headed otherwise", () => {
+    expect(sizeAcross("1,5", "Section (mm²)", "Section", "mm2")).toBe("1.5 mm²");
+    expect(sizeAcross("1,5 mm²", "Section", "Section (mm²)", "mm2")).toBe("1.5");
   });
 
   it("goes as it is between two columns headed alike", () => {

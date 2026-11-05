@@ -80,7 +80,7 @@ export function nearestSize(area: number, unit: WireUnit): WireSize {
 
 /** What a cell says, read as a wire size. */
 export interface ParsedSize {
-  /** the number as it was typed, without any unit */
+  /** the number without any unit, with a point for a decimal comma: "1,5" reads "1.5" */
   figure: string;
   /** the unit the cell names itself, if it does */
   unit?: WireUnit;
@@ -92,15 +92,18 @@ const AUGHT = /^(\d)\/0$/;
 /**
  * Reads "1.5", "0,75 mm²", "18 AWG", "AWG 16", "1/0". `fallback` is the unit a
  * bare number is in. Anything else ("2x0.5 shielded", "see note") is not a size
- * and gives null, so it is never rewritten.
+ * and gives null, so it is never rewritten. A decimal comma comes back as a
+ * point, so a size the application writes, lists or reports reads the same
+ * whichever of the two it was typed with.
  */
 export function parseSize(text: string, fallback: WireUnit): ParsedSize | null {
   const s = text.trim().toLowerCase().replace(/\s+/g, " ");
   const m =
     /^(?<n>\d+(?:[.,]\d+)?|\d\/0)(?: ?(?<u>mm ?[²2]|sq ?mm|awg|ga|gauge))?$/.exec(s) ??
     /^(?<u>awg|ga|gauge) ?(?<n>\d+|\d\/0)$/.exec(s);
-  const figure = m?.groups?.["n"];
-  if (!figure) return null;
+  const typed = m?.groups?.["n"];
+  if (!typed) return null;
+  const figure = typed.replace(",", ".");
 
   const named = m.groups?.["u"];
   // "1/0" only exists as a gauge, whatever unit the drawing is in
@@ -115,11 +118,11 @@ export function parseSize(text: string, fallback: WireUnit): ParsedSize | null {
   const withUnit = unit ? { unit } : {};
 
   if ((unit ?? fallback) === "awg") {
-    const n = aught ? 1 - Number(aught[1]) : Number(figure.replace(",", "."));
+    const n = aught ? 1 - Number(aught[1]) : Number(figure);
     if (!Number.isInteger(n) || n > 40) return null;
     return { figure, ...withUnit, area: awgArea(n) };
   }
-  const area = Number(figure.replace(",", "."));
+  const area = Number(figure);
   if (!(area > 0)) return null;
   return { figure, ...withUnit, area };
 }
@@ -376,8 +379,7 @@ export function sizesAlreadyIn(doc: HarnessDoc, unit: WireUnit): string[] {
   if (doc.wireUnit) return [];
   const current = wireUnitOf(doc);
   if (current === unit) return [];
-  const standard = (u: WireUnit, figure: string): boolean =>
-    SIZES[u].some((size) => size.label === figure.replace(",", "."));
+  const standard = (u: WireUnit, figure: string): boolean => SIZES[u].some((size) => size.label === figure);
   const found = new Set<string>();
   for (const table of doc.tables) {
     const col = sizeColumn(table);
