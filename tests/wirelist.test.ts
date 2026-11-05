@@ -138,6 +138,29 @@ describe("buildWireList", () => {
   it("produces no rows on a document with no cavity tables", () => {
     expect(buildWireList(normalizeDoc({}))).toEqual([]);
   });
+  it("takes what the other end says when the end met first leaves a cell empty", () => {
+    const doc = docWith(
+      ["A", "B"],
+      [
+        { id: "ta", node: "a", rows: [["1", "B.1", "", "-", ""]] },
+        { id: "tb", node: "b", rows: [["1", "A.1", "Massa", "nero", "0.75 mm²"]] },
+      ],
+    );
+    expect(buildWireList(doc)).toEqual([
+      { index: 1, from: "A.1", to: "B.1", func: "Massa", color: "nero", section: "0.75 mm²" },
+    ]);
+  });
+
+  it("keeps the end met first where both ends say something", () => {
+    const doc = docWith(
+      ["A", "B"],
+      [
+        { id: "ta", node: "a", rows: [["1", "B.1", "Massa", "nero", "1.5 mm²"]] },
+        { id: "tb", node: "b", rows: [["1", "A.1", "GND", "rosso", "2.5 mm²"]] },
+      ],
+    );
+    expect(buildWireList(doc)[0]).toMatchObject({ func: "Massa", color: "nero", section: "1.5 mm²" });
+  });
 });
 
 describe("buildWireList sizes", () => {

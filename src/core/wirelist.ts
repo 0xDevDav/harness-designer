@@ -1,10 +1,16 @@
-import { cavityTables, cell, resolveDest } from "./doc";
+import { cavityTables, cell, resolveDest, NOT_CONNECTED_RE } from "./doc";
 import { formatLengthMm } from "./length";
 import { columnUnit, sizeForCell, unitLabel, wireUnitOf } from "./wiresize";
 import type { HarnessDoc, WireRow } from "./types";
 
 /** Values that mean "not connected" and produce no wire. */
 const NOT_CONNECTED = /^(n\.?c\.?|nc|—|-|–|n\/a)$/i;
+
+/** What a wire list row says about the wire, as opposed to where it runs. */
+const WIRE_PROPS = ["func", "color", "section"] as const;
+
+/** A cell that says nothing about the wire: empty, or a dash. */
+const blank = (value: string): boolean => !value || NOT_CONNECTED_RE.test(value);
 
 /**
  * Builds the wire list from the cavity tables, collapsing mirrored pairs:
@@ -16,10 +22,14 @@ const NOT_CONNECTED = /^(n\.?c\.?|nc|—|-|–|n\/a)$/i;
  * unit the list is headed with once the drawing has one, with the unit under a
  * plain "Section". A size in the other unit keeps its unit, and text that is not
  * a size goes in as it is.
+ *
+ * The two ends of a wire are one row, and the end met first may be the one
+ * that leaves a cell empty (or with a dash) where the other end says what the
+ * wire is: the row then takes what the other end says.
  */
 export function buildWireList(doc: HarnessDoc): WireRow[] {
   const rows: WireRow[] = [];
-  const seen = new Set<string>();
+  const seen = new Map<string, WireRow>();
   const unit = wireUnitOf(doc);
   // the heading `wireListHeadings` gives the list's Section column
   const listHeading = doc.wireUnit ? unitLabel(doc.wireUnit) : undefined;
@@ -36,17 +46,20 @@ export function buildWireList(doc: HarnessDoc): WireRow[] {
       const dest = resolved ? `${resolved.connector}.${resolved.cavity}` : raw;
       const from = `${owner}.${cavity}`;
       const key = resolved ? [from, dest].sort().join("|") : `${from}|${dest}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      rows.push({
-        index: rows.length + 1,
-        from,
-        to: dest,
+      const props = {
         func: cell(row, cols.func),
         color: cell(row, cols.color),
         section: sizeForCell(cell(row, cols.section), fromUnit, listHeading),
-      });
+      };
+      const first = seen.get(key);
+      if (first) {
+        for (const prop of WIRE_PROPS)
+          if (blank(first[prop]) && !blank(props[prop])) first[prop] = props[prop];
+        continue;
+      }
+      const wire = { index: rows.length + 1, from, to: dest, ...props };
+      seen.set(key, wire);
+      rows.push(wire);
     }
   }
   return rows;
