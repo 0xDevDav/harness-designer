@@ -602,7 +602,8 @@ export const en = {
   "toast.nodesMerged": "{n} nodes merged into one",
   "toast.copiedOne": "Copied: paste it where you need with Ctrl+V",
   "toast.copied": "{n} items copied: paste them where you need with Ctrl+V",
-  "toast.copyRefused": "The title block is not copied: there is one to a sheet",
+  "toast.copyRefused":
+    "The title block and the housing and termination tables are not copied: there is one of each to a drawing",
   "toast.pastedOne": "Pasted here",
   "toast.pasted": "{n} items pasted here",
   "toast.pasteRefused": "Nothing to paste here",

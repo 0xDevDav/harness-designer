@@ -442,7 +442,7 @@ export function registerBuiltinCommands(app: AppContext): void {
       run: (a) => {
         const clip = copySelection(a.doc, a.store.selected());
         if (isEmptyClipping(clip)) {
-          // the only thing that refuses to be copied is the title block
+          // the title block and the two catalogues are one to a drawing: they are not copied
           a.toast.error(a.t("toast.copyRefused"));
           return;
         }

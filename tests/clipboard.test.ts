@@ -56,6 +56,19 @@ describe("copySelection", () => {
     expect(isEmptyClipping(copySelection(doc, [sel("table", "tb")]))).toBe(true);
   });
 
+  it("refuses the housing and termination tables, which are one to a drawing too", () => {
+    const doc = normalizeDoc({
+      nodes: [],
+      segments: [],
+      tables: [
+        { id: "h", x: 0, y: 0, kind: "housings", head: ["Name"], rows: [["DTM04-2P"]] },
+        { id: "t", x: 0, y: 200, kind: "terminations", head: ["Name"], rows: [["Faston 6.3"]] },
+      ],
+    });
+    expect(doc.tables.map((t) => t.kind)).toEqual(["housings", "terminations"]);
+    expect(isEmptyClipping(copySelection(doc, [sel("table", "h"), sel("table", "t")]))).toBe(true);
+  });
+
   it("counts nothing twice when a branch and its own end are both chosen", () => {
     const doc = twoEndDoc();
     const clip = copySelection(doc, [sel("segment", "s1"), sel("node", "n1")]);

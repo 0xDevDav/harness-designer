@@ -613,7 +613,8 @@ export const it = {
   "toast.nodesMerged": "Uniti {n} nodi in uno",
   "toast.copiedOne": "Copiato: incollalo dove ti serve con Ctrl+V",
   "toast.copied": "Copiati {n} elementi: incollali dove ti servono con Ctrl+V",
-  "toast.copyRefused": "Il cartiglio non si copia: ce n'è uno solo per foglio",
+  "toast.copyRefused":
+    "Il cartiglio e le tabelle di alloggiamenti e terminali non si copiano: in un disegno ce n'è uno solo per tipo",
   "toast.pastedOne": "Incollato qui",
   "toast.pasted": "Incollati qui {n} elementi",
   "toast.pasteRefused": "Niente da incollare qui",
