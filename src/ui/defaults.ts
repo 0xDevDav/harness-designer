@@ -2,8 +2,8 @@
  * The defaults for new wires, in a floating panel.
  *
  * Wire size, wire type and wire colour: what a wire starts with when it is
- * connected. Each is a starting point only — it fills what is empty and never
- * changes what is written — and each can be left empty.
+ * connected. Each is a starting point only (it fills what is empty and never
+ * changes what is written), and each can be left empty.
  */
 import type { AppContext } from "@/app/context";
 import { setDefaults } from "@/core/defaults";

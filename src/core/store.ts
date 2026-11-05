@@ -34,8 +34,8 @@ export class Store {
    * Anything picked with Ctrl on top of `selection`, newest last.
    *
    * The single selection stays exactly what it was, and this sits beside it, so
-   * everything built around one selected element — the strand preview, in-place
-   * editing, the plugin API — carries on reading `selection` and never has to
+   * everything built around one selected element (the strand preview, in-place
+   * editing, the plugin API) carries on reading `selection` and never has to
    * ask whether it is looking at a list.
    */
   also: Selection[] = [];

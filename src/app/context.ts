@@ -22,8 +22,8 @@ export interface RendererApi {
    * What the other view is pointing at: the branches a wire picked in the
    * schematic runs through, and the connectors at its two ends.
    *
-   * It is not a selection — nothing here can be moved, renamed or deleted by
-   * it — it is the sheet answering a question asked next door.
+   * It is not a selection (nothing here can be moved, renamed or deleted by
+   * it): it is the sheet answering a question asked next door.
    */
   highlight: { nodes: ReadonlySet<string>; segments: ReadonlySet<string> } | null;
   /** cells Find matched, marked on the tables; null when nothing is being searched for */

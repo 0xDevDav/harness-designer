@@ -4,7 +4,7 @@
  * The same engine idea as the formboard renderer: everything is redrawn from
  * the model, draws are coalesced onto a frame, and no state is kept anywhere
  * but in the document. What differs is that this view has a viewport of its
- * own — in the side-by-side mode the two views are panned and zoomed
+ * own: in the side-by-side mode the two views are panned and zoomed
  * separately, because they are two readings of the harness and not two windows
  * onto one sheet.
  *
@@ -33,7 +33,7 @@ import { filletedPath } from "./wires";
 
 /**
  * A schematic spreads its boxes out to keep the wires apart, so it is wider
- * than the sheet it comes from — often much wider than half a screen. The floor
+ * than the sheet it comes from, often much wider than half a screen. The floor
  * has to be low enough for a whole one to be fitted into the side-by-side view,
  * or the fit stops at the floor and quietly leaves a connector off the edge.
  */
@@ -46,7 +46,7 @@ const FIT_ZOOM = 1.4;
  * Asked for generously and cut down where it does not fit: a corner is rounded
  * by at most half of the shorter run meeting at it, so a wire with room turns
  * in a wide arc and one stepping between two lanes a hair apart still turns as
- * roundly as that hair allows. Nothing has to be worked out per corner — the
+ * roundly as that hair allows. Nothing has to be worked out per corner: the
  * path builder already holds a radius to what the geometry can take.
  */
 const CORNER_R = 22;
@@ -471,7 +471,7 @@ export class SchematicRenderer {
    *
    * A box with no cavities is one electrical point, and every wire arriving at
    * it is the same point. Drawn as a plain rectangle with lines stopping at its
-   * edge, that is exactly what it does not say — it looks like a connector
+   * edge, that is exactly what it does not say: it looks like a connector
    * whose pin-out somebody forgot to fill in. So the wires are taken inside and
    * brought onto a bar: the mark a schematic has always used for a splice, and
    * the reason the two sides are drawn joined right through the middle.
@@ -518,7 +518,7 @@ export class SchematicRenderer {
           parent,
         );
       }
-      // and a dot where they meet, which is the mark for a junction — only
+      // and a dot where they meet, which is the mark for a junction, only
       // where something really does meet, never on a wire passing through
       if (side.ys.length > 1) {
         el(
@@ -578,8 +578,8 @@ export class SchematicRenderer {
    * A mated pair, drawn as one arrow with a head at each end.
    *
    * The same mark the sheet uses, for the same reason: neither of the two is
-   * the source, they plug into each other. It is deliberately not a wire —
-   * plain, thin, and in the colour of the writing rather than of a conductor —
+   * the source, they plug into each other. It is deliberately not a wire
+   * (plain, thin, and in the colour of the writing rather than of a conductor)
    * because nothing is cut to this length and no circuit runs *along* it.
    */
   private drawJoint(joint: SchemJoint, parent: SVGGElement, lit: boolean): void {

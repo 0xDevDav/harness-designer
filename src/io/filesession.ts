@@ -5,7 +5,7 @@
  * keep an autosave from doing damage:
  *
  * - edits are written a moment after they stop, never in the middle of a drag;
- * - a file changed from outside is never overwritten by an autosave — the
+ * - a file changed from outside is never overwritten by an autosave: the
  *   writing stops, the Reload button lights up, and the person decides;
  * - a drawing that stops being the file's (new, sample) is unlinked first, or
  *   the next autosave would replace the file with something unrelated;

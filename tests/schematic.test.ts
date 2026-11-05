@@ -102,15 +102,15 @@ describe("boxes", () => {
 describe("the header", () => {
   it("says what the cavity table on the sheet says, in full", () => {
     const doc = wired();
-    doc.tables[0]!.title = "A — Centralina motore (12 vie)";
+    doc.tables[0]!.title = "A - Centralina motore (12 vie)";
     const box = buildSchematic(doc).byName.get("A");
-    expect(box?.title).toBe("A — Centralina motore (12 vie)");
+    expect(box?.title).toBe("A - Centralina motore (12 vie)");
   });
 
   it("makes the box wide enough for that title", () => {
     const plain = buildSchematic(wired()).byName.get("A")!;
     const doc = wired();
-    doc.tables[0]!.title = "A — Centralina motore, vano batteria, 12 vie sigillate";
+    doc.tables[0]!.title = "A - Centralina motore, vano batteria, 12 vie sigillate";
     const titled = buildSchematic(doc).byName.get("A")!;
     expect(titled.w).toBeGreaterThan(plain.w);
     expect(titled.w).toBeGreaterThan(titled.title.length * 6);
@@ -189,8 +189,8 @@ describe("arrangement", () => {
   it("leaves the fan of a hub without a single crossing", () => {
     // no pair of wires swaps order between the two ends: that is what a
     // crossing is, and a fan drawn in cavity order has none. The wires cannot
-    // all be straight — the cavities of one connector are closer together than
-    // whole boxes can be — but they can all stay in their lane.
+    // all be straight (the cavities of one connector are closer together than
+    // whole boxes can be), but they can all stay in their lane.
     const wires = buildSchematic(hubHarness()).wires;
     expect(wires.length).toBe(4);
     for (const a of wires) {

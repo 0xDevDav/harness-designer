@@ -8,7 +8,7 @@
  *
  * Inside, they are rewired to the copies. Two connectors copied together stay
  * plugged into each other, a branch keeps the two ends it was drawn between,
- * and a cavity table copied along with its connector goes on belonging to it —
+ * and a cavity table copied along with its connector goes on belonging to it,
  * to the copy of it.
  *
  * Outside, they are dropped, because a copy may not lay claim to anything the
@@ -17,8 +17,8 @@
  * table copied on its own belongs to no connector, or the drawing would hold
  * two tables describing one plug and every wire in it would be counted twice.
  *
- * A name is a reference like any other — the pin-outs say `C3` and mean
- * whatever node is called that — so a copied connector is given a free name
+ * A name is a reference like any other (the pin-outs say `C3` and mean
+ * whatever node is called that), so a copied connector is given a free name
  * rather than the one it was copied from. Two nodes with one name is exactly
  * the fault that makes half a harness look unreachable.
  */
@@ -86,7 +86,7 @@ export function copySelection(doc: HarnessDoc, selection: readonly Selection[]):
  *
  * The whole clipping moves as one piece: what was copied keeps its shape and
  * its spacing, and only the corner it is measured from is the pointer's. A
- * label has no place of its own — it lives at a point along a branch — so it
+ * label has no place of its own (it lives at a point along a branch), so it
  * neither takes part in that measurement nor moves; it goes onto whichever
  * branch it was told, which is the copied one when that came too.
  */
@@ -151,7 +151,7 @@ export function pasteClipping(doc: HarnessDoc, clip: Clipping, at: Point, snap: 
 
   for (const inline of clip.inlines) {
     // the copied branch when it came along, otherwise whatever branch the label
-    // was told to go on — the caller finds one for a label pasted by itself
+    // was told to go on; the caller finds one for a label pasted by itself
     const seg = idOf.get(inline.seg) ?? (doc.segments.some((s) => s.id === inline.seg) ? inline.seg : "");
     if (!seg) continue;
     const copy: Inline = { ...inline, id: uid("i"), seg };

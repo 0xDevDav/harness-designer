@@ -7,8 +7,8 @@ import type { HarnessDoc, Table } from "./types";
  * A housing is the plastic: the shell with its cavities, which a connector is
  * built on. A termination is the metal: the contact crimped on the end of a
  * wire, which sits in one cavity. They are kept apart because they vary
- * independently — one housing takes several sizes of contact, and one relay is
- * wired with two sizes of faston — so a connector's cavity table points at one
+ * independently (one housing takes several sizes of contact, and one relay is
+ * wired with two sizes of faston), so a connector's cavity table points at one
  * housing, and each of its rows points at its own termination.
  *
  * Both are ordinary tables on the sheet. What the cavity tables say about them

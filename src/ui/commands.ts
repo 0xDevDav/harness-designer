@@ -201,7 +201,7 @@ export function createCommandRegistry(): AppBindableRegistry {
  *
  * Ctrl+C then belongs to the browser: somebody who has just swept over a line
  * of a check report, or a cell of a table, is copying that text and not the
- * element behind it. Saying the command is unavailable is enough — the keyboard
+ * element behind it. Saying the command is unavailable is enough: the keyboard
  * only takes a combination away from the browser for a command it can run.
  */
 function copyingText(): boolean {

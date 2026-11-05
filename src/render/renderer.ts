@@ -579,7 +579,7 @@ export class Renderer implements RendererApi {
    *
    * A mated pair is not a wire and must not be drawn as one: nothing is cut to
    * this length and no colour runs along it. An arrow says the two connectors
-   * plug into each other and says it in both directions, which is right —
+   * plug into each other and says it in both directions, which is right:
    * neither of them is the source.
    *
    * It is drawn from nose to nose rather than centre to centre, so the arrow
@@ -673,7 +673,7 @@ export class Renderer implements RendererApi {
     if (!label) return;
 
     // The label follows the connector axis past the nose, where it overlaps no
-    // corner — except when something else needs that axis: the arrow of a joint
+    // corner, except when something else needs that axis: the arrow of a joint
     // leaves along it, and so do the four buttons that point a connector. Then
     // it goes over the body instead, and always upwards whichever way the
     // connector faces, so a pair reads as a pair rather than as two names with
@@ -757,7 +757,7 @@ export class Renderer implements RendererApi {
    * The answer to a wire picked in the schematic: its road across the harness.
    *
    * Drawn like a selected branch and no louder, because it is the same kind of
-   * statement — this is the thing you asked about — and a second, brighter way
+   * statement (this is the thing you asked about), and a second, brighter way
    * of saying it would only compete with the selection itself.
    */
   private drawHighlight(doc: HarnessDoc, parent: SVGGElement): void {

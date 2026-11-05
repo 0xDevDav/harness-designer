@@ -1,7 +1,7 @@
 /**
  * The schematic: the same harness read as circuits instead of as a shape.
  *
- * The formboard answers "how is it built" — where the bundle runs, how long
+ * The formboard answers "how is it built": where the bundle runs, how long
  * each branch is, which way a connector points. It is the drawing that goes to
  * the workshop, and it is deliberately not a circuit diagram: two wires side by
  * side in the same trunk tell you nothing about whether they are the same
@@ -36,7 +36,7 @@ export const BOX_PAD = 6;
 const MIN_W = 124;
 /**
  * How wide a box may get for its rows. The title is not held to it: a cavity
- * table is called what it is called, and a box that says «C13 — Presa rimo…»
+ * table is called what it is called, and a box that says «C13 - Presa rimo…»
  * has thrown away the half of the name that told you which one it is.
  */
 const MAX_W = 260;
@@ -116,7 +116,7 @@ export interface SchemBox {
   h: number;
   /**
    * A name the tables send a wire to and the drawing does not have. It is drawn
-   * so the wire has somewhere to land — losing the wire would hide the mistake
+   * so the wire has somewhere to land; losing the wire would hide the mistake
    * instead of showing it.
    */
   unknown?: boolean;
@@ -152,7 +152,7 @@ export interface SchemWire {
  *
  * Not a wire and not drawn as one: nothing is cut to this length and no colour
  * runs along it. It is the point where one wire ends and the next begins, which
- * is exactly why the colour is free to change from one side to the other — and
+ * is exactly why the colour is free to change from one side to the other, and
  * a schematic that left it out would show two connectors with no relationship
  * at all and a circuit that stops dead.
  */
@@ -179,7 +179,7 @@ const trimmed = (v: string): string => v.trim();
 /**
  * Width a box needs for what it has to say.
  *
- * The rows are held to a limit — a long function name is shortened, and the
+ * The rows are held to a limit: a long function name is shortened, and the
  * cavity next to it still says which wire it is about. The title is not: it is
  * the name of the thing, it is what the other view calls it, and it is the one
  * piece of text on the box that has to be read whole.
@@ -290,7 +290,7 @@ function anchorOf(doc: HarnessDoc, box: SchemBox): Point {
   return table ? { x: table.x, y: table.y } : { x: 0, y: 0 };
 }
 
-/** Both ends of every wire — and of every joint — indexed by the box they touch. */
+/** Both ends of every wire (and of every joint), indexed by the box they touch. */
 function tiesOf(
   pairs: readonly ResolvedPair[],
   mates: readonly (readonly [string, string])[],
@@ -384,8 +384,8 @@ function median(values: readonly number[]): number | undefined {
  * The order is not read off the drawing. On the sheet a connector sits where
  * the harness physically puts it, and copying that here produces a schematic
  * whose wires cross for reasons that have nothing to do with the circuit. So
- * each column is sorted by where its wires arrive from — the median of the
- * cavities at the other end, the standard way of untangling a layered drawing —
+ * each column is sorted by where its wires arrive from (the median of the
+ * cavities at the other end, the standard way of untangling a layered drawing),
  * and then the pass is run again both ways, because moving one column changes
  * the answer for its neighbours.
  *
@@ -395,7 +395,7 @@ function median(values: readonly number[]): number | undefined {
  * wire between them is a straight line rather than a step.
  *
  * **Every box takes part, including the ones somebody has dragged.** Their own
- * result is thrown away afterwards — they go where they were put — but they are
+ * result is thrown away afterwards (they go where they were put), but they are
  * laid out all the same, because dropping one from the graph changes where all
  * the others land: take the connector everything hangs off out of it and the
  * arrangement is worked out from a different starting point, in different
@@ -490,8 +490,8 @@ function autoLayout(
       column.sort((a, b) => rank(a) - rank(b) || a.id.localeCompare(b.id));
       // Placed against the side being swept, falling back to both sides for a
       // column that has nothing on that one. Weighing every tie at once instead
-      // would let a group with plenty of wires among themselves — the cabin end
-      // of a harness, say — settle wherever it liked and outvote the single
+      // would let a group with plenty of wires among themselves (the cabin end
+      // of a harness, say) settle wherever it liked and outvote the single
       // connector that joins it to the rest, which is the tie that places it.
       const level = new Map(all.level);
       for (const [id, want] of side.level) level.set(id, want);
@@ -528,7 +528,7 @@ export const pinOffset = (pin: number): number => (pin < 0 ? HEAD_H / 2 : HEAD_H
  *
  * A cavity is a row and the wire arrives at that row. A wire naming no cavity
  * arrives at the box itself: on the header of a connector, because that is
- * where its name is and the rows below belong to other wires — but in the
+ * where its name is and the rows below belong to other wires, but in the
  * **middle** of a splice or a ring terminal, which has no rows at all. On one of
  * those everything arriving is the same electrical point, and hanging it off
  * the top edge draws that point as though it were a heading.
@@ -602,7 +602,7 @@ const CLEARANCE = 12;
  * Whichever free strip lies nearest the middle wins, because that is the one a
  * wire would take if it could see: it makes the two horizontal legs the same
  * sort of length instead of one long one and one stub. If everything between
- * the bounds is taken the middle comes back anyway — a wire drawn across a box
+ * the bounds is taken the middle comes back anyway: a wire drawn across a box
  * is worse to look at than one drawn round it, and better than no wire.
  */
 function freeChannel(from: number, to: number, blocked: readonly (readonly [number, number])[]): number {
@@ -727,7 +727,7 @@ function routeLine(draft: Draft): Point[] {
 function spreadChannels(drafts: Draft[]): void {
   // One sweep along the sorted channels. A run of wires closer together than a
   // lane is spread evenly about its own middle, and then held clear of the run
-  // before it, so spreading one can never push it into the next — which is what
+  // before it, so spreading one can never push it into the next, which is what
   // goes wrong if the wires are simply sorted into buckets and each bucket
   // spread on its own: two channels either side of a boundary stay as close as
   // they started, and two wires get drawn as one.
@@ -754,7 +754,7 @@ function spreadChannels(drafts: Draft[]): void {
 /**
  * Fans out the wires that arrive at the same port.
  *
- * A connector with no cavities of its own — a ring terminal, a splice — takes
+ * A connector with no cavities of its own (a ring terminal, a splice) takes
  * every wire that comes to it at one point, and so does a cavity that more than
  * one row names. Drawn as they come, those wires lie exactly on top of each
  * other: two wires shown as one, which is the one thing a wiring diagram must
@@ -762,8 +762,8 @@ function spreadChannels(drafts: Draft[]): void {
  * arrive from, so the fan does not cross itself on the way in.
  *
  * **Each side fans on its own**, and each fan is centred on the port. Wires
- * arriving on the left and wires leaving on the right never meet — they are at
- * opposite edges of the box — so spreading them as one set would only push both
+ * arriving on the left and wires leaving on the right never meet (they are at
+ * opposite edges of the box), so spreading them as one set would only push both
  * groups off centre, and a splice fed by eight wires and leaving by one would
  * show the eight up one end of it and the one down the other.
  */
@@ -893,7 +893,7 @@ export function buildSchematic(doc: HarnessDoc): Schematic {
   // The whole schematic is arranged first, and only then does anything somebody
   // moved go where they put it. That order is the point: the arrangement is
   // worked out from what is wired to what, so a box left out of it changes
-  // where every other box lands — and moving one connector would rearrange the
+  // where every other box lands, and moving one connector would rearrange the
   // schematic around it. Its automatic place is simply given up, and the gap it
   // leaves stays where it was.
   autoLayout(doc, boxes, pairs, mates);

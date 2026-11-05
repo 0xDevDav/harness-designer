@@ -248,7 +248,7 @@ export interface UnitChange {
  *
  * A bare number is taken to be in the unit the drawing is in now (or in `read`,
  * when the sizes are known to be in another), and is only rewritten when that
- * differs from the new one — a size somebody typed that is not a standard one
+ * differs from the new one: a size somebody typed that is not a standard one
  * (0.6) survives a switch to the unit it is already in. A table whose heading
  * names a unit is read in that unit, whatever the drawing is in: a table pasted
  * from another drawing headed "AWG" holds gauges.

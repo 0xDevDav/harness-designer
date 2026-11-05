@@ -36,7 +36,7 @@ export function projectT(a: Point, b: Point, p: Point): number {
 /**
  * A branch may bend on its way, so anything placed along one is placed by
  * distance travelled rather than by how far it is between the two ends. `t`
- * keeps meaning the same thing it always did — a fraction of the way along —
+ * keeps meaning the same thing it always did (a fraction of the way along),
  * and on a straight branch these come out identical to the two-point versions
  * above, which is what lets a document written before bends existed keep every
  * label exactly where it was.

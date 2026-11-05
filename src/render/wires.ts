@@ -13,7 +13,7 @@
  *
  * The drawing itself is one idea: a strand is the run it follows, pushed
  * sideways by a fixed distance. Everything below exists to make that offset
- * behave at the places where a plain sideways push is not defined — where the
+ * behave at the places where a plain sideways push is not defined: where the
  * run turns, where it changes thickness, and where two branches disagree about
  * which side "sideways" is.
  */
@@ -58,7 +58,7 @@ const SPIRAL_LEAN = 3.5;
  * Radius of the fillet where a run changes direction.
  *
  * Wire is stiff: it has a bend radius, and a harness laid on a board turns in a
- * curve. The branch itself is drawn with this same fillet — it lives here
+ * curve. The branch itself is drawn with this same fillet; it lives here
  * because the strands have to agree with it, and a strand that turns on a
  * different radius from the cable it belongs to reads as a mistake.
  */
@@ -93,7 +93,7 @@ const MARK_MIN_PX = 1;
  * banded wires is tens of thousands of separate marks, and the ones off the
  * edge of the window cost exactly what the ones in front of the reader cost and
  * show nothing at all. Left out, everything is drawn, which is what a caller
- * with no window — a test, an export — should get.
+ * with no window (a test, an export) should get.
  */
 export interface Sight {
   /** screen pixels to one unit of the drawing */
@@ -224,8 +224,8 @@ const back = (d: Point): Point => ({ x: -d.x, y: -d.y });
  * The side of the bundle a stretch runs on, as a vector.
  *
  * The side is a property of the branch, but a branch that bends has no single
- * perpendicular, so what is stored per branch is which of its two sides — as a
- * sign against the direction the document stores it in — and the vector is
+ * perpendicular, so what is stored per branch is which of its two sides (as a
+ * sign against the direction the document stores it in), and the vector is
  * worked out afresh on each stretch. That is what carries the band round a bend
  * inside a branch without it changing sides halfway along.
  */
@@ -248,7 +248,7 @@ function sideAt(sides: Map<string, number>, step: Step): Point {
  *
  * Those two cannot always both hold. At a node where three branches meet, all
  * three pairs can carry wires, and no assignment of one side per branch keeps
- * every pair continuous — it is a triangle asking to be two-coloured. So a
+ * every pair continuous: it is a triangle asking to be two-coloured. So a
  * crossing has to happen somewhere, and the only question is where.
  *
  * The answer is: where the fewest wires are. Every pair of branches a wire runs
@@ -259,7 +259,7 @@ function sideAt(sides: Map<string, number>, step: Step): Point {
  * than as a wobble in the run.
  *
  * The whole assignment is then flipped, if it helps, so that the band settles
- * on the inside of most bends — the shorter way round, and where wire lies.
+ * on the inside of most bends, the shorter way round, and where wire lies.
  */
 function bundleSides(doc: HarnessDoc, runs: readonly Step[][]): Map<string, number> {
   // a wish is "these two branches agree" or "these two branches disagree", the
@@ -311,7 +311,7 @@ function bundleSides(doc: HarnessDoc, runs: readonly Step[][]): Map<string, numb
   for (const s of doc.segments) sides.set(s.id, leader(s.id).apart ? -1 : 1);
 
   // one vote per turn per group: is the band on the inside of it? Turns inside
-  // a branch are left out — the band has no choice there, so it has no opinion.
+  // a branch are left out: the band has no choice there, so it has no opinion.
   const inside = new Map<string, number>();
   for (const run of runs) {
     for (let i = 1; i < run.length; i++) {
@@ -371,7 +371,7 @@ function fanAngle(arrive: Point, side: Point, leave: Point): number {
  * property of the wire itself.
  *
  * The node it spreads from is the connector the most wires end at, which is
- * both a leaf — so nothing has to interleave at the point it starts from — and
+ * both a leaf (so nothing has to interleave at the point it starts from) and
  * the one whose fan-out is worth getting right. What is left over, wires that
  * cross from one branch of a junction to another without touching the trunk,
  * takes the crossings, and there are few of those by construction.
@@ -471,8 +471,8 @@ function compareKeys(a: readonly number[], b: readonly number[]): number {
  *
  * The order within a branch is by where each wire is going, so that the wires
  * leaving at the next junction are already gathered on the side they leave
- * from. Ordering by length instead — longest innermost, on the reasoning that
- * what goes the whole way is laid first — reads well on a straight and falls
+ * from. Ordering by length instead (longest innermost, on the reasoning that
+ * what goes the whole way is laid first) reads well on a straight and falls
  * apart at every fork, because how far a wire runs says nothing about which way
  * it turns. A wire that had to cross the whole band to reach its branch now
  * finds itself on the outside of it already.
@@ -539,8 +539,8 @@ interface Corner extends Point {
  * The run turns, and the two offset lines meet: the meeting point is the
  * corner, which is what keeps the strand at its distance right through the
  * bend instead of cutting inside it. It is rounded on the radius of the bend it
- * is on — tighter than the cable on the inside of a corner, wider on the
- * outside — so the strands stay parallel to the cable and to each other around
+ * is on (tighter than the cable on the inside of a corner, wider on the
+ * outside), so the strands stay parallel to the cable and to each other around
  * a turn rather than fanning out and closing up again.
  *
  * The run goes straight on but the strand's distance changes, because wires
@@ -652,8 +652,8 @@ const fmt = (p: Point): string => `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
 /**
  * A circular fillet from `a` round `vertex` to `b`, as one SVG command.
  *
- * It has to be a real arc. The obvious thing — a quadratic curve with the
- * corner as its control point — is a parabola, and two parabolas cut back by
+ * It has to be a real arc. The obvious thing, a quadratic curve with the
+ * corner as its control point, is a parabola, and two parabolas cut back by
  * amounts in the ratio of their radii are not offsets of each other but scaled
  * copies about the vertex. The gap between them closes through the turn: at the
  * apex of a right-angled bend two strands end up at seven tenths of the spacing
@@ -693,7 +693,7 @@ type Piece = { at: number; len: number } & (
  *
  * Measuring is the point. The marks of a banded wire have to sit at set
  * distances along it, and the obvious way to find those places is to draw the
- * line and ask the browser — `getPointAtLength` on a real `<path>`. That works
+ * line and ask the browser: `getPointAtLength` on a real `<path>`. That works
  * and it is ruinous: the element has to be in the document to be measured, so
  * every question forces a fresh layout of a tree that the answers are
  * themselves making bigger, and the cost climbs with the square of the number
@@ -714,7 +714,7 @@ interface Trail {
  *
  * The corner is cut back along both arms by however much that radius needs at
  * that angle, and the cut shrinks on short arms so a brief stretch between two
- * junctions cannot round itself away entirely — at which point the radius
+ * junctions cannot round itself away entirely, at which point the radius
  * shrinks with it, because an arc that no longer fits has to be a tighter arc
  * rather than a wrong one.
  */
@@ -855,7 +855,7 @@ export function drawWirePreview(
 
     // A circuit written straight through a joint is two wires, so it is drawn
     // as two: the run is cut where it crossed, and nothing is drawn between the
-    // pieces, because between them there is no wire — there are two connectors
+    // pieces, because between them there is no wire: there are two connectors
     // plugged together.
     //
     // And each of the two is drawn in the colour its own end declares. The wire
@@ -884,7 +884,7 @@ export function drawWirePreview(
       if (corners.length < 2) return;
 
       // A strand that falls outside the window is not drawn at all. It is the
-      // same picture — nothing on screen changes — for a fraction of the work,
+      // same picture (nothing on screen changes) for a fraction of the work,
       // and on a big harness most of the strands of any selection are off the
       // edge of it.
       let x0 = Infinity;
@@ -932,7 +932,7 @@ export function drawWirePreview(
       // four-cornered patch with its two ends on the two edges of the wire, the
       // far edge running ahead of the near one by the lean. A patch is a shape
       // and not an approximation, so it stays exact however far in the drawing
-      // is zoomed — laying thin lanes side by side instead gives a staircase
+      // is zoomed; laying thin lanes side by side instead gives a staircase
       // that shows itself the moment anyone looks closely.
       //
       // The two edges are worked out, not drawn and measured, and all the marks

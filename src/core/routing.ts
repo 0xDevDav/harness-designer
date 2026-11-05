@@ -45,8 +45,8 @@ interface Link {
  * A mated pair is a step in this graph with no branch behind it: the two
  * connectors plug together, so a circuit written straight through the joint can
  * be built, and saying it cannot would be wrong. It carries no segment id
- * because it is not a branch — nothing is cut to its length and nothing is
- * drawn along it — and everything that walks a route has to be ready for the
+ * because it is not a branch (nothing is cut to its length and nothing is
+ * drawn along it), and everything that walks a route has to be ready for the
  * gap where a branch would otherwise be.
  */
 function adjacency(doc: HarnessDoc): Map<string, Link[]> {
@@ -153,7 +153,7 @@ export function pathLengthMm(doc: HarnessDoc, path: readonly string[]): number |
  * it crossed a joint there.
  *
  * The path holds no id for the joint, because a joint is not a branch, so the
- * seam is found by asking the geometry instead — the branch it lands on does
+ * seam is found by asking the geometry instead: the branch it lands on does
  * not touch the node it left, and the two nodes are mated.
  */
 function jumpsJoint(doc: HarnessDoc, from: string, path: readonly string[]): boolean {
@@ -239,7 +239,7 @@ export function wireRowsWithLength(doc: HarnessDoc): WireRow[] {
  * Nodes a wire passes through, ends included. Used by the drawing.
  *
  * A branch that does not touch the node the walk is standing on is the far side
- * of a joint, and the walk steps across to the mate to carry on — the joint
+ * of a joint, and the walk steps across to the mate to carry on. The joint
  * itself leaves no id in the path, so this is where it is found again.
  */
 export function pathNodes(doc: HarnessDoc, from: string, path: readonly string[]): string[] {

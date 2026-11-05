@@ -22,7 +22,7 @@ import type { Translate } from "@/i18n";
  * - **Every wire is declared once**, in `WIRES`, and both cavity tables are
  *   generated from that. Cross-references, colours and sections therefore
  *   cannot disagree between the two ends, which is exactly the mistake the
- *   consistency check exists to catch — an example that trips its own checks
+ *   consistency check exists to catch: an example that trips its own checks
  *   would teach the wrong lesson. `tests/sample.test.ts` holds it to that.
  * - **Every colour appears in at most two connectors**, because that is the
  *   two-ends rule, and plain black is the only one bridged further, because it
@@ -440,7 +440,7 @@ const MARKERS: Marker[] = [
  * One wire, declared once and written into the tables at both of its ends.
  *
  * An endpoint is `NAME.cavity`, or a bare `NAME` for a ring terminal or a
- * splice — they have nothing to number, and the drawing has no table for them.
+ * splice: they have nothing to number, and the drawing has no table for them.
  */
 interface Wire {
   from: string;

@@ -62,7 +62,7 @@ export interface Segment {
    * Present, it goes exactly this way and nothing rearranges it.
    *
    * A bend is not a node: nothing joins there, no wire ends there and it
-   * carries no name — it only says the cable turns. Making it a node instead
+   * carries no name: it only says the cable turns. Making it a node instead
    * would put a junction into the routing graph that no wire ever leaves by,
    * and every count of branches in the drawing would go wrong.
    */
@@ -153,7 +153,7 @@ export interface HarnessDoc {
    * The schematic is worked out from the drawing and lays itself out on its
    * own, so this holds only the boxes somebody has moved by hand: a name that
    * is not here is placed automatically. It is part of the document because it
-   * is a decision about how this harness reads, not a setting of the program —
+   * is a decision about how this harness reads, not a setting of the program,
    * so it is saved with the file, it is undoable, and reopening the drawing
    * somewhere else finds the schematic laid out the way it was left.
    */

@@ -35,7 +35,7 @@ const harness = (): HarnessDoc =>
         y: 0,
         kind: "table",
         node: "a",
-        title: "A — Headlights",
+        title: "A - Headlights",
         head: HEAD,
         rows: [
           ["1", "B.1", "Low beam", "Red"],
@@ -48,7 +48,7 @@ const harness = (): HarnessDoc =>
         y: 0,
         kind: "table",
         node: "b",
-        title: "B — Fuse panel",
+        title: "B - Fuse panel",
         head: HEAD,
         rows: [
           ["1", "A.1", "Low beam", "Red"],
@@ -152,7 +152,7 @@ describe("replaceAll", () => {
     const doc = harness();
     replaceAll(doc, "A", "ALT", opt({ whole: true, matchCase: true }));
     expect(doc.nodes[0]?.name).toBe("ALT");
-    expect(doc.tables[0]?.title).toBe("ALT — Headlights");
+    expect(doc.tables[0]?.title).toBe("ALT - Headlights");
     // the other connector's references to it follow, as the whole text "A.1" is not "A"
     expect(doc.tables[1]?.rows[0]?.[1]).toBe("ALT.1");
   });
@@ -161,7 +161,7 @@ describe("replaceAll", () => {
     const doc = harness();
     replaceAll(doc, "A", "AA", opt({ whole: true, matchCase: true }));
     expect(doc.nodes[0]?.name).toBe("AA");
-    expect(doc.tables[0]?.title).toBe("AA — Headlights");
+    expect(doc.tables[0]?.title).toBe("AA - Headlights");
     expect(doc.tables[1]?.rows[0]?.[1]).toBe("AA.1");
   });
 
@@ -170,7 +170,7 @@ describe("replaceAll", () => {
     // "A" is also a bare part of "A.1", "A.2" and the title: the rename has done those already
     replaceAll(doc, "A", "AX", opt({ whole: false, matchCase: true }));
     expect(doc.nodes[0]?.name).toBe("AX");
-    expect(doc.tables[0]?.title).toBe("AX — Headlights");
+    expect(doc.tables[0]?.title).toBe("AX - Headlights");
     expect(doc.tables[1]?.rows[0]?.[1]).toBe("AX.1");
     expect(doc.tables[1]?.rows[1]?.[1]).toBe("AX.2");
   });
@@ -187,7 +187,7 @@ describe("replaceAll", () => {
     const doc = harness();
     replaceAll(doc, "A", "B", opt({ whole: true, matchCase: true }));
     expect(doc.nodes[0]?.name).toBe("A");
-    expect(doc.tables[0]?.title).toBe("A — Headlights");
+    expect(doc.tables[0]?.title).toBe("A - Headlights");
   });
 
   it("leaves the references to a connector alone when its rename is refused", () => {
@@ -195,7 +195,7 @@ describe("replaceAll", () => {
     // "A" is not a whole cell here, so the A.1 and A.2 cells and the table title match too
     const result = replaceAll(doc, "A", "B", opt({ matchCase: true }));
     expect(doc.nodes[0]?.name).toBe("A");
-    expect(doc.tables[0]?.title).toBe("A — Headlights");
+    expect(doc.tables[0]?.title).toBe("A - Headlights");
     expect(doc.tables[1]?.rows[0]?.[1]).toBe("A.1");
     expect(doc.tables[1]?.rows[1]?.[1]).toBe("A.2");
     // the one place that changed is the revision, "A" by default, which is not the connector
@@ -231,7 +231,7 @@ const injectors = (): HarnessDoc =>
         x: 0,
         y: 0,
         kind: "table",
-        title: "INJ2 — Injector 2",
+        title: "INJ2 - Injector 2",
         head: HEAD,
         rows: [["1", "INJ3.1", "Fuel", "Red"]],
       },
@@ -240,7 +240,7 @@ const injectors = (): HarnessDoc =>
         x: 0,
         y: 0,
         kind: "table",
-        title: "INJ3 — Injector 3",
+        title: "INJ3 - Injector 3",
         head: HEAD,
         rows: [["1", "INJ2.1", "Fuel", "Red"]],
       },
@@ -252,7 +252,7 @@ describe("table titles", () => {
     const doc = injectors();
     const result = replaceAll(doc, "INJ2", "INJ3", opt());
     expect(doc.nodes[0]?.name).toBe("INJ2");
-    expect(doc.tables[0]?.title).toBe("INJ2 — Injector 2");
+    expect(doc.tables[0]?.title).toBe("INJ2 - Injector 2");
     expect(doc.tables[1]?.rows[0]?.[1]).toBe("INJ2.1");
     expect(result.changed).toBe(0);
     expect(result.held).toBeGreaterThan(0);
@@ -262,20 +262,20 @@ describe("table titles", () => {
     const doc = injectors();
     expect(replaceAt(doc, { kind: "title", table: "t3" }, "Injector 3", "Injector 2", opt())).toBe(true);
     expect(replaceAt(doc, { kind: "title", table: "t3" }, "INJ3", "INJ2", opt())).toBe(false);
-    expect(doc.tables[1]?.title).toBe("INJ3 — Injector 2");
+    expect(doc.tables[1]?.title).toBe("INJ3 - Injector 2");
   });
 
   it("refuses a title that stops starting with the connector's name", () => {
     const doc = injectors();
     expect(replaceAt(doc, { kind: "title", table: "t2" }, "INJ2", "FUEL", opt())).toBe(false);
-    expect(doc.tables[0]?.title).toBe("INJ2 — Injector 2");
+    expect(doc.tables[0]?.title).toBe("INJ2 - Injector 2");
   });
 
   it("still renames the connector and its table together when the name is free", () => {
     const doc = injectors();
     replaceAll(doc, "INJ2", "INJ9", opt());
     expect(doc.nodes[0]?.name).toBe("INJ9");
-    expect(doc.tables[0]?.title).toBe("INJ9 — Injector 2");
+    expect(doc.tables[0]?.title).toBe("INJ9 - Injector 2");
     expect(doc.tables[1]?.rows[0]?.[1]).toBe("INJ9.1");
   });
 });
