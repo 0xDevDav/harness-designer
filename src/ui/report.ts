@@ -89,11 +89,15 @@ export function renderReport(app: AppContext, host: HTMLElement, precomputed?: I
   for (const issue of issues) {
     const row = document.createElement("div");
     row.className = "issue" + (issue.severity === "warning" ? " issue--warning" : "");
-    row.textContent = (issue.severity === "warning" ? "▲ " : "⚠ ") + issue.message;
+    // the message is the control that goes to the element, and the buttons sit
+    // beside it and not inside, or a screen reader reads them as one
+    const text = document.createElement("div");
+    text.textContent = (issue.severity === "warning" ? "▲ " : "⚠ ") + issue.message;
+    row.append(text);
     const target = issue.target;
     if (target) {
-      row.tabIndex = 0;
-      row.setAttribute("role", "button");
+      text.tabIndex = 0;
+      text.setAttribute("role", "button");
       const go = (): void => {
         app.store.select(target);
         const box = app.renderer.entityBBox(target);
@@ -102,9 +106,9 @@ export function renderReport(app: AppContext, host: HTMLElement, precomputed?: I
         // list has to stay put so the next problem is one click away
         app.showReport(issues);
       };
+      // the whole box takes the click, the buttons in it stop their own
       row.addEventListener("click", go);
-      row.addEventListener("keydown", (ev) => {
-        if (ev.target !== row) return;
+      text.addEventListener("keydown", (ev) => {
         if (ev.key === "Enter" || ev.key === " ") {
           ev.preventDefault();
           go();
