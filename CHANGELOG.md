@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.0]
+
 ### Changed
 
 - **Splices in the two-ends rule.** The wires of one colour that all reach the
