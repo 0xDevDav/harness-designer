@@ -224,6 +224,8 @@ export interface Issue {
   message: string;
   /** element to select when the problem is clicked */
   target?: Selection;
+  /** the wire colour the problem is about, when it is about one */
+  color?: string;
 }
 
 /** One row of the wire list. */

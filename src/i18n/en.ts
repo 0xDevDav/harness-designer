@@ -351,6 +351,8 @@ export const en = {
   "validate.sectionMismatch": "Wire {from} ↔ {dest}: sections disagree ({a} / {b})",
   "validate.typeMismatch": "Wire {from} ↔ {dest}: wire types disagree ({a} / {b})",
   "validate.wireTooManyEnds": "Colour {color} appears in {n} connectors ({list}): a wire has only two ends",
+  "validate.wireOffSplice":
+    "Colour {color}: goes to splice {splice} but also comes back in {list}, off that splice",
   "validate.wireUnreachable":
     "Wire {from} → {to}: both connectors exist but no branch joins them, so the wire cannot be built",
   "validate.unnamedConnector": "Unnamed connector: it cannot appear in the wire list",

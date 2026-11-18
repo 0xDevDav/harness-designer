@@ -355,6 +355,8 @@ export const it = {
   "validate.sectionMismatch": "Filo {from} ↔ {dest}: sezione discorde ({a} / {b})",
   "validate.typeMismatch": "Filo {from} ↔ {dest}: tipo filo discorde ({a} / {b})",
   "validate.wireTooManyEnds": "Colore {color} presente in {n} connettori ({list}): un filo ha due soli capi",
+  "validate.wireOffSplice":
+    "Colore {color}: va allo splice {splice} ma torna anche in {list}, fuori da quello splice",
   "validate.wireUnreachable":
     "Filo {from} → {to}: i due connettori esistono ma nessun ramo li collega, il filo non è realizzabile",
   "validate.unnamedConnector": "Connettore senza nome: non può comparire nella distinta fili",
