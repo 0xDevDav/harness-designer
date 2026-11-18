@@ -24,11 +24,11 @@ import type { Translate } from "@/i18n";
  *   cannot disagree between the two ends, which is exactly the mistake the
  *   consistency check exists to catch: an example that trips its own checks
  *   would teach the wrong lesson. `tests/sample.test.ts` holds it to that.
- * - **Every colour appears in at most two connectors**, because that is the
- *   two-ends rule, and plain black is the only one bridged further, because it
- *   is ground. That is why the wires fanning out of a splice each carry their
- *   own tracer: downstream of a splice they are different wires, and a drawing
- *   that gave them one code could not tell you which one you are holding.
+ * - **Every colour appears in at most two connectors**, the two ends of one
+ *   wire, except at a splice, where every wire of a colour meets as one
+ *   circuit, and for plain black, which is ground. The wires fanning out of a
+ *   splice here carry each their own tracer anyway, by choice: a drawing that
+ *   gives them one code cannot tell you which one you are holding.
  */
 
 /* ============================ what is in the harness ============================ */

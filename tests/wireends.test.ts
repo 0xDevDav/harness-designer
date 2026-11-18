@@ -33,6 +33,47 @@ function build(perConnector: Record<string, string[]>, isolated: string[] = []):
   });
 }
 
+/**
+ * Connectors with rows of `[colour, destination]`, and splices by name. A splice
+ * has no table, as in a real drawing: the wires reaching it say so in theirs.
+ */
+function wired(perConnector: Record<string, [string, string][]>, splices: string[] = []): HarnessDoc {
+  const names = Object.keys(perConnector);
+  return normalizeDoc({
+    nodes: [
+      ...names.map((name, i) => ({
+        id: `n${i}`,
+        x: i * 50,
+        y: 0,
+        kind: "connector",
+        name,
+        style: "plug",
+        refs: "",
+      })),
+      ...splices.map((name, i) => ({
+        id: `s${i}`,
+        x: i * 50,
+        y: 300,
+        kind: "connector",
+        name,
+        style: "splice",
+        refs: "",
+      })),
+    ],
+    segments: [],
+    tables: names.map((name, i) => ({
+      id: `t${i}`,
+      node: `n${i}`,
+      x: 0,
+      y: i * 100,
+      kind: "table",
+      title: name,
+      head: ["Cavità", "Colore", "Verso"],
+      rows: (perConnector[name] ?? []).map(([color, dest], r) => [String(r + 1), color, dest]),
+    })),
+  });
+}
+
 const t = (key: string, params?: Record<string, string | number>): string =>
   params ? `${key}:${JSON.stringify(params)}` : key;
 
@@ -127,5 +168,88 @@ describe("two-ends rule", () => {
     expect(issues[0]?.severity).toBe("error");
     expect(issues[0]?.message).toContain("C1, C3, C4");
     expect(issues[0]?.target?.type).toBe("table");
+  });
+});
+
+describe("two-ends rule at a splice", () => {
+  it("every wire of a colour reaching the same splice is one circuit", () => {
+    const doc = wired(
+      {
+        ECU: [["rosso", "S1"]],
+        INJ1: [["rosso", "S1"]],
+        INJ2: [["rosso", "S1"]],
+        INJ3: [["rosso", "S1 → W1"]],
+      },
+      ["S1"],
+    );
+    expect(checkWireEnds(doc).conflicts).toHaveLength(0);
+    expect(validateDoc(doc, t).filter((i) => i.rule === "wire-ends")).toHaveLength(0);
+  });
+
+  it("the colour coming back in a wire off the splice is still an error, on that wire only", () => {
+    const doc = wired(
+      {
+        ECU: [["rosso", "S1"]],
+        INJ1: [["rosso", "S1"]],
+        INJ2: [["rosso", "S1"]],
+        FAN: [["rosso", "RLY.2"]],
+        RLY: [
+          ["", ""],
+          ["rosso", "FAN.1"],
+        ],
+      },
+      ["S1"],
+    );
+    const report = checkWireEnds(doc);
+    expect(report.conflicts).toHaveLength(1);
+    expect(report.conflicts[0]?.splice).toBe("S1");
+    expect(report.conflicts[0]?.stray).toEqual(["FAN", "RLY"]);
+    // the rows on the splice are fine, the two off it are the ones to look at
+    expect([...report.rowsByTable.keys()].sort()).toEqual(["t3", "t4"]);
+    expect([...(report.rowsByTable.get("t4") ?? [])]).toEqual([1]);
+
+    const issues = validateDoc(doc, t).filter((i) => i.rule === "wire-ends");
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.message).toContain("validate.wireOffSplice");
+    expect(issues[0]?.message).toContain("FAN, RLY");
+    expect(issues[0]?.target).toEqual({ type: "table", id: "t3" });
+    expect(issues[0]?.color).toBe("rosso");
+  });
+
+  it("one colour on two different splices is two circuits", () => {
+    const doc = wired(
+      {
+        A: [["blu", "S1"]],
+        B: [["blu", "S1"]],
+        C: [["blu", "S1"]],
+        D: [["blu", "S2"]],
+        E: [["blu", "S2"]],
+      },
+      ["S1", "S2"],
+    );
+    const report = checkWireEnds(doc);
+    expect(report.conflicts).toHaveLength(1);
+    expect(report.conflicts[0]?.splice).toBe("S1");
+    expect(report.conflicts[0]?.stray).toEqual(["D", "E"]);
+  });
+
+  it("a connector named like a splice is not one", () => {
+    const doc = wired({
+      A: [["verde", "S1"]],
+      B: [["verde", "S1"]],
+      S1: [
+        ["verde", ""],
+        ["verde", ""],
+      ],
+    });
+    expect(checkWireEnds(doc).conflicts).toHaveLength(1);
+  });
+
+  it("each wire off a splice may still carry its own tracer", () => {
+    const doc = wired(
+      { FB: [["rosso/giallo", "S3"]], INJ1: [["rosso/viola", "S3"]], INJ2: [["rosso/rosa", "S3"]] },
+      ["S3"],
+    );
+    expect(checkWireEnds(doc).conflicts).toHaveLength(0);
   });
 });

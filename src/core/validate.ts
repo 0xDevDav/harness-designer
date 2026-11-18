@@ -358,7 +358,8 @@ const drawingHygiene: ValidationRule = {
 
 /**
  * Two-ends rule: the same colour in three or more connectors is a physical
- * wiring mistake. Plain black is exempt, because it is ground.
+ * wiring mistake, unless all of them meet at one splice. Plain black is exempt,
+ * because it is ground.
  */
 const wireEnds: ValidationRule = {
   id: "wire-ends",
@@ -366,11 +367,19 @@ const wireEnds: ValidationRule = {
     return checkWireEnds(doc).conflicts.map((conflict) => ({
       rule: "wire-ends",
       severity: "error" as const,
-      message: t("validate.wireTooManyEnds", {
-        color: conflict.label,
-        n: conflict.owners.length,
-        list: conflict.owners.join(", "),
-      }),
+      message:
+        conflict.splice && conflict.stray
+          ? t("validate.wireOffSplice", {
+              color: conflict.label,
+              splice: conflict.splice,
+              list: conflict.stray.join(", "),
+            })
+          : t("validate.wireTooManyEnds", {
+              color: conflict.label,
+              n: conflict.owners.length,
+              list: conflict.owners.join(", "),
+            }),
+      color: conflict.label,
       ...(conflict.rows[0] ? { target: { type: "table" as const, id: conflict.rows[0].tableId } } : {}),
     }));
   },
