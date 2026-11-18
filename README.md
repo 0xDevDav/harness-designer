@@ -22,26 +22,26 @@ every branch it runs through lit along the harness._
 
 ## What it does
 
-| Feature                     | Description                                                                                                                                                                |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Formboard drawing**       | Double-line bundles, junction boots, termination symbols, inline labels for fuses, conduit and tape                                                                        |
-| **Square or free layout**   | Branches held horizontal and vertical with the corner forming itself, or drawn freehand, with bend points wherever the harness turns                                       |
-| **Wires inside the bundle** | Select a branch or a connector and the wires running through it are drawn from the cavity tables, each on its own lane, in its own colour                                  |
-| **Wire colours**            | Multi-colour wires marked the way they really are: the first colour is the ground, the rest are bands across it, leaning as if wound round it                              |
-| **Schematic view**          | The same harness read as circuits: one box per connector, one line per connection. On its own, or beside the sheet, where what you pick in one view lights up in the other |
-| **Cavity tables**           | Pin-outs edited straight on the sheet, tied to their connector                                                                                                             |
-| **Housings, terminations**  | Housing and termination tables; a cavity table picks its housing, each cavity its contact, and the counts keep themselves                                                  |
-| **Automatic linking**       | Fill in a destination and the matching cavity at the far end fills itself, colour and section included                                                                     |
-| **Joints**                  | Two connectors mated: the wire ends there and another begins, so the colour may change and the checks allow it                                                             |
-| **Consistency check**       | Mismatched cross-references, missing cavities, one-way links and disagreeing wire properties, each clickable                                                               |
-| **Two-ends rule**           | The same colour across three or more connectors is flagged as the wiring mistake it is, with black exempt as ground                                                        |
-| **Wire list**               | Generated from the tables, mirrored pairs collapsed, cut lengths summed, exportable as CSV                                                                                 |
-| **Bilingual**               | Italian and English, switchable at runtime, colour names included                                                                                                          |
-| **Plugins**                 | Commands, validation rules, exporters, connector symbols and colour names, without recompiling                                                                             |
-| **Command palette**         | `Ctrl+K` for every action and its shortcut                                                                                                                                 |
-| **Light and dark**          | The sheet stays light in both, because that is what gets printed                                                                                                           |
-| **Touch ready**             | Pinch, drag and an offcanvas menu on tablets and phones                                                                                                                    |
-| **Single file**             | One HTML file that opens on a double click, with no server at all                                                                                                          |
+| Feature                     | Description                                                                                                                                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Formboard drawing**       | Double-line bundles, junction boots, termination symbols, inline labels for fuses, conduit and tape                                                                                                                       |
+| **Square or free layout**   | Branches held horizontal and vertical with the corner forming itself, or drawn freehand, with bend points wherever the harness turns                                                                                      |
+| **Wires inside the bundle** | Select a branch or a connector and the wires running through it are drawn from the cavity tables, each on its own lane, in its own colour                                                                                 |
+| **Wire colours**            | Multi-colour wires marked the way they really are: the first colour is the ground, the rest are bands across it, leaning as if wound round it                                                                             |
+| **Schematic view**          | The same harness read as circuits: one box per connector, one line per connection. On its own, or beside the sheet, where what you pick in one view lights up in the other                                                |
+| **Cavity tables**           | Pin-outs edited straight on the sheet, tied to their connector                                                                                                                                                            |
+| **Housings, terminations**  | Housing and termination tables; a cavity table picks its housing, each cavity its contact, and the counts keep themselves                                                                                                 |
+| **Automatic linking**       | Fill in a destination and the matching cavity at the far end fills itself, colour and section included                                                                                                                    |
+| **Joints**                  | Two connectors mated: the wire ends there and another begins, so the colour may change and the checks allow it                                                                                                            |
+| **Consistency check**       | Mismatched cross-references, missing cavities, one-way links and disagreeing wire properties, each clickable                                                                                                              |
+| **Two-ends rule**           | The same colour across three or more connectors is flagged as the wiring mistake it is. Exempt: the wires of a colour that meet at one splice, black as ground, and the colours the drawing leaves out in the Check panel |
+| **Wire list**               | Generated from the tables, mirrored pairs collapsed, cut lengths summed, exportable as CSV                                                                                                                                |
+| **Bilingual**               | Italian and English, switchable at runtime, colour names included                                                                                                                                                         |
+| **Plugins**                 | Commands, validation rules, exporters, connector symbols and colour names, without recompiling                                                                                                                            |
+| **Command palette**         | `Ctrl+K` for every action and its shortcut                                                                                                                                                                                |
+| **Light and dark**          | The sheet stays light in both, because that is what gets printed                                                                                                                                                          |
+| **Touch ready**             | Pinch, drag and an offcanvas menu on tablets and phones                                                                                                                                                                   |
+| **Single file**             | One HTML file that opens on a double click, with no server at all                                                                                                                                                         |
 
 ## Quick start
 
