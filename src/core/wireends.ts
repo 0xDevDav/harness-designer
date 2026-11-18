@@ -1,5 +1,6 @@
 import { cell, isAutoLinkEnabled, ownerName, tableColumns } from "./doc";
 import { isGroundColor, wireColorKey } from "./colors";
+import { exemptColorKeys } from "./exempt";
 import { endpointConnector } from "./routing";
 import type { HarnessDoc, Table } from "./types";
 
@@ -17,7 +18,7 @@ import type { HarnessDoc, Table } from "./types";
  * still an error, because that is a different circuit wearing the same code.
  *
  * Plain black is ground, which by nature is bridged across as many connectors
- * as needed.
+ * as needed, and the drawing can name more colours to leave out the same way.
  *
  * Tables with tracking disabled are left out of the count: they are isolated
  * notes and do not describe the real harness.
@@ -88,6 +89,7 @@ function mainSplice(occurrences: Occurrence[]): string | undefined {
 
 export function checkWireEnds(doc: HarnessDoc): WireEndsReport {
   const byColor = new Map<string, Occurrence[]>();
+  const exempt = exemptColorKeys(doc);
   const splices = spliceNames(doc);
 
   for (const { table, owner, colorCol, destCol } of colorTables(doc)) {
@@ -96,6 +98,7 @@ export function checkWireEnds(doc: HarnessDoc): WireEndsReport {
       if (!value || isGroundColor(value)) return;
       const key = wireColorKey(value);
       if (!key) return; // text that is not a colour takes no part in the rule
+      if (exempt.has(key)) return;
       const to = endpointConnector(cell(row, destCol));
       const list = byColor.get(key) ?? [];
       list.push({

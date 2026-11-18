@@ -176,6 +176,11 @@ export interface HarnessDoc {
   wireUnit?: WireUnit;
   /** Starting point for new wires. Absent when none has been set. */
   defaults?: WireDefaults;
+  /**
+   * Colours the two-ends rule leaves out, as cells write them, besides plain
+   * black. Absent when there are none.
+   */
+  exemptColors?: string[];
 }
 
 /** What a new wire starts with; filled into what is empty, never over what is written. */

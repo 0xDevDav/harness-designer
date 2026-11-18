@@ -19,7 +19,7 @@
  *   messages  .toasts .toast (--error)
  *   palette   .palette .palette__input .palette__list .palette__item .palette__hint
  *   colours   .swatch .colorcell .picker .picker__*
- *   check     .issue (--warning) .ok
+ *   check     .issue (--warning) .ok .exempt .exempt__chip
  *   plugin    .plugin .plugin__head .plugin__name .plugin__meta .plugin__actions
  *   guide     .guide .doc .doc__section .doc__code .doc__copy
  */
@@ -1287,6 +1287,18 @@ body {
   border-radius: var(--radius);
   padding: 12px;
   line-height: 1.5;
+}
+
+/* the colours left out of the two-ends rule, under the report */
+.exempt {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.exempt__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* ---------------- plugin panel ---------------- */
