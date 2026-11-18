@@ -2,6 +2,7 @@ import { DOC_VERSION } from "./types";
 import type { DocMeta, HarnessDoc, HNode, Inline, Point, Segment, Table } from "./types";
 import { CATALOG_KINDS, catalogWidth, syncCatalogs } from "./catalog";
 import { normalizeDefaults } from "./defaults";
+import { normalizeExemptColors } from "./exempt";
 import { seedIds, uid } from "./ids";
 import { T_MAX, T_MIN, alongPolyline, clamp, dist, polylineLength, projectPolyline } from "./geometry";
 
@@ -73,6 +74,8 @@ export function normalizeDoc(input: unknown): HarnessDoc {
   if (raw.wireUnit === "mm2" || raw.wireUnit === "awg") doc.wireUnit = raw.wireUnit;
   const defaults = normalizeDefaults(raw.defaults);
   if (defaults) doc.defaults = defaults;
+  const exemptColors = normalizeExemptColors(raw.exemptColors);
+  if (exemptColors) doc.exemptColors = exemptColors;
 
   const meta = (typeof raw.meta === "object" && raw.meta !== null ? raw.meta : {}) as Partial<DocMeta>;
   doc.meta = {

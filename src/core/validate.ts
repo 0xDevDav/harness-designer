@@ -359,7 +359,7 @@ const drawingHygiene: ValidationRule = {
 /**
  * Two-ends rule: the same colour in three or more connectors is a physical
  * wiring mistake, unless all of them meet at one splice. Plain black is exempt,
- * because it is ground.
+ * because it is ground, and so is any colour the drawing leaves out.
  */
 const wireEnds: ValidationRule = {
   id: "wire-ends",

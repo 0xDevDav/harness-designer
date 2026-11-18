@@ -353,6 +353,13 @@ export const en = {
   "validate.wireTooManyEnds": "Colour {color} appears in {n} connectors ({list}): a wire has only two ends",
   "validate.wireOffSplice":
     "Colour {color}: goes to splice {splice} but also comes back in {list}, off that splice",
+  "validate.exempt.title": "Colours left out of the two-ends check",
+  "validate.exempt.intro":
+    "Black (ground) is always left out. Add here other colours that may go to more connectors, for example the red of +12 V. It applies to every wire of that colour.",
+  "validate.exempt.none": "No other colour left out.",
+  "validate.exempt.add": "Add colour…",
+  "validate.exempt.remove": "Remove {color} from the colours left out",
+  "validate.exempt.this": "Leave {color} out of the check",
   "validate.wireUnreachable":
     "Wire {from} → {to}: both connectors exist but no branch joins them, so the wire cannot be built",
   "validate.unnamedConnector": "Unnamed connector: it cannot appear in the wire list",

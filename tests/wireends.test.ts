@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { checkWireEnds } from "@/core/wireends";
 import { isGroundColor, wireColorKey } from "@/core/colors";
 import { normalizeDoc } from "@/core/doc";
+import { exemptColorKeys, setColorExempt } from "@/core/exempt";
 import { validateDoc } from "@/core/validate";
 import type { HarnessDoc } from "@/core/types";
 
@@ -251,5 +252,42 @@ describe("two-ends rule at a splice", () => {
       ["S3"],
     );
     expect(checkWireEnds(doc).conflicts).toHaveLength(0);
+  });
+});
+
+describe("colours left out of the two-ends rule", () => {
+  it("a colour on the list never triggers the error, however it is written", () => {
+    const doc = build({ C1: ["rosso"], C2: ["rosso"], C3: ["red"], C4: ["RT"] });
+    expect(checkWireEnds(doc).conflicts).toHaveLength(1);
+    setColorExempt(doc, "rosso", true);
+    expect(doc.exemptColors).toEqual(["rosso"]);
+    expect(checkWireEnds(doc).conflicts).toHaveLength(0);
+    expect(validateDoc(doc, t).filter((i) => i.rule === "wire-ends")).toHaveLength(0);
+  });
+
+  it("goes by colour: the same base with a tracer is still checked", () => {
+    const doc = build({ C1: ["rosso/bianco"], C2: ["rosso/bianco"], C3: ["rosso/bianco"] });
+    setColorExempt(doc, "rosso", true);
+    expect(checkWireEnds(doc).conflicts).toHaveLength(1);
+  });
+
+  it("is kept once per colour, taken off again, and dropped when empty", () => {
+    const doc = build({ C1: ["blu"] });
+    setColorExempt(doc, "rosso", true);
+    setColorExempt(doc, "red", true);
+    setColorExempt(doc, "blu", true);
+    expect(doc.exemptColors).toEqual(["rosso", "blu"]);
+    expect(exemptColorKeys(doc).has(wireColorKey("RT")!)).toBe(true);
+    setColorExempt(doc, "RT", false);
+    expect(doc.exemptColors).toEqual(["blu"]);
+    setColorExempt(doc, "blu", false);
+    expect(doc.exemptColors).toBeUndefined();
+  });
+
+  it("is saved with the drawing, and what is not a colour is dropped on open", () => {
+    const doc = normalizeDoc({ exemptColors: ["rosso", " red ", "not a colour", 7, "giallo/verde"] });
+    expect(doc.exemptColors).toEqual(["rosso", "giallo/verde"]);
+    expect(normalizeDoc(JSON.parse(JSON.stringify(doc))).exemptColors).toEqual(["rosso", "giallo/verde"]);
+    expect(normalizeDoc({}).exemptColors).toBeUndefined();
   });
 });

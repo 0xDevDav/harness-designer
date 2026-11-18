@@ -357,6 +357,13 @@ export const it = {
   "validate.wireTooManyEnds": "Colore {color} presente in {n} connettori ({list}): un filo ha due soli capi",
   "validate.wireOffSplice":
     "Colore {color}: va allo splice {splice} ma torna anche in {list}, fuori da quello splice",
+  "validate.exempt.title": "Colori esclusi dal controllo dei due capi",
+  "validate.exempt.intro":
+    "Il nero (massa) è sempre escluso. Qui aggiungi altri colori che possono andare a più connettori, per esempio il rosso del +12. Vale per tutti i fili di quel colore.",
+  "validate.exempt.none": "Nessun altro colore escluso.",
+  "validate.exempt.add": "Aggiungi colore…",
+  "validate.exempt.remove": "Togli {color} dai colori esclusi",
+  "validate.exempt.this": "Escludi {color} dal controllo",
   "validate.wireUnreachable":
     "Filo {from} → {to}: i due connettori esistono ma nessun ramo li collega, il filo non è realizzabile",
   "validate.unnamedConnector": "Connettore senza nome: non può comparire nella distinta fili",
