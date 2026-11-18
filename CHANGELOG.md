@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Splices in the two-ends rule.** The wires of one colour that all reach the
+  same splice are one circuit, however many there are, and the check no longer
+  reports them. The colour coming back in a wire that does not reach that
+  splice is still an error: the message names the splice and the connectors
+  off it, and only their rows are highlighted. Giving each wire after a splice
+  its own tracer, as the sample does, is still possible and no longer needed.
+
+### Added
+
+- **Colours left out of the check.** Under the Check report, the drawing can
+  list colours the two-ends rule leaves out, the way it leaves out black as
+  ground: for example the red of +12 V. It goes by colour, so every wire of that
+  colour is left out, and a tracer makes another colour. Add one with _Add
+  colour…_, or with _Leave … out of the check_ on the error itself; click a
+  colour to take it off. The list is saved with the drawing and is undoable.
+
 ## [1.3.0]
 
 ### Added
